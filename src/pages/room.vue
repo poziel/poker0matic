@@ -1,86 +1,128 @@
 <template>
-  <template v-if="currentRoom && !showNamePrompt">
+  <template v-if="currentRoom && !!userName">
     <div class="shell">
-      <aside class="rail" :class="{ collapsed: railCollapsed }">
-        <div class="rail-head">
-          <span v-if="!railCollapsed" class="kicker">Now voting</span>
+      <!-- Backdrop for mobile sidebar overlay -->
+      <div v-if="historyPanelOpen" class="panel-backdrop" @click="historyPanelOpen = false" />
 
-          <v-btn
-            :aria-label="railCollapsed ? 'Expand panel' : 'Collapse panel'"
-            class="icon-btn"
-            density="compact"
-            icon
-            variant="text"
-            @click="railCollapsed = !railCollapsed"
-          >
-            <v-icon :icon="railCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left'" size="16" />
-          </v-btn>
-        </div>
-
-        <template v-if="!railCollapsed">
-          <div class="story">
-            <div class="story-id">
-              <span>{{ roomId }}</span>
-            </div>
-
-            <div class="story-meta">
-              <div>
-                <span class="lbl">Deck</span>
-                <span class="val">{{ deckLabel }}</span>
-              </div>
-
-              <div>
-                <span class="lbl">Status</span>
-
-                <span class="val" :class="showVotes ? 'status-revealed' : 'status-waiting'">
-                  {{ showVotes ? 'Revealed' : 'Voting' }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <RoundStatsPanel :stats="stats" />
-
-          <div class="rail-footer">
-            <div class="kicker">Share</div>
-
-            <v-btn
-              class="p0-btn"
-              :class="shareCopied ? 'p0-btn-primary' : 'p0-btn-ghost'"
-              :disabled="!firebaseConfig"
-              :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
-              variant="flat"
-              @click="shareRoomConfig"
-            >
-              {{ shareCopied ? 'Copied' : 'Copy room + config link' }}
-            </v-btn>
-          </div>
-        </template>
-      </aside>
+      <RoomSidePanel
+        v-model:open="historyPanelOpen"
+        :history="sessionHistory"
+        :history-enabled="currentRoom?.settings?.historyEnabled !== false"
+        :description="description"
+        @update:description="onDescriptionChange"
+      />
 
       <main class="main">
         <div class="main-head">
-          <h2>
-            {{ currentRoom.name }}
-            <span class="round-counter">round {{ currentRound }}</span>
-          </h2>
+          <div class="main-head-left">
+            <!-- Sidebar toggle: always visible in the header -->
+            <v-btn
+              :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+              class="icon-btn mobile-panel-btn"
+              density="compact"
+              icon
+              :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+              variant="text"
+              @click="historyPanelOpen = !historyPanelOpen"
+            >
+              <v-icon :icon="historyPanelOpen ? 'mdi-backburger' : 'mdi-menu'" size="16" />
+            </v-btn>
 
-          <div class="progress-pill">
-            <span class="progress-dots">
-              <span
-                v-for="player in sortedRoomUsers"
-                :key="player.userId"
-                class="pdot"
-                :class="{ done: player.vote != null }"
-                :title="player.name"
-              />
-            </span>
+            <v-btn
+              aria-label="Back to lobby"
+              class="icon-btn"
+              density="compact"
+              icon
+              title="Back to lobby"
+              to="/"
+              variant="text"
+            >
+              <v-icon icon="mdi-home-outline" size="16" />
+            </v-btn>
 
-            <span class="vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
+            <h2>
+              {{ currentRoom.name }}
+              <span class="round-counter">round {{ currentRound }}</span>
+            </h2>
+          </div>
+
+          <div class="main-head-right">
+            <div class="progress-pill">
+              <span class="progress-dots">
+                <span
+                  v-for="player in sortedRoomUsers"
+                  :key="player.userId"
+                  class="pdot"
+                  :class="{ done: player.vote != null }"
+                  :title="player.name"
+                />
+              </span>
+
+              <span class="vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
+            </div>
+
+            <v-btn
+              :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+              class="icon-btn"
+              density="compact"
+              icon
+              :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+              variant="text"
+              @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
+            >
+              <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
+            </v-btn>
+
+            <v-btn
+              aria-label="Room settings"
+              class="icon-btn"
+              density="compact"
+              icon
+              title="Room settings"
+              variant="text"
+              @click="roomConfigOpen = true"
+            >
+              <v-icon icon="mdi-tune" size="16" />
+            </v-btn>
+
+            <v-btn
+              :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
+              class="icon-btn"
+              density="compact"
+              :disabled="!firebaseConfig"
+              icon
+              :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
+              variant="text"
+              @click="shareRoomConfig"
+            >
+              <v-icon :icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'" size="16" />
+            </v-btn>
           </div>
         </div>
 
+        <RoomConfigModal
+          v-if="currentRoom"
+          v-model="roomConfigOpen"
+          :current-settings="{
+            name: currentRoom.name,
+            deck: currentRoom.settings?.deck ?? 'fibonacci',
+            customDeck: currentRoom.settings?.customDeck ?? '',
+            specialQuestion: currentRoom.settings?.specialQuestion !== false,
+            specialCoffee: currentRoom.settings?.specialCoffee !== false,
+            historyEnabled: currentRoom.settings?.historyEnabled !== false,
+          }"
+          @save="applyRoomConfig"
+        />
+
+        <SimpleResultsGrid
+          v-if="configStore.viewMode === 'grid'"
+          :current-user-id="configStore.userId"
+          :players="sortedRoomUsers"
+          :show-votes="showVotes"
+        />
+
         <PokerTable
+          v-else
           :current-user-id="configStore.userId"
           :players="sortedRoomUsers"
           :shaking-user-ids="shakingUserIds"
@@ -110,25 +152,50 @@
               Reset round
             </v-btn>
           </template>
+
+          <template v-else>
+            <v-btn
+              class="p0-btn p0-btn-ghost"
+              prepend-icon="mdi-eye-off"
+              variant="flat"
+              @click="hideVotes"
+            >
+              Hide votes
+            </v-btn>
+
+            <v-btn
+              class="p0-btn p0-btn-primary"
+              :prepend-icon="historyEnabled ? 'mdi-arrow-right' : 'mdi-refresh'"
+              variant="flat"
+              @click="resetVotes"
+            >
+              {{ historyEnabled ? 'Next round' : 'New round' }}
+            </v-btn>
+          </template>
         </div>
+
+        <div v-if="showVotes && committedVote" class="committed-vote-center">
+          <div class="committed-vote-badge">
+            <v-icon icon="mdi-check-circle" size="14" />
+            Final: <strong>{{ committedVote }}</strong>
+          </div>
+        </div>
+
+        <VoteDock
+          v-model:collapsed="dockCollapsed"
+          :committed-vote="committedVote"
+          :display-vote-counts="displayVoteCounts"
+          :history-enabled="currentRoom?.settings?.historyEnabled !== false"
+          :selected-vote="selectedVote"
+          :show-votes="showVotes"
+          :stats="stats"
+          :user-name="userName"
+          :vote-options="voteOptions"
+          @cast-vote="castVote"
+          @commit-vote="onCommitVote"
+        />
       </main>
-
-      <RoomHistoryDrawer
-        v-model:collapsed="drawerCollapsed"
-        :history="sessionHistory"
-      />
     </div>
-
-    <VoteDock
-      v-model:collapsed="dockCollapsed"
-      :selected-vote="selectedVote"
-      :show-votes="showVotes"
-      :stats="stats"
-      :user-name="userName"
-      :vote-options="voteOptions"
-      @cast-vote="castVote"
-      @reset-votes="resetVotes"
-    />
 
     <ConfettiBurst
       v-if="showConfetti"
@@ -151,42 +218,6 @@
     Room not found. Redirecting...
   </v-snackbar>
 
-  <v-dialog v-model="showNamePrompt" max-width="480" persistent>
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
-        <h2>Join room</h2>
-        <p>{{ dialogDescription }}</p>
-      </div>
-
-      <v-form @submit.prevent="submitName">
-        <div class="p0-modal-body">
-          <v-text-field
-            v-model="name"
-            autofocus
-            class="p0-field"
-            counter="20"
-            hide-details="auto"
-            label="Your name"
-            maxlength="20"
-            placeholder="e.g. Alex"
-            required
-            variant="outlined"
-          />
-        </div>
-
-        <div class="p0-modal-foot">
-          <v-btn
-            class="p0-btn p0-btn-primary"
-            :disabled="!name.trim()"
-            type="submit"
-            variant="flat"
-          >
-            Join room
-          </v-btn>
-        </div>
-      </v-form>
-    </v-card>
-  </v-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -196,8 +227,9 @@
   import { useRoute, useRouter } from 'vue-router'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
   import PokerTable from '@/components/PokerTable.vue'
-  import RoomHistoryDrawer from '@/components/RoomHistoryDrawer.vue'
-  import RoundStatsPanel from '@/components/RoundStatsPanel.vue'
+  import RoomConfigModal from '@/components/RoomConfigModal.vue'
+  import RoomSidePanel from '@/components/RoomSidePanel.vue'
+  import SimpleResultsGrid from '@/components/SimpleResultsGrid.vue'
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
@@ -214,8 +246,8 @@
 
   const PRESET_DECKS: Record<string, (number | string)[]> = {
     fibonacci: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
-    linear:    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
-    tshirt:    ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+    tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
 
   function parseCustomDeck (raw: string): (number | string)[] {
@@ -233,6 +265,7 @@
     name: string
     createdAt: number
     createdBy: string
+    committedVote?: string | null
     settings?: {
       showVotes?: boolean
       v?: number
@@ -244,16 +277,16 @@
     }
     lastActivity?: number
   } | null>(null)
-  const roomUsers = ref<Record<string, { name: string, joinedAt: number, vote?: number | string }>>({})
+  const roomUsers = ref<Record<string, { name: string, joinedAt: number, vote?: number | string, avatarStyle?: string, avatarSeed?: string, avatarBg?: string }>>({})
+  const description = ref('')
 
   const db = configStore.getDb()
-  const name = ref(userName.value || '')
-  const showNamePrompt = ref(!userName.value)
   const roomNotFound = ref(false)
-  const drawerCollapsed = ref(false)
-  const railCollapsed = ref(false)
   const dockCollapsed = ref(false)
   const shareCopied = ref(false)
+  const roomConfigOpen = ref(false)
+
+  const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const showConfetti = ref(false)
   const shakingUserIds = ref<string[]>([])
   const previousVotes = ref<Record<string, number | string | null>>({})
@@ -267,6 +300,12 @@
     shape: string
   }>>([])
 
+  // Synced from config store so the panel toggle is persisted across sessions
+  const historyPanelOpen = computed({
+    get: () => configStore.historyPanelOpen,
+    set: v => configStore.setHistoryPanelOpen(v),
+  })
+
   let hasAutoJoined = false
   let hasSavedRoom = false
   let redirectTimeout: ReturnType<typeof setTimeout> | null = null
@@ -274,15 +313,11 @@
   let unsubscribeRoom: (() => void) | null = null
   let unsubscribeUsers: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
+  let unsubscribeDescription: (() => void) | null = null
+  let descriptionDebounce: ReturnType<typeof setTimeout> | null = null
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
-
-  const deckLabel = computed(() => {
-    const map: Record<string, string> = {
-      fibonacci: 'Fibonacci', linear: 'Linear', tshirt: 'T-shirt', custom: 'Custom',
-    }
-    return map[currentRoom.value?.settings?.deck ?? 'fibonacci'] ?? 'Fibonacci'
-  })
+  const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
 
   const voteOptions = computed((): (number | string)[] => {
     const s = currentRoom.value?.settings
@@ -293,16 +328,27 @@
     } else {
       base = [...(PRESET_DECKS[s?.deck ?? 'fibonacci'] ?? PRESET_DECKS.fibonacci)]
     }
-    // Default true for backward-compat (rooms created before this feature)
     if (s?.specialQuestion !== false) base.push('?')
     if (s?.specialCoffee !== false) base.push('☕')
     return base
   })
 
-  // Numeric subset of the active deck — used for stats (avg, median, closest)
   const deckNums = computed(() =>
     voteOptions.value.filter((v): v is number => typeof v === 'number'),
   )
+
+  // All vote values (including ?, ☕) with their counts — used for insights deck display
+  const displayVoteCounts = computed((): Record<string, number> | null => {
+    if (!showVotes.value) return null
+    const counts: Record<string, number> = {}
+    for (const user of Object.values(roomUsers.value)) {
+      if (user.vote != null) {
+        const k = String(user.vote)
+        counts[k] = (counts[k] ?? 0) + 1
+      }
+    }
+    return Object.keys(counts).length > 0 ? counts : null
+  })
 
   const votedCount = computed(() =>
     Object.values(roomUsers.value).filter(user => user.vote != null).length,
@@ -314,7 +360,6 @@
     return roomUsers.value[configStore.userId].vote ?? null
   })
 
-  // Always sorted by join time — players never reorder when votes are revealed.
   const sortedRoomUsers = computed(() =>
     Object.entries(roomUsers.value)
       .map(([userId, user]) => ({ userId, ...user }))
@@ -329,14 +374,12 @@
 
   const averageVote = computed(() => {
     if (numericVotes.value.length === 0) return null
-
     const sum = numericVotes.value.reduce((acc, val) => acc + val, 0)
     return Number.parseFloat((sum / numericVotes.value.length).toFixed(2))
   })
 
   const medianVote = computed(() => {
     if (numericVotes.value.length === 0) return null
-
     const sorted = numericVotes.value.toSorted((a, b) => a - b)
     const mid = Math.floor(sorted.length / 2)
     return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
@@ -385,27 +428,57 @@
     }
   })
 
-  const dialogDescription = computed(() =>
-    currentRoom.value ? `Joining room "${currentRoom.value.name}".` : 'Joining room.',
-  )
 
   const sessionHistory = ref<Array<{
     id: string
-    name: string
+    description?: string | null
     finalVote: string | null
+    avg?: string | null
+    closest?: string | null
     round: number
-    duration: string
+    durationMs?: number
+    duration?: string
+    completedAt?: number
     participantCount: number
     consensus: 'yes' | 'split'
+    votes?: Record<string, string>
   }>>([])
 
-  // Derived from Firebase history so every client stays in sync.
   const currentRound = computed(() => sessionHistory.value.length + 1)
 
   watch(userName, newName => {
     if (!currentRoom.value || !db || !configStore.userId) return
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
-    update(userRef, { name: newName || 'Anonymous' }).catch(console.error)
+    update(userRef, {
+      name: newName || 'Anonymous',
+      avatarSeed: configStore.avatarSeed || newName || 'Guest',
+    }).catch(console.error)
+  })
+
+  // When the global username modal (App.vue) sets a name after the room loaded,
+  // auto-join so the user appears on the table without a page reload.
+  watch(userName, newName => {
+    if (newName && !hasAutoJoined && currentRoom.value) {
+      hasAutoJoined = true
+      joinRoom()
+    }
+  })
+
+  // Sync avatar style/seed/bg to Firebase whenever the user changes them
+  watch(
+    [() => configStore.avatarStyle, () => configStore.avatarSeed, () => configStore.avatarBg],
+    () => {
+      if (!db || !configStore.userId || !currentRoom.value) return
+      update(dbRef(db, `rooms/${roomId}/users/${configStore.userId}`), {
+        avatarStyle: configStore.avatarStyle,
+        avatarSeed:  configStore.avatarSeed || userName.value || 'Guest',
+        avatarBg:    configStore.avatarBg,
+      }).catch(console.error)
+    },
+  )
+
+  watch(() => currentRoom.value?.name, newName => {
+    if (newName && hasSavedRoom) configStore.updateRecentRoomName(roomId, newName)
   })
 
   watch([currentRoom, roomUsers], () => {
@@ -413,7 +486,6 @@
     appStore.setRoomInfo(roomId, currentRoom.value.name, totalPlayers.value)
   }, { deep: true })
 
-  // Fire confetti on every client when votes are revealed with consensus.
   watch(showVotes, (revealed, wasRevealed) => {
     if (revealed && !wasRevealed) {
       setTimeout(() => {
@@ -428,12 +500,10 @@
     for (const [userId, user] of Object.entries(newUsers)) {
       const prev = previousVotes.value[userId]
       const curr = user.vote ?? null
-      // Only shake on a vote *change*: had a vote, still has one, but different value
       if (prev != null && curr != null && prev !== curr) {
         triggerShakeForUser(userId)
       }
     }
-    // Snapshot current votes for next comparison
     const snapshot: Record<string, number | string | null> = {}
     for (const [userId, user] of Object.entries(newUsers)) {
       snapshot[userId] = user.vote ?? null
@@ -488,13 +558,20 @@
       sessionHistory.value = (Object.values(data) as typeof sessionHistory.value)
         .toSorted((a, b) => a.round - b.round)
     })
+
+    const descriptionRef = dbRef(db, `rooms/${roomId}/description`)
+    unsubscribeDescription = onValue(descriptionRef, snapshot => {
+      description.value = snapshot.val() ?? ''
+    })
   })
 
   onUnmounted(() => {
     unsubscribeRoom?.()
     unsubscribeUsers?.()
     unsubscribeHistory?.()
+    unsubscribeDescription?.()
     if (redirectTimeout !== null) clearTimeout(redirectTimeout)
+    if (descriptionDebounce !== null) clearTimeout(descriptionDebounce)
   })
 
   function formatNum (num: number | null | undefined): string {
@@ -505,20 +582,16 @@
   function joinRoom () {
     if (!db || !configStore.userId) return
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
-    update(userRef, { name: userName.value || 'Anonymous', joinedAt: Date.now() }).catch(console.error)
+    update(userRef, {
+      name:        userName.value || 'Anonymous',
+      joinedAt:    Date.now(),
+      avatarStyle: configStore.avatarStyle,
+      avatarSeed:  configStore.avatarSeed || userName.value || 'Guest',
+      avatarBg:    configStore.avatarBg,
+    }).catch(console.error)
     onDisconnect(userRef).remove()
   }
 
-  function submitName () {
-    const userNameValue = name.value.trim().slice(0, MAX_NAME_LENGTH)
-    if (!userNameValue) return
-
-    name.value = userNameValue
-    configStore.setUserName(userNameValue)
-    hasAutoJoined = true
-    joinRoom()
-    showNamePrompt.value = false
-  }
 
   async function shareRoomConfig () {
     if (!firebaseConfig.value) return
@@ -538,9 +611,16 @@
     }
   }
 
+  function onDescriptionChange (text: string) {
+    description.value = text
+    if (descriptionDebounce !== null) clearTimeout(descriptionDebounce)
+    descriptionDebounce = setTimeout(() => {
+      if (!db) return
+      update(dbRef(db, `rooms/${roomId}`), { description: text }).catch(console.error)
+    }, 600)
+  }
+
   function triggerShakeForUser (userId: string) {
-    // Remove first so the class is stripped from the DOM, then re-add on the
-    // next animation frame — this restarts the animation even on rapid changes.
     shakingUserIds.value = shakingUserIds.value.filter(id => id !== userId)
     requestAnimationFrame(() => {
       shakingUserIds.value = [...shakingUserIds.value, userId]
@@ -562,19 +642,88 @@
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, { lastActivity: Date.now() }).catch(console.error)
 
-    // Shake instantly for the local user (don't wait for Firebase round-trip).
-    // Other clients get their shake from the roomUsers watcher below.
     if (isVoteChange && configStore.userId) {
       triggerShakeForUser(configStore.userId)
     }
   }
 
+  function buildNewVoteOptions (settings: {
+    deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+    customDeck: string
+    specialQuestion: boolean
+    specialCoffee: boolean
+  }): (number | string)[] {
+    let base: (number | string)[]
+    if (settings.deck === 'custom') {
+      base = parseCustomDeck(settings.customDeck)
+      if (base.length === 0) base = [...PRESET_DECKS.fibonacci]
+    } else {
+      base = [...(PRESET_DECKS[settings.deck] ?? PRESET_DECKS.fibonacci)]
+    }
+    if (settings.specialQuestion) base.push('?')
+    if (settings.specialCoffee) base.push('☕')
+    return base
+  }
+
+  function applyRoomConfig (settings: {
+    name: string
+    deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+    customDeck: string
+    specialQuestion: boolean
+    specialCoffee: boolean
+    historyEnabled: boolean
+  }) {
+    if (!db || !currentRoom.value) return
+
+    const newOptions = buildNewVoteOptions(settings)
+
+    const updates: Record<string, unknown> = {
+      'name': settings.name,
+      'settings/deck': settings.deck,
+      'settings/customDeck': settings.deck === 'custom' ? settings.customDeck : null,
+      'settings/specialQuestion': settings.specialQuestion,
+      'settings/specialCoffee': settings.specialCoffee,
+      'settings/historyEnabled': settings.historyEnabled,
+      'lastActivity': Date.now(),
+    }
+
+    // Only reset votes that are no longer in the new deck
+    const invalidUserIds = Object.entries(roomUsers.value)
+      .filter(([, user]) => user.vote != null && !newOptions.includes(user.vote))
+      .map(([userId]) => userId)
+
+    if (invalidUserIds.length > 0) {
+      for (const userId of invalidUserIds) {
+        updates[`users/${userId}/vote`] = null
+      }
+      if (showVotes.value) {
+        updates['settings/showVotes'] = false
+      }
+    }
+
+    update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
+  }
+
+  function onCommitVote (value: string) {
+    if (!db) return
+    update(dbRef(db, `rooms/${roomId}`), { committedVote: value, lastActivity: Date.now() }).catch(console.error)
+  }
+
   function revealVotes () {
     if (!db) return
-
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': true,
+      'lastActivity': Date.now(),
+    }).catch(console.error)
+  }
+
+  function hideVotes () {
+    if (!db) return
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    update(roomRef, {
+      'settings/showVotes': false,
+      'committedVote': null,
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
@@ -585,21 +734,35 @@
     const roomRef = dbRef(db, `rooms/${roomId}`)
     const updates: Record<string, unknown> = {
       'settings/showVotes': false,
+      'committedVote': null,
       'lastActivity': Date.now(),
     }
 
-    if (showVotes.value && currentRoom.value && currentRoom.value.settings?.historyEnabled !== false) {
+    if (showVotes.value && currentRoom.value && historyEnabled.value) {
       const id = String(Date.now())
-      const duration = Math.max(1, Math.round((Date.now() - roundStartTime) / 60_000))
+      const durationMs = Date.now() - roundStartTime
+      const completedAt = Date.now()
+
+      const votes: Record<string, string> = {}
+      for (const user of Object.values(roomUsers.value)) {
+        if (user.vote != null) votes[user.name] = String(user.vote)
+      }
+
       updates[`history/${id}`] = {
         id,
-        name: currentRoom.value.name,
-        finalVote: stats.value ? formatNum(stats.value.avg) : null,
+        description: description.value || null,
+        finalVote: committedVote.value ?? (stats.value ? formatNum(stats.value.avg) : null),
+        avg: stats.value ? formatNum(stats.value.avg) : null,
+        closest: stats.value ? formatNum(stats.value.closest) : null,
         round: currentRound.value,
-        duration: `${duration}m`,
+        durationMs,
+        completedAt,
         participantCount: totalPlayers.value,
         consensus: stats.value?.consensus === 'consensus' || stats.value?.consensus === 'close' ? 'yes' : 'split',
+        votes,
       }
+
+      updates['description'] = ''
       roundStartTime = Date.now()
     }
 
@@ -626,6 +789,4 @@
       showConfetti.value = false
     }, 3500)
   }
-
-
 </script>
