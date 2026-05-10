@@ -1,19 +1,48 @@
 # Changelog
 
-## [1.1.0] — 2026-05-07
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+Upcoming release notes are drafted by Release Drafter from merged pull requests.
+
+## [1.1.0] - 2026-05-07
+
+Large UI and room-experience update focused on visual polish, mobile ergonomics, room configuration, and clearer voting feedback.
 
 ### Added
 
+- **Clean application shell** — redesigned the toolbar, brand treatment, background system, and modal styling around the current poker0matic identity.
+- **Logo and chip imagery** — added dedicated public image assets and a smaller favicon instead of relying on the default scaffold visuals.
+- **Player avatars** — added generated avatar styles, avatar background controls, and avatar previews so players are easier to identify across the room.
+- **Theme picker** — added selectable visual themes from the user menu, with the selected theme persisted locally.
+- **Room side panel** — added a dedicated room information panel with settings, story metadata, and room history sections.
+- **Room settings form and modal** — added reusable room configuration controls for room name, story title, description, deck selection, auto-reveal, and history options.
+- **Deck picker** — added selectable estimation decks, including Fibonacci, T-shirt sizing, and custom deck entry.
+- **Simple results grid** — added an alternate result view for revealed votes alongside the table view.
+- **Full-screen loader** — added a reusable loading state for room transitions and configuration checks.
 - **Median vote** — displayed in the table footer alongside the average, both shown only after votes are revealed.
 - **Vote status icons** — while votes are hidden, the Vote column shows a green checkmark for players who have voted and a grey outline circle for those who haven't, replacing the "Voted" / "No vote" text.
 - **Vote count in header** — the Vote column header shows `voted/total` on a second line so progress is visible at a glance.
+- **About modal** — added a small app information modal with attribution content.
 
 ### Changed
 
+- **Room page layout rebuilt** — moved the room experience into a denser workspace with a side panel, central table/grid area, and a redesigned voting dock.
+- **Vote dock redesigned** — cards now have stronger visual hierarchy, clearer selected states, improved reveal/reset controls, and better wrapping on smaller screens.
+- **Mobile room experience improved** — the side panel now behaves as an overlay on narrow screens with a backdrop, while vote controls and results adapt to available space.
+- **Lobby experience improved** — refined config validation, recent-room handling, join-by-room flow, and room creation entry points.
+- **Room synchronization hardened** — improved room metadata updates, participant profile persistence, and local state syncing when users join or change settings.
+- **User menu expanded** — grouped profile, theme, avatar, result-view, configuration, and about actions into a single toolbar menu.
 - **Current user row highlighted in bold** — your own row in the player table is rendered in bold for quick self-identification.
 - **Average rounded to 2 decimal places** — trailing zeros are omitted (e.g. `3.5` not `3.50`, `3` not `3.00`).
+- **Consensus feedback polished** — improved revealed-state stats, consensus indication, and result distribution styling.
+- **Responsive styling refreshed** — rewrote a large portion of the SCSS for the new shell, panels, modals, forms, avatars, vote cards, and mobile breakpoints.
 
-## [1.0.0] — 2026-05-07
+## [1.0.0] - 2026-05-07
 
 First stable release.
 
@@ -43,3 +72,7 @@ First stable release.
 
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
+
+[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/poziel/poker0matic/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/poziel/poker0matic/releases/tag/v1.0.0

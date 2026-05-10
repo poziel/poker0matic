@@ -1,8 +1,12 @@
+import { createRequire } from 'node:module'
 import { fileURLToPath, URL } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 import Fonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite'
 import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
+
+const require = createRequire(import.meta.url)
+const packageJson = require('./package.json') as { version: string }
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -27,7 +31,10 @@ export default defineConfig({
       },
     }),
   ],
-  define: { 'process.env': {} },
+  define: {
+    '__APP_VERSION__': JSON.stringify(packageJson.version),
+    'process.env': {},
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('src', import.meta.url)),

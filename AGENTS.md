@@ -27,6 +27,37 @@ No test framework is configured. Use `npm run type-check`, `npm run lint`, and `
 
 Deployment is automatic via GitHub Actions on push to `main`, building and publishing to GitHub Pages at `/poker0matic/`.
 
+## Release and contribution conventions
+
+### Changelog
+
+- Keep `CHANGELOG.md` compatible with [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+- Use the standard intro, keep an `[Unreleased]` section at the top, and list releases in reverse chronological order.
+- Use release headings in the form `## [1.2.3] - YYYY-MM-DD`.
+- Group changes under the standard section names when they apply: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security`.
+- Write human-readable release notes that explain user-facing or operator-facing impact. Do not dump commit logs.
+- Keep version links at the bottom of the file so release sections are linkable.
+- Release Drafter generates upcoming GitHub Release notes from merged PRs; update `CHANGELOG.md` manually only for historical releases or when the user explicitly asks.
+
+### Commit messages
+
+- Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+- Use the format `<type>(optional scope): <description>`.
+- Prefer these types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, and `chore`.
+- Use `feat` for user-facing additions or behavior changes, and `fix` for bug fixes.
+- Mark breaking changes with `!` after the type or scope, or with a `BREAKING CHANGE:` footer.
+- Keep the subject imperative, lowercase, concise, and without a trailing period.
+
+### Pull requests and Release Drafter
+
+- PR titles should read like release-note bullets because Release Drafter uses merged PR titles in generated release notes.
+- Write PR titles in imperative present tense, for example `add release drafter workflow` or `fix room share link cleanup`.
+- Keep PR titles specific enough to make sense outside the code diff. Avoid vague titles such as `update stuff`, `misc fixes`, or only an issue number.
+- Put context, testing notes, screenshots, and migration details in the PR body. Release Drafter should not need to rely on commit history to explain the change.
+- Every release-included PR needs one semantic version label: `major`, `minor`, or `patch`.
+- Every release-included PR needs one category label: `feature`, `fix`, or `chore`.
+- Use `skip-changelog` only when the PR should be omitted from generated release notes.
+
 ## Architecture
 
 **Poker0matic** is a real-time collaborative planning poker (story point estimation) SPA. Users join a shared room, cast votes on cards, and reveal results together.
