@@ -689,7 +689,6 @@ button { font-family: inherit; }
   border-radius: 18px;
   padding: 20px 20px 16px;
   position: relative;
-  min-height: 240px;
 }
 .table::before {
   content: "";
@@ -700,15 +699,18 @@ button { font-family: inherit; }
   opacity: .6;
 }
 .players {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 120px));
   justify-content: center;
+  align-items: start;
   gap: 14px;
   position: relative;
+  width: 100%;
 }
 .player {
   width: 120px;
-  flex-shrink: 0;
+  min-height: 206px;
+  justify-self: center;
   display: flex; flex-direction: column; align-items: center;
   gap: 10px;
   padding: 8px;
@@ -811,6 +813,131 @@ button { font-family: inherit; }
   box-shadow: 0 0 24px rgba(var(--accent-glow), .10);
 }
 
+/* --- shared poker card primitives ------------------------------------- */
+.p0-card {
+  --p0-card-w: 56px;
+  --p0-card-h: 80px;
+  --p0-card-radius: 9px;
+  appearance: none;
+  width: var(--p0-card-w);
+  min-width: var(--p0-card-w);
+  height: var(--p0-card-h);
+  padding: 0;
+  border: 1px solid color-mix(in oklab, var(--card-ink), transparent 90%);
+  border-radius: var(--p0-card-radius);
+  background: linear-gradient(170deg, var(--card-face), var(--card-face-2));
+  color: var(--card-ink);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.4);
+}
+
+.p0-card-value {
+  text-align: center;
+}
+
+.p0-card-main {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+
+.p0-card-corner {
+  position: absolute;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: color-mix(in oklab, var(--card-ink), transparent 50%);
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.p0-card-corner-tl { top: 5px; left: 6px; }
+.p0-card-corner-br { bottom: 5px; right: 6px; transform: rotate(180deg); }
+
+.p0-card-compact {
+  --p0-card-w: 52px;
+  --p0-card-h: 72px;
+}
+
+.p0-card-mini {
+  --p0-card-w: 34px;
+  --p0-card-h: 48px;
+  --p0-card-radius: 6px;
+  font-size: 14px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 5px rgba(0,0,0,.34);
+}
+
+.p0-card-mini .p0-card-corner {
+  font-size: 6px;
+  top: 4px;
+  left: 4px;
+}
+
+.p0-card-mini .p0-card-corner-br {
+  top: auto;
+  right: 4px;
+  bottom: 4px;
+  left: auto;
+}
+
+.p0-card-interactive {
+  cursor: pointer;
+  transition:
+    transform .18s cubic-bezier(.34, 1.56, .64, 1),
+    background .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    box-shadow .18s ease;
+}
+
+.p0-card-interactive:hover,
+.p0-card-interactive:focus-visible {
+  transform: translateY(-8px);
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.06),
+    0 8px 18px rgba(0,0,0,.5);
+  outline: none;
+}
+
+.p0-card-selected {
+  transform: translateY(-14px);
+  background: var(--accent);
+  border-color: rgba(255,255,255,.22);
+  color: var(--card-face);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.18),
+    0 12px 28px rgba(var(--accent-glow), .55),
+    0 0 0 3px color-mix(in oklab, var(--accent), transparent 75%);
+}
+
+.p0-card-selected .p0-card-corner {
+  color: color-mix(in oklab, var(--card-face), transparent 42%);
+}
+
+.p0-card-interactive.p0-card-selected:hover,
+.p0-card-interactive.p0-card-selected:focus-visible {
+  transform: translateY(-14px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.20),
+    0 14px 30px rgba(var(--accent-glow), .62),
+    0 0 0 3px color-mix(in oklab, var(--accent), transparent 72%);
+}
+
+.p0-card[data-card-value="?"],
+.p0-card[data-card-value="☕"] {
+  font-size: 22px;
+}
+
 /* --- playing card ------------------------------------------------------ */
 /*
  * Two-phase Y-rotation flip — no preserve-3d needed.
@@ -878,17 +1005,6 @@ button { font-family: inherit; }
     radial-gradient(circle at 30% 20%, rgba(255,255,255,.7), transparent 50%),
     linear-gradient(170deg, #faf8f3, #e8e4d8);
 }
-/* spade watermark removed */
-.pcard-face .corner {
-  position: absolute;
-  font-size: 9px; font-family: var(--font-mono); font-weight: 600;
-  color: var(--card-ink);
-  opacity: .5;
-  letter-spacing: 0;
-  line-height: 1;
-}
-.pcard-face .corner.tl { top: 5px; left: 6px; }
-.pcard-face .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
 
 /*
  * Card back — 4 solid states (stripe-free), two shades each for others/you.
@@ -1073,51 +1189,27 @@ button { font-family: inherit; }
   display: flex; flex-direction: column; align-items: center; gap: 5px;
 }
 
-/* Base: static, no animation, centered text (div doesn't auto-center like button) */
 .dist-card {
   cursor: default;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: none !important; /* kill the springy vote-card transition */
-}
-/* Prevent all hover effects from vote-card:hover */
-.dist-card:hover {
-  transform: none !important;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.4) !important;
 }
 
-/* Mode card: plain card appearance — no special border */
-.dist-card.dist-mode {
-  border: none !important;
-  color: var(--card-ink) !important;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.4) !important;
-}
-.dist-card.dist-mode .corner { color: var(--card-ink); opacity: .5; }
-
-/* Committed card: accent border (the chosen final estimate) */
-.dist-card.dist-committed {
-  border: 2px solid var(--accent) !important;
-  color: var(--accent) !important;
-  box-shadow: 0 0 12px rgba(var(--accent-glow), .30) !important;
-}
-.dist-card.dist-committed .corner { color: var(--accent); opacity: .6; }
-
-/* Committed wins over mode: restore accent treatment */
-.dist-card.dist-mode.dist-committed {
-  border: 2px solid var(--accent) !important;
-  color: var(--accent) !important;
-  box-shadow: 0 0 12px rgba(var(--accent-glow), .30) !important;
+.dist-card:not(.p0-card-interactive):hover {
+  transform: none;
 }
 
-/* Clickable (historyEnabled): pointer + subtle shadow on hover */
+.dist-card:disabled {
+  cursor: default;
+}
+
+.dist-card.dist-mode:not(.p0-card-selected) {
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.06),
+    0 2px 6px rgba(0,0,0,.4),
+    0 0 0 2px color-mix(in oklab, var(--accent), transparent 82%);
+}
+
 .dist-card.dist-clickable {
   cursor: pointer;
-  transition: box-shadow .12s ease !important;
-}
-.dist-card.dist-clickable:hover {
-  transform: none !important;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1), 0 6px 18px rgba(0,0,0,.45) !important;
 }
 
 .dist-count {
@@ -1198,17 +1290,22 @@ button { font-family: inherit; }
 }
 .custom-vote-card {
   cursor: text;
-  border: 1.5px dashed var(--border-strong) !important;
-  transition: border-color .15s ease, box-shadow .15s ease !important;
+  border-style: dashed;
 }
-.custom-vote-card:hover,
-.custom-vote-card:focus-within {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 80%) !important;
+.custom-vote-card:not(.p0-card-selected):hover,
+.custom-vote-card:not(.p0-card-selected):focus-within {
+  border-color: var(--accent);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.06),
+    0 8px 18px rgba(0,0,0,.5),
+    0 0 0 3px color-mix(in oklab, var(--accent), transparent 80%);
 }
 .custom-vote-card.custom-has-value {
-  border-style: solid !important;
-  border-color: var(--accent) !important;
+  border-style: solid;
+}
+.custom-vote-card.p0-card-selected {
+  border-style: solid;
+  border-color: rgba(255,255,255,.22);
 }
 .custom-card-input {
   appearance: none;
@@ -1228,18 +1325,34 @@ button { font-family: inherit; }
 .custom-card-input::placeholder {
   color: color-mix(in oklab, var(--card-ink), transparent 55%);
 }
+.custom-vote-card.p0-card-selected .custom-card-input,
+.custom-vote-card.p0-card-selected .custom-card-input::placeholder {
+  color: color-mix(in oklab, var(--card-face), transparent 12%);
+}
 .dock-custom-set {
   appearance: none;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: color-mix(in oklab, var(--bg-3), transparent 35%);
   cursor: pointer;
-  color: var(--accent);
+  color: var(--text-3);
   font-size: 11px;
   font-family: var(--font-mono);
-  padding: 0;
-  transition: opacity .15s ease;
+  padding: 1px 6px;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
 }
-.dock-custom-set:hover { opacity: .7; }
+.dock-custom-set:hover {
+  color: var(--text-1);
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  background: var(--bg-3);
+}
+.dock-custom-set:disabled {
+  cursor: default;
+  color: var(--text-4);
+  border-color: var(--border);
+  background: transparent;
+  opacity: .72;
+}
 
 /* ── Committed vote badge in action row ───────────────────────────── */
 .committed-vote-badge {
@@ -1258,47 +1371,9 @@ button { font-family: inherit; }
 }
 
 .vote-card {
-  --cw: 56px;
-  --ch: 80px;
-  min-width: var(--cw);
-  height: var(--ch);
-  background: linear-gradient(170deg, var(--card-face), var(--card-face-2));
-  color: var(--card-ink);
   border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: 0;
-  transition: all .18s cubic-bezier(.34, 1.56, .64, 1);
-  position: relative;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.4);
+  text-decoration: none;
 }
-.vote-card:hover {
-  transform: translateY(-8px);
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 8px 18px rgba(0,0,0,.5);
-}
-.vote-card.selected {
-  transform: translateY(-14px);
-  background: var(--accent);
-  color: var(--card-face);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.18),
-    0 12px 28px rgba(var(--accent-glow), .55),
-    0 0 0 3px color-mix(in oklab, var(--accent), transparent 75%);
-}
-.vote-card .corner {
-  position: absolute;
-  font-size: 9px; font-family: var(--font-mono); font-weight: 600;
-  color: rgba(14,19,28,.5);
-  letter-spacing: 0;
-}
-.vote-card.selected .corner { color: color-mix(in oklab, var(--card-face), transparent 42%); }
-.vote-card .corner.tl { top: 5px; left: 6px; }
-.vote-card .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
-.vote-card[data-val="?"],
-.vote-card[data-val="☕"] { font-size: 22px; }
 
 /* --- simple results grid ----------------------------------------------- */
 .results-grid {
@@ -1348,14 +1423,16 @@ button { font-family: inherit; }
   flex-shrink: 0;
 }
 .rg-vote {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--text-1);
-  min-width: 36px;
-  text-align: right;
+  justify-self: end;
 }
-.rg-vote-empty { color: var(--text-4); }
+.rg-vote-empty {
+  justify-self: end;
+  min-width: 34px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--text-4);
+  text-align: center;
+}
 .rg-status {
   font-family: var(--font-mono);
   font-size: 11px;

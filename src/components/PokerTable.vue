@@ -1,6 +1,6 @@
 <script setup lang="ts">
-  import PlayerAvatar from './PlayerAvatar.vue'
   import { DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
+  import PlayerAvatar from './PlayerAvatar.vue'
 
   type VoteValue = number | string
 
@@ -35,9 +35,9 @@
       >
         <div class="avatar" :class="{ 'has-voted': player.vote != null }">
           <PlayerAvatar
-            :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
-            :avatar-seed="player.avatarSeed || player.name"
             :avatar-bg="player.avatarBg"
+            :avatar-seed="player.avatarSeed || player.name"
+            :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
             :size="64"
           />
         </div>
@@ -52,14 +52,14 @@
           }"
           :style="{ '--flip-delay': showVotes && player.vote != null ? `${getPlayerIndex(player.userId) * 90}ms` : '0ms' }"
         >
-          <div class="pcard-back">
+          <div class="pcard-back p0-card p0-card-back">
             <span class="logo">P0</span>
           </div>
 
-          <div class="pcard-face">
-            <span class="corner tl">{{ player.vote }}</span>
-            {{ player.vote }}
-            <span class="corner br">{{ player.vote }}</span>
+          <div class="pcard-face p0-card p0-card-value">
+            <span class="corner p0-card-corner p0-card-corner-tl tl">{{ player.vote }}</span>
+            <span class="p0-card-main">{{ player.vote }}</span>
+            <span class="corner p0-card-corner p0-card-corner-br br">{{ player.vote }}</span>
           </div>
         </div>
 

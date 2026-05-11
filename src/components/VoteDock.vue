@@ -65,6 +65,14 @@
     return keys.length === 1 ? keys[0] : null
   })
 
+  const customVoteValue = computed(() => customVoteInput.value.trim())
+  const isCustomCommitted = computed(() =>
+    customVoteValue.value.length > 0 && customVoteValue.value === props.committedVote,
+  )
+  const canCommitCustom = computed(() =>
+    customVoteValue.value.length > 0 && customVoteValue.value !== props.committedVote,
+  )
+
   function formatNum (num: number | null | undefined): string {
     if (num == null) return '-'
     return Number.isInteger(num) ? String(num) : String(Number.parseFloat(num.toFixed(2)))
@@ -77,9 +85,8 @@
   }
 
   function commitCustom () {
-    const val = customVoteInput.value.trim()
-    if (!val) return
-    emit('commit-vote', val)
+    if (!canCommitCustom.value) return
+    emit('commit-vote', customVoteValue.value)
   }
 </script>
 
@@ -92,15 +99,18 @@
         <button
           v-for="option in voteOptions"
           :key="option"
-          class="vote-card"
-          :class="{ selected: selectedVote === option }"
-          :data-val="option"
+          class="vote-card p0-card p0-card-value p0-card-interactive"
+          :class="{
+            selected: selectedVote === option,
+            'p0-card-selected': selectedVote === option,
+          }"
+          :data-card-value="option"
           type="button"
           @click="$emit('cast-vote', option)"
         >
-          <span class="corner tl">{{ option }}</span>
-          {{ option }}
-          <span class="corner br">{{ option }}</span>
+          <span class="corner p0-card-corner p0-card-corner-tl tl">{{ option }}</span>
+          <span class="p0-card-main">{{ option }}</span>
+          <span class="corner p0-card-corner p0-card-corner-br br">{{ option }}</span>
         </button>
       </div>
 
@@ -133,20 +143,25 @@
             :key="value"
             class="dist-card-wrap"
           >
-            <div
-              class="vote-card dist-card"
+            <button
+              :aria-pressed="String(value) === committedVote || String(value) === autoSelectedValue"
+              class="dist-card p0-card p0-card-value p0-card-compact"
               :class="{
                 'dist-mode': count === maxVoteCount,
                 'dist-committed': String(value) === committedVote || String(value) === autoSelectedValue,
                 'dist-clickable': historyEnabled,
+                'p0-card-interactive': historyEnabled,
+                'p0-card-selected': String(value) === committedVote || String(value) === autoSelectedValue,
               }"
-              :data-val="value"
+              :data-card-value="value"
+              :disabled="!historyEnabled"
+              type="button"
               @click="commitValue(String(value))"
             >
-              <span class="corner tl">{{ value }}</span>
-              {{ value }}
-              <span class="corner br">{{ value }}</span>
-            </div>
+              <span class="corner p0-card-corner p0-card-corner-tl tl">{{ value }}</span>
+              <span class="p0-card-main">{{ value }}</span>
+              <span class="corner p0-card-corner p0-card-corner-br br">{{ value }}</span>
+            </button>
 
             <span class="dist-count">× {{ count }}</span>
           </div>
@@ -157,14 +172,19 @@
 
             <div class="dist-card-wrap">
               <div
-                class="vote-card dist-card custom-vote-card"
+                class="dist-card custom-vote-card p0-card p0-card-value p0-card-compact p0-card-interactive"
                 :class="{
-                  'custom-has-value': !!customVoteInput.trim(),
-                  'dist-committed': customVoteInput.trim() === committedVote && !!committedVote,
+                  'custom-has-value': customVoteValue.length > 0,
+                  'dist-committed': isCustomCommitted,
+                  'p0-card-selected': isCustomCommitted,
                 }"
+                role="button"
+                tabindex="0"
                 @click="customCardInput?.focus()"
+                @keydown.enter.prevent="customCardInput?.focus()"
               >
-                <span class="corner tl">{{ customVoteInput || '···' }}</span>
+                <span class="corner p0-card-corner p0-card-corner-tl tl">{{ customVoteInput || '···' }}</span>
+
                 <input
                   ref="customCardInput"
                   v-model="customVoteInput"
@@ -174,17 +194,20 @@
                   type="text"
                   @keydown.enter.prevent="commitCustom"
                 >
-                <span class="corner br">{{ customVoteInput || '···' }}</span>
+
+                <span class="corner p0-card-corner p0-card-corner-br br">{{ customVoteInput || '···' }}</span>
               </div>
 
               <button
-                v-if="customVoteInput.trim()"
+                v-if="customVoteValue"
                 class="dist-count dock-custom-set"
+                :disabled="!canCommitCustom"
                 type="button"
                 @click="commitCustom"
               >
                 set ↵
               </button>
+
               <span v-else class="dist-count" style="color: var(--text-4)">custom</span>
             </div>
           </template>
