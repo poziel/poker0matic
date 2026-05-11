@@ -65,6 +65,14 @@
     return keys.length === 1 ? keys[0] : null
   })
 
+  const customVoteValue = computed(() => customVoteInput.value.trim())
+  const isCustomCommitted = computed(() =>
+    customVoteValue.value.length > 0 && customVoteValue.value === props.committedVote,
+  )
+  const canCommitCustom = computed(() =>
+    customVoteValue.value.length > 0 && customVoteValue.value !== props.committedVote,
+  )
+
   function formatNum (num: number | null | undefined): string {
     if (num == null) return '-'
     return Number.isInteger(num) ? String(num) : String(Number.parseFloat(num.toFixed(2)))
@@ -77,9 +85,8 @@
   }
 
   function commitCustom () {
-    const val = customVoteInput.value.trim()
-    if (!val) return
-    emit('commit-vote', val)
+    if (!canCommitCustom.value) return
+    emit('commit-vote', customVoteValue.value)
   }
 </script>
 
@@ -167,9 +174,9 @@
               <div
                 class="dist-card custom-vote-card p0-card p0-card-value p0-card-compact p0-card-interactive"
                 :class="{
-                  'custom-has-value': !!customVoteInput.trim(),
-                  'dist-committed': customVoteInput.trim() === committedVote && !!committedVote,
-                  'p0-card-selected': !!customVoteInput.trim(),
+                  'custom-has-value': customVoteValue.length > 0,
+                  'dist-committed': isCustomCommitted,
+                  'p0-card-selected': isCustomCommitted,
                 }"
                 role="button"
                 tabindex="0"
@@ -192,8 +199,9 @@
               </div>
 
               <button
-                v-if="customVoteInput.trim()"
+                v-if="customVoteValue"
                 class="dist-count dock-custom-set"
+                :disabled="!canCommitCustom"
                 type="button"
                 @click="commitCustom"
               >

@@ -1206,10 +1206,6 @@ button { font-family: inherit; }
     0 0 0 2px color-mix(in oklab, var(--accent), transparent 82%);
 }
 
-.dist-card.dist-mode:not(.p0-card-selected) .p0-card-corner {
-  color: color-mix(in oklab, var(--accent), transparent 30%);
-}
-
 .dist-card.dist-clickable {
   cursor: pointer;
 }
@@ -1347,6 +1343,13 @@ button { font-family: inherit; }
   color: var(--text-1);
   border-color: color-mix(in oklab, var(--accent), transparent 45%);
   background: var(--bg-3);
+}
+.dock-custom-set:disabled {
+  cursor: default;
+  color: var(--text-4);
+  border-color: var(--border);
+  background: transparent;
+  opacity: .72;
 }
 
 /* ── Committed vote badge in action row ───────────────────────────── */
