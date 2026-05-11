@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Upcoming release notes are copied from merged pull request changelog sections.
 
+## [1.1.2] - 2026-05-11
+
+### Fixed
+- Prevent consensus from being reported when some participants voted `?` or `☕` and others voted a numeric card.
+- Remove history-only room UI behavior when history mode is disabled, including the sidebar, round counter, and accidental committed-state styling for unanimous consensus cards.
+- Keep grid-mode player ordering stable after reveal and show plain revealed vote values instead of mini cards.
+
+
 ## [1.1.1] - 2026-05-11
 
 ### Fixed
@@ -85,7 +93,8 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/poziel/poker0matic/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/poziel/poker0matic/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/poziel/poker0matic/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/poziel/poker0matic/releases/tag/v1.0.0
