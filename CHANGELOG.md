@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Upcoming release notes are copied from merged pull request changelog sections.
 
+## [1.1.1] - 2026-05-11
+
+### Fixed
+
+- Fix release publishing so merged PRs can automatically update the changelog, create the version tag, and publish the GitHub Release.
+
+### Modified
+
+- Move release notes ownership to the PR `## Changelog` section, which is copied into both `CHANGELOG.md` and the GitHub Release description.
+- Keep release process instructions in `AGENTS.md` instead of the public README.
+
+
 ## [1.1.0] - 2026-05-07
 
 Large UI and room-experience update focused on visual polish, mobile ergonomics, room configuration, and clearer voting feedback.
@@ -73,6 +85,7 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/poziel/poker0matic/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/poziel/poker0matic/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/poziel/poker0matic/releases/tag/v1.0.0
