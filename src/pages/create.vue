@@ -43,12 +43,13 @@
     specialCoffee: true,
     historyEnabled: true,
     leaderModeEnabled: false,
+    taskInformationEnabled: false,
   })
 
   function createRoom () {
     if (!settings.value.name.trim() || !db) return
 
-    const { name, deck, customDeck, specialQuestion, specialCoffee, historyEnabled, leaderModeEnabled } = settings.value
+    const { name, deck, customDeck, specialQuestion, specialCoffee, historyEnabled, leaderModeEnabled, taskInformationEnabled } = settings.value
     const userName = configStore.userName || 'Guest'
     const newRoomId = Math.random().toString(36).slice(2, 10)
 
@@ -59,6 +60,9 @@
       createdBy: configStore.userId,
       createdByUserId: configStore.userId,
       leaderUserId: leaderModeEnabled ? configStore.userId : null,
+      currentTask: null,
+      roundEditLock: null,
+      roundNumber: 1,
       settings: {
         showVotes: false,
         v: 0,
@@ -68,6 +72,7 @@
         specialCoffee,
         historyEnabled,
         leaderModeEnabled,
+        taskInformationEnabled,
       },
       lastActivity: Date.now(),
     }).catch(console.error)

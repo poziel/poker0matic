@@ -16,6 +16,7 @@
     specialCoffee: boolean
     historyEnabled: boolean
     leaderModeEnabled: boolean
+    taskInformationEnabled: boolean
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
@@ -141,6 +142,24 @@
           class="p0-toggle"
           type="checkbox"
           @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
+        >
+      </label>
+    </div>
+
+    <div class="room-settings-section">
+      <span class="settings-label">Round context</span>
+
+      <label class="toggle-item">
+        <div class="toggle-info">
+          <v-icon icon="mdi-text-box-search-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Require task information for rounds</span>
+        </div>
+
+        <input
+          :checked="modelValue.taskInformationEnabled"
+          class="p0-toggle"
+          type="checkbox"
+          @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
         >
       </label>
     </div>

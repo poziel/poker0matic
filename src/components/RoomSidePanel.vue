@@ -1,37 +1,25 @@
 <script setup lang="ts">
+  import type { RoomHistoryEntry, TaskInfo } from '@/types/room'
   import { computed, ref } from 'vue'
-
-  interface HistoryEntry {
-    id: string
-    finalVote: string | null
-    avg?: string | null
-    closest?: string | null
-    round: number
-    durationMs?: number
-    duration?: string
-    completedAt?: number
-    participantCount: number
-    consensus: 'yes' | 'split'
-  }
 
   const props = defineProps<{
     open: boolean
-    history: HistoryEntry[]
+    history: RoomHistoryEntry[]
     historyEnabled: boolean
-    description: string
+    taskInformationEnabled: boolean
+    currentTask: TaskInfo | null
   }>()
 
   defineEmits<{
     'update:open': [value: boolean]
-    'update:description': [value: string]
   }>()
 
   const historyExpanded = ref(true)
-  const storyExpanded = ref(true)
+  const taskExpanded = ref(true)
 
   const reversedHistory = computed(() => props.history.toReversed())
 
-  function formatDuration (entry: HistoryEntry): string {
+  function formatDuration (entry: RoomHistoryEntry): string {
     if (entry.durationMs != null) {
       const ms = entry.durationMs
       if (ms < 60_000) return `${Math.round(ms / 1000)}s`
@@ -50,6 +38,10 @@
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(ts))
+  }
+
+  function historyLabel (entry: RoomHistoryEntry): string {
+    return entry.title?.trim() || `Round ${entry.round}`
   }
 </script>
 
@@ -71,27 +63,49 @@
       </v-btn>
     </div>
 
-    <template v-if="open">
-      <!-- ── Description section ─────────────────────────────────────── -->
-      <div class="sp-section">
-        <button class="sp-section-head" type="button" @click="storyExpanded = !storyExpanded">
-          <v-icon icon="mdi-text-box-outline" size="14" />
-          <span>Description</span>
-          <v-icon class="sp-chevron" :icon="storyExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="14" />
+    <div v-if="open" class="side-panel-scroll">
+      <div v-if="taskInformationEnabled" class="sp-section">
+        <button class="sp-section-head" type="button" @click="taskExpanded = !taskExpanded">
+          <v-icon icon="mdi-text-box-search-outline" size="14" />
+          <span>Task information</span>
+          <v-icon class="sp-chevron" :icon="taskExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="14" />
         </button>
 
-        <div v-if="storyExpanded" class="sp-section-body">
-          <textarea
-            class="description-input"
-            placeholder="Paste a ticket description, user story, or any notes for this round…"
-            rows="6"
-            :value="description"
-            @input="$emit('update:description', ($event.target as HTMLTextAreaElement).value)"
-          />
+        <div v-if="taskExpanded" class="sp-section-body task-info-body">
+          <template v-if="currentTask">
+            <div class="task-info-item">
+              <span class="task-info-label">Title</span>
+              <strong class="task-info-value">{{ currentTask.title }}</strong>
+            </div>
+
+            <div class="task-info-item">
+              <span class="task-info-label">URL</span>
+
+              <a
+                v-if="currentTask.url"
+                class="task-info-link"
+                :href="currentTask.url"
+                rel="noreferrer"
+                target="_blank"
+              >
+                {{ currentTask.url }}
+              </a>
+
+              <span v-else class="task-info-empty">No link provided</span>
+            </div>
+
+            <div v-if="currentTask.description" class="task-info-item">
+              <span class="task-info-label">Description</span>
+              <p class="task-info-description">{{ currentTask.description }}</p>
+            </div>
+          </template>
+
+          <div v-else class="hist-empty">
+            No task information has been added for this round yet
+          </div>
         </div>
       </div>
 
-      <!-- ── History section (hidden when historyEnabled=false) ──────────── -->
       <div v-if="historyEnabled" class="sp-section">
         <button class="sp-section-head" type="button" @click="historyExpanded = !historyExpanded">
           <v-icon icon="mdi-history" size="14" />
@@ -107,9 +121,15 @@
             class="hist-item"
           >
             <div class="top">
-              <span class="hid">Round {{ entry.round }}</span>
+              <span class="hid">{{ historyLabel(entry) }}</span>
               <span class="hvote">{{ entry.finalVote ?? '-' }}</span>
             </div>
+
+            <div v-if="entry.url" class="hurl">
+              <a class="task-info-link" :href="entry.url" rel="noreferrer" target="_blank">{{ entry.url }}</a>
+            </div>
+
+            <p v-if="entry.description" class="task-info-description hdesc">{{ entry.description }}</p>
 
             <div v-if="entry.avg != null || entry.closest != null" class="hstats">
               <span v-if="entry.avg != null">Avg <strong>{{ entry.avg }}</strong></span>
@@ -132,6 +152,6 @@
           </div>
         </div>
       </div>
-    </template>
+    </div>
   </aside>
 </template>

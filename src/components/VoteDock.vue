@@ -27,6 +27,8 @@
     historyEnabled: boolean
     committedVote: string | null
     canCommitVote: boolean
+    canVote: boolean
+    disabledHint?: string
   }>()
 
   const emit = defineEmits<{
@@ -115,6 +117,8 @@
             'p0-card-selected': selectedVote === option,
           }"
           :data-card-value="option"
+          :disabled="!canVote"
+          :title="!canVote ? disabledHint : ''"
           type="button"
           @click="$emit('cast-vote', option)"
         >
@@ -125,7 +129,13 @@
       </div>
 
       <div class="dock-hint">
-        Playing as <strong>{{ userName }}</strong> · tap a card to vote
+        <template v-if="canVote">
+          Playing as <strong>{{ userName }}</strong> · tap a card to vote
+        </template>
+
+        <template v-else>
+          {{ disabledHint || 'Voting is temporarily unavailable for this round' }}
+        </template>
       </div>
     </template>
 
@@ -143,6 +153,7 @@
         </span>
 
         <span v-else-if="historyEnabled && canCommitVote" class="dock-committed-hint">click a card to set final estimate</span>
+
         <span v-else-if="historyEnabled" class="dock-committed-hint">leader selects the final estimate</span>
       </div>
 
