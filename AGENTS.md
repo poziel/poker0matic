@@ -34,10 +34,10 @@ Deployment is automatic via GitHub Actions on push to `main`, building and publi
 - Keep `CHANGELOG.md` compatible with [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Use the standard intro, keep an `[Unreleased]` section at the top, and list releases in reverse chronological order.
 - Use release headings in the form `## [1.2.3] - YYYY-MM-DD`.
-- Group changes under the standard section names when they apply: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security`.
+- Group changes under the project release section names when they apply: `Added`, `Modified`, `Removed`, and `Fixed`.
 - Write human-readable release notes that explain user-facing or operator-facing impact. Do not dump commit logs.
 - Keep version links at the bottom of the file so release sections are linkable.
-- Release Drafter generates upcoming GitHub Release notes from merged PRs; update `CHANGELOG.md` manually only for historical releases or when the user explicitly asks.
+- The release workflow publishes GitHub Releases from merged PRs and writes the PR's `## Changelog` section into both `CHANGELOG.md` and the GitHub Release description.
 
 ### Commit messages
 
@@ -48,15 +48,16 @@ Deployment is automatic via GitHub Actions on push to `main`, building and publi
 - Mark breaking changes with `!` after the type or scope, or with a `BREAKING CHANGE:` footer.
 - Keep the subject imperative, lowercase, concise, and without a trailing period.
 
-### Pull requests and Release Drafter
+### Pull requests and releases
 
-- PR titles should read like release-note bullets because Release Drafter uses merged PR titles in generated release notes.
+- PR titles should be specific enough to make sense in the GitHub PR list and release history.
 - Write PR titles in imperative present tense, for example `add release drafter workflow` or `fix room share link cleanup`.
 - Keep PR titles specific enough to make sense outside the code diff. Avoid vague titles such as `update stuff`, `misc fixes`, or only an issue number.
-- Put context, testing notes, screenshots, and migration details in the PR body. Release Drafter should not need to rely on commit history to explain the change.
+- Put context, testing notes, screenshots, and migration details in the PR body outside the `## Changelog` section.
+- Add a `## Changelog` section to release-included PRs. Its markdown is copied as-is into `CHANGELOG.md` and the GitHub Release description.
+- The maintainer prefers changelog content grouped under `### Added`, `### Modified`, `### Removed`, and `### Fixed` when those sections apply. A single PR can include multiple of these sections.
 - Every release-included PR needs one semantic version label: `major`, `minor`, or `patch`.
-- Every release-included PR needs one category label: `feature`, `fix`, or `chore`.
-- Use `skip-changelog` only when the PR should be omitted from generated release notes.
+- Use `no-release` only when the PR should skip versioning, changelog updates, tagging, and GitHub Release creation.
 
 ## Architecture
 
