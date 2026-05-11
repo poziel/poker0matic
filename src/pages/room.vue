@@ -2,21 +2,22 @@
   <template v-if="currentRoom && !!userName">
     <div class="shell">
       <!-- Backdrop for mobile sidebar overlay -->
-      <div v-if="historyPanelOpen" class="panel-backdrop" @click="historyPanelOpen = false" />
+      <div v-if="historyEnabled && historyPanelOpen" class="panel-backdrop" @click="historyPanelOpen = false" />
 
       <RoomSidePanel
+        v-if="historyEnabled"
         v-model:open="historyPanelOpen"
-        :history="sessionHistory"
-        :history-enabled="currentRoom?.settings?.historyEnabled !== false"
         :description="description"
+        :history="sessionHistory"
+        :history-enabled="historyEnabled"
         @update:description="onDescriptionChange"
       />
 
       <main class="main">
         <div class="main-head">
           <div class="main-head-left">
-            <!-- Sidebar toggle: always visible in the header -->
             <v-btn
+              v-if="historyEnabled"
               :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
               class="icon-btn mobile-panel-btn"
               density="compact"
@@ -42,7 +43,7 @@
 
             <h2>
               {{ currentRoom.name }}
-              <span class="round-counter">round {{ currentRound }}</span>
+              <span v-if="historyEnabled" class="round-counter">round {{ currentRound }}</span>
             </h2>
           </div>
 
@@ -241,22 +242,44 @@
   const configStore = useConfigStore()
   const roomId = route.params.roomId as string
 
-  const MAX_NAME_LENGTH = 20
+  type VoteValue = number | string
   type ConsensusState = 'consensus' | 'close' | 'split'
+  interface RoundStats {
+    avg: number | null
+    median: number | null
+    closest: number | null
+    min: number | null
+    max: number | null
+    spread: number | null
+    counts: Record<string, number>
+    maxCount: number
+    total: number
+    numericTotal: number
+    consensus: ConsensusState
+  }
 
-  const PRESET_DECKS: Record<string, (number | string)[]> = {
+  const PRESET_DECKS: Record<string, VoteValue[]> = {
     fibonacci: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
     linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
     tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
 
-  function parseCustomDeck (raw: string): (number | string)[] {
+  function parseCustomDeck (raw: string): VoteValue[] {
     return raw.split(',').flatMap(s => {
       const t = s.trim()
       if (!t) return []
       const n = Number(t)
       return [Number.isNaN(n) ? t : n]
     })
+  }
+
+  function countVotes (votes: readonly VoteValue[]): Record<string, number> {
+    const counts: Record<string, number> = {}
+    for (const vote of votes) {
+      const key = String(vote)
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
   }
 
   const { userName, firebaseConfig } = storeToRefs(configStore)
@@ -277,7 +300,7 @@
     }
     lastActivity?: number
   } | null>(null)
-  const roomUsers = ref<Record<string, { name: string, joinedAt: number, vote?: number | string, avatarStyle?: string, avatarSeed?: string, avatarBg?: string }>>({})
+  const roomUsers = ref<Record<string, { name: string, joinedAt: number, vote?: VoteValue, avatarStyle?: string, avatarSeed?: string, avatarBg?: string }>>({})
   const description = ref('')
 
   const db = configStore.getDb()
@@ -289,7 +312,7 @@
   const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const showConfetti = ref(false)
   const shakingUserIds = ref<string[]>([])
-  const previousVotes = ref<Record<string, number | string | null>>({})
+  const previousVotes = ref<Record<string, VoteValue | null>>({})
   const confettiPieces = ref<Array<{
     id: string
     left: number
@@ -319,9 +342,9 @@
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
 
-  const voteOptions = computed((): (number | string)[] => {
+  const voteOptions = computed((): VoteValue[] => {
     const s = currentRoom.value?.settings
-    let base: (number | string)[]
+    let base: VoteValue[]
     if (s?.deck === 'custom') {
       base = parseCustomDeck(s.customDeck ?? '')
       if (base.length === 0) base = [...PRESET_DECKS.fibonacci]
@@ -337,16 +360,16 @@
     voteOptions.value.filter((v): v is number => typeof v === 'number'),
   )
 
+  const revealedVotes = computed(() =>
+    Object.values(roomUsers.value)
+      .map(user => user.vote)
+      .filter((vote): vote is VoteValue => vote != null),
+  )
+
   // All vote values (including ?, ☕) with their counts — used for insights deck display
   const displayVoteCounts = computed((): Record<string, number> | null => {
     if (!showVotes.value) return null
-    const counts: Record<string, number> = {}
-    for (const user of Object.values(roomUsers.value)) {
-      if (user.vote != null) {
-        const k = String(user.vote)
-        counts[k] = (counts[k] ?? 0) + 1
-      }
-    }
+    const counts = countVotes(revealedVotes.value)
     return Object.keys(counts).length > 0 ? counts : null
   })
 
@@ -367,8 +390,7 @@
   )
 
   const numericVotes = computed(() =>
-    Object.values(roomUsers.value)
-      .map(user => user.vote)
+    revealedVotes.value
       .filter((vote): vote is number => typeof vote === 'number'),
   )
 
@@ -385,34 +407,47 @@
     return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
   })
 
-  const stats = computed(() => {
-    if (!showVotes.value || averageVote.value == null || medianVote.value == null) return null
+  const unanimousVote = computed(() => {
+    if (revealedVotes.value.length === 0) return null
+    const values = Object.keys(countVotes(revealedVotes.value))
+    return values.length === 1 ? values[0] : null
+  })
 
-    const nums = numericVotes.value
-    const min = Math.min(...nums)
-    const max = Math.max(...nums)
-    const spread = max - min
-    const counts: Record<number, number> = {}
-    for (const num of nums) {
-      counts[num] = (counts[num] || 0) + 1
-    }
+  const stats = computed<RoundStats | null>(() => {
+    if (!showVotes.value || revealedVotes.value.length === 0) return null
+
+    const counts = countVotes(revealedVotes.value)
+    const uniqueVoteCount = Object.keys(counts).length
     const maxCount = Math.max(...Object.values(counts))
+    const nums = numericVotes.value
+    const hasNumericVotes = nums.length > 0
+    const min = hasNumericVotes ? Math.min(...nums) : null
+    const max = hasNumericVotes ? Math.max(...nums) : null
+    const spread = min != null && max != null ? max - min : null
+    const numericCounts = countVotes(nums)
 
-    let closest = deckNums.value[0] ?? 0
-    let bestDistance = Math.abs(averageVote.value - closest)
-    for (const num of deckNums.value) {
-      const distance = Math.abs(averageVote.value - num)
-      if (distance < bestDistance - 1e-9) {
-        closest = num
-        bestDistance = distance
-      } else if (Math.abs(distance - bestDistance) < 1e-9 && num > closest) {
-        closest = num
+    let closest: number | null = null
+    if (averageVote.value != null) {
+      closest = deckNums.value[0] ?? nums[0] ?? 0
+      let bestDistance = Math.abs(averageVote.value - closest)
+      for (const num of deckNums.value) {
+        const distance = Math.abs(averageVote.value - num)
+        if (distance < bestDistance - 1e-9) {
+          closest = num
+          bestDistance = distance
+        } else if (Math.abs(distance - bestDistance) < 1e-9 && num > closest) {
+          closest = num
+        }
       }
     }
 
-    const consensus: ConsensusState = spread === 0
+    const isCloseNumericVote = nums.length === revealedVotes.value.length
+      && spread != null
+      && spread <= 3
+      && Object.keys(numericCounts).length <= 2
+    const consensus: ConsensusState = uniqueVoteCount === 1
       ? 'consensus'
-      : (spread <= 3 && Object.keys(counts).length <= 2 ? 'close' : 'split')
+      : (isCloseNumericVote ? 'close' : 'split')
 
     return {
       avg: averageVote.value,
@@ -423,11 +458,18 @@
       spread,
       counts,
       maxCount,
-      total: nums.length,
+      total: revealedVotes.value.length,
+      numericTotal: nums.length,
       consensus,
     }
   })
 
+  const defaultFinalVote = computed(() => {
+    if (committedVote.value) return committedVote.value
+    if (unanimousVote.value) return unanimousVote.value
+    if (averageVote.value === null) return null
+    return formatNum(averageVote.value)
+  })
 
   const sessionHistory = ref<Array<{
     id: string
@@ -471,14 +513,18 @@
       if (!db || !configStore.userId || !currentRoom.value) return
       update(dbRef(db, `rooms/${roomId}/users/${configStore.userId}`), {
         avatarStyle: configStore.avatarStyle,
-        avatarSeed:  configStore.avatarSeed || userName.value || 'Guest',
-        avatarBg:    configStore.avatarBg,
+        avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
+        avatarBg: configStore.avatarBg,
       }).catch(console.error)
     },
   )
 
   watch(() => currentRoom.value?.name, newName => {
     if (newName && hasSavedRoom) configStore.updateRecentRoomName(roomId, newName)
+  })
+
+  watch(historyEnabled, enabled => {
+    if (!enabled) historyPanelOpen.value = false
   })
 
   watch([currentRoom, roomUsers], () => {
@@ -504,7 +550,7 @@
         triggerShakeForUser(userId)
       }
     }
-    const snapshot: Record<string, number | string | null> = {}
+    const snapshot: Record<string, VoteValue | null> = {}
     for (const [userId, user] of Object.entries(newUsers)) {
       snapshot[userId] = user.vote ?? null
     }
@@ -579,19 +625,23 @@
     return Number.isInteger(num) ? String(num) : String(Number.parseFloat(num.toFixed(2)))
   }
 
+  function formatOptionalNum (num: number | null | undefined): string | null {
+    if (num === null || num === undefined) return null
+    return formatNum(num)
+  }
+
   function joinRoom () {
     if (!db || !configStore.userId) return
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
     update(userRef, {
-      name:        userName.value || 'Anonymous',
-      joinedAt:    Date.now(),
+      name: userName.value || 'Anonymous',
+      joinedAt: Date.now(),
       avatarStyle: configStore.avatarStyle,
-      avatarSeed:  configStore.avatarSeed || userName.value || 'Guest',
-      avatarBg:    configStore.avatarBg,
+      avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
+      avatarBg: configStore.avatarBg,
     }).catch(console.error)
     onDisconnect(userRef).remove()
   }
-
 
   async function shareRoomConfig () {
     if (!firebaseConfig.value) return
@@ -630,7 +680,7 @@
     })
   }
 
-  function castVote (value: number | string) {
+  function castVote (value: VoteValue) {
     if (!db || !configStore.userId || showVotes.value) return
 
     const isVoteChange = selectedVote.value !== null && value !== selectedVote.value
@@ -652,8 +702,8 @@
     customDeck: string
     specialQuestion: boolean
     specialCoffee: boolean
-  }): (number | string)[] {
-    let base: (number | string)[]
+  }): VoteValue[] {
+    let base: VoteValue[]
     if (settings.deck === 'custom') {
       base = parseCustomDeck(settings.customDeck)
       if (base.length === 0) base = [...PRESET_DECKS.fibonacci]
@@ -751,14 +801,14 @@
       updates[`history/${id}`] = {
         id,
         description: description.value || null,
-        finalVote: committedVote.value ?? (stats.value ? formatNum(stats.value.avg) : null),
-        avg: stats.value ? formatNum(stats.value.avg) : null,
-        closest: stats.value ? formatNum(stats.value.closest) : null,
+        finalVote: defaultFinalVote.value,
+        avg: formatOptionalNum(stats.value?.avg),
+        closest: formatOptionalNum(stats.value?.closest),
         round: currentRound.value,
         durationMs,
         completedAt,
         participantCount: totalPlayers.value,
-        consensus: stats.value?.consensus === 'consensus' || stats.value?.consensus === 'close' ? 'yes' : 'split',
+        consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
         votes,
       }
 
