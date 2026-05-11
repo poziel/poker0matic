@@ -19,6 +19,11 @@
     players: GridPlayer[]
     currentUserId: string | null
     showVotes: boolean
+    leaderUserId: string | null
+  }>()
+
+  const emit = defineEmits<{
+    'open-player-menu': [payload: { userId: string, name: string, x: number, y: number }]
   }>()
 
   const sortedPlayers = computed(() =>
@@ -37,7 +42,8 @@
       v-for="player in sortedPlayers"
       :key="player.userId"
       class="rg-row"
-      :class="{ 'rg-row-you': player.userId === currentUserId }"
+      :class="{ 'rg-row-you': player.userId === currentUserId, 'rg-row-leader': player.userId === leaderUserId }"
+      @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
     >
       <div class="rg-name-cell">
         <PlayerAvatar
@@ -48,6 +54,12 @@
         />
 
         <span class="rg-name">{{ player.name }}</span>
+
+        <span v-if="player.userId === leaderUserId" class="leader-badge leader-badge-inline">
+          <v-icon icon="mdi-crown" size="12" />
+          <span>Leader</span>
+        </span>
+
         <span v-if="player.userId === currentUserId" class="rg-you-badge">you</span>
       </div>
 
