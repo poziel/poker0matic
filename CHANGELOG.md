@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Upcoming release notes are drafted by Release Drafter from merged pull requests.
+Upcoming release notes are copied from merged pull request changelog sections.
 
 ## [1.1.0] - 2026-05-07
 
