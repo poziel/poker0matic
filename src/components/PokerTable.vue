@@ -19,6 +19,11 @@
     showVotes: boolean
     currentUserId: string | null
     shakingUserIds?: string[]
+    leaderUserId: string | null
+  }>()
+
+  const emit = defineEmits<{
+    'open-player-menu': [payload: { userId: string, name: string, x: number, y: number }]
   }>()
 
   const getPlayerIndex = (userId: string) => props.players.findIndex(player => player.userId === userId)
@@ -31,8 +36,13 @@
         v-for="player in players"
         :key="player.userId"
         class="player"
-        :class="{ 'is-you': player.userId === currentUserId }"
+        :class="{ 'is-you': player.userId === currentUserId, 'is-leader': player.userId === leaderUserId }"
+        @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
       >
+        <div v-if="player.userId === leaderUserId" class="leader-crown-avatar">
+          <v-icon icon="mdi-crown" size="12" />
+        </div>
+
         <div class="avatar" :class="{ 'has-voted': player.vote != null }">
           <PlayerAvatar
             :avatar-bg="player.avatarBg"

@@ -78,8 +78,9 @@
               aria-label="Room settings"
               class="icon-btn"
               density="compact"
+              :disabled="leaderModeEnabled && !isLeader"
               icon
-              title="Room settings"
+              :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings'"
               variant="text"
               @click="roomConfigOpen = true"
             >
@@ -111,6 +112,7 @@
             specialQuestion: currentRoom.settings?.specialQuestion !== false,
             specialCoffee: currentRoom.settings?.specialCoffee !== false,
             historyEnabled: currentRoom.settings?.historyEnabled !== false,
+            leaderModeEnabled: currentRoom.settings?.leaderModeEnabled === true,
           }"
           @save="applyRoomConfig"
         />
@@ -118,24 +120,29 @@
         <SimpleResultsGrid
           v-if="configStore.viewMode === 'grid'"
           :current-user-id="configStore.userId"
+          :leader-user-id="leaderUserId"
           :players="sortedRoomUsers"
           :show-votes="showVotes"
+          @open-player-menu="openPlayerMenu"
         />
 
         <PokerTable
           v-else
           :current-user-id="configStore.userId"
+          :leader-user-id="leaderUserId"
           :players="sortedRoomUsers"
           :shaking-user-ids="shakingUserIds"
           :show-votes="showVotes"
+          @open-player-menu="openPlayerMenu"
         />
 
         <div class="action-row room-action-row">
           <template v-if="!showVotes">
             <v-btn
               class="p0-btn p0-btn-primary"
-              :disabled="votedCount === 0"
+              :disabled="votedCount === 0 || !canManageRound"
               prepend-icon="mdi-eye"
+              :title="roundActionTitle"
               variant="flat"
               @click="revealVotes"
             >
@@ -147,6 +154,8 @@
 
             <v-btn
               class="p0-btn p0-btn-ghost"
+              :disabled="!canManageRound"
+              :title="roundActionTitle"
               variant="flat"
               @click="resetVotes"
             >
@@ -157,7 +166,9 @@
           <template v-else>
             <v-btn
               class="p0-btn p0-btn-ghost"
+              :disabled="!canManageRound"
               prepend-icon="mdi-eye-off"
+              :title="roundActionTitle"
               variant="flat"
               @click="hideVotes"
             >
@@ -166,7 +177,9 @@
 
             <v-btn
               class="p0-btn p0-btn-primary"
+              :disabled="!canManageRound"
               :prepend-icon="historyEnabled ? 'mdi-arrow-right' : 'mdi-refresh'"
+              :title="roundActionTitle"
               variant="flat"
               @click="resetVotes"
             >
@@ -184,6 +197,7 @@
 
         <VoteDock
           v-model:collapsed="dockCollapsed"
+          :can-commit-vote="canCommitFinalVote"
           :committed-vote="committedVote"
           :display-vote-counts="displayVoteCounts"
           :history-enabled="currentRoom?.settings?.historyEnabled !== false"
@@ -195,6 +209,21 @@
           @cast-vote="castVote"
           @commit-vote="onCommitVote"
         />
+
+        <div
+          v-if="playerMenu"
+          class="room-context-menu"
+          :style="{ left: `${playerMenu.x}px`, top: `${playerMenu.y}px` }"
+          @click.stop
+        >
+          <button
+            class="room-context-menu-item"
+            type="button"
+            @click="transferLeadership(playerMenu.userId)"
+          >
+            Make {{ playerMenu.name }} leader
+          </button>
+        </div>
       </main>
     </div>
 
@@ -288,6 +317,8 @@
     name: string
     createdAt: number
     createdBy: string
+    createdByUserId?: string | null
+    leaderUserId?: string | null
     committedVote?: string | null
     settings?: {
       showVotes?: boolean
@@ -297,6 +328,7 @@
       specialQuestion?: boolean
       specialCoffee?: boolean
       historyEnabled?: boolean
+      leaderModeEnabled?: boolean
     }
     lastActivity?: number
   } | null>(null)
@@ -308,6 +340,7 @@
   const dockCollapsed = ref(false)
   const shareCopied = ref(false)
   const roomConfigOpen = ref(false)
+  const playerMenu = ref<{ userId: string, name: string, x: number, y: number } | null>(null)
 
   const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const showConfetti = ref(false)
@@ -341,6 +374,13 @@
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
+  const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
+  const leaderUserId = computed(() => currentRoom.value?.leaderUserId ?? null)
+  const createdByUserId = computed(() => currentRoom.value?.createdByUserId ?? currentRoom.value?.createdBy ?? null)
+  const isLeader = computed(() => !leaderModeEnabled.value || (!!configStore.userId && leaderUserId.value === configStore.userId))
+  const canManageRound = computed(() => !leaderModeEnabled.value || isLeader.value)
+  const canCommitFinalVote = computed(() => !leaderModeEnabled.value || isLeader.value)
+  const roundActionTitle = computed(() => canManageRound.value ? '' : 'Only the leader can control the round')
 
   const voteOptions = computed((): VoteValue[] => {
     const s = currentRoom.value?.settings
@@ -560,6 +600,9 @@
   onMounted(() => {
     if (!db) return
 
+    window.addEventListener('click', closePlayerMenu)
+    window.addEventListener('keydown', onWindowKeydown)
+
     const roomRef = dbRef(db, `rooms/${roomId}`)
     unsubscribeRoom = onValue(roomRef, snapshot => {
       const data = snapshot.val()
@@ -612,6 +655,8 @@
   })
 
   onUnmounted(() => {
+    window.removeEventListener('click', closePlayerMenu)
+    window.removeEventListener('keydown', onWindowKeydown)
     unsubscribeRoom?.()
     unsubscribeUsers?.()
     unsubscribeHistory?.()
@@ -628,6 +673,14 @@
   function formatOptionalNum (num: number | null | undefined): string | null {
     if (num === null || num === undefined) return null
     return formatNum(num)
+  }
+
+  function closePlayerMenu () {
+    playerMenu.value = null
+  }
+
+  function onWindowKeydown (event: KeyboardEvent) {
+    if (event.key === 'Escape') closePlayerMenu()
   }
 
   function joinRoom () {
@@ -663,6 +716,7 @@
 
   function onDescriptionChange (text: string) {
     description.value = text
+    closePlayerMenu()
     if (descriptionDebounce !== null) clearTimeout(descriptionDebounce)
     descriptionDebounce = setTimeout(() => {
       if (!db) return
@@ -682,6 +736,8 @@
 
   function castVote (value: VoteValue) {
     if (!db || !configStore.userId || showVotes.value) return
+
+    closePlayerMenu()
 
     const isVoteChange = selectedVote.value !== null && value !== selectedVote.value
 
@@ -722,8 +778,11 @@
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    leaderModeEnabled: boolean
   }) {
     if (!db || !currentRoom.value) return
+
+    closePlayerMenu()
 
     const newOptions = buildNewVoteOptions(settings)
 
@@ -734,6 +793,11 @@
       'settings/specialQuestion': settings.specialQuestion,
       'settings/specialCoffee': settings.specialCoffee,
       'settings/historyEnabled': settings.historyEnabled,
+      'settings/leaderModeEnabled': settings.leaderModeEnabled,
+      'leaderUserId': settings.leaderModeEnabled
+        ? (leaderUserId.value ?? createdByUserId.value ?? null)
+        : null,
+      'createdByUserId': createdByUserId.value,
       'lastActivity': Date.now(),
     }
 
@@ -755,12 +819,14 @@
   }
 
   function onCommitVote (value: string) {
-    if (!db) return
+    if (!db || !canCommitFinalVote.value) return
+    closePlayerMenu()
     update(dbRef(db, `rooms/${roomId}`), { committedVote: value, lastActivity: Date.now() }).catch(console.error)
   }
 
   function revealVotes () {
-    if (!db) return
+    if (!db || !canManageRound.value) return
+    closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': true,
@@ -769,7 +835,8 @@
   }
 
   function hideVotes () {
-    if (!db) return
+    if (!db || !canManageRound.value) return
+    closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': false,
@@ -779,7 +846,9 @@
   }
 
   function resetVotes () {
-    if (!db) return
+    if (!db || !canManageRound.value) return
+
+    closePlayerMenu()
 
     const roomRef = dbRef(db, `rooms/${roomId}`)
     const updates: Record<string, unknown> = {
@@ -821,6 +890,25 @@
     }
 
     update(roomRef, updates).catch(console.error)
+  }
+
+  function openPlayerMenu (payload: { userId: string, name: string, x: number, y: number }) {
+    if (!leaderModeEnabled.value || !isLeader.value || payload.userId === leaderUserId.value) {
+      closePlayerMenu()
+      return
+    }
+
+    playerMenu.value = payload
+  }
+
+  function transferLeadership (userId: string) {
+    if (!db || !leaderModeEnabled.value || !isLeader.value || userId === leaderUserId.value) return
+    closePlayerMenu()
+
+    update(dbRef(db, `rooms/${roomId}`), {
+      leaderUserId: userId,
+      lastActivity: Date.now(),
+    }).catch(console.error)
   }
 
   function triggerConfetti () {

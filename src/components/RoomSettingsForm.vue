@@ -1,6 +1,13 @@
 <script setup lang="ts">
   export type DeckPreset = 'fibonacci' | 'linear' | 'tshirt' | 'custom'
 
+  type DeckPresetOption = {
+    id: DeckPreset
+    label: string
+    preview: string
+    count?: number
+  }
+
   export interface RoomFormSettings {
     name: string
     deck: DeckPreset
@@ -8,13 +15,14 @@
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    leaderModeEnabled: boolean
   }
 
-  const DECK_PRESETS: { id: DeckPreset; label: string; preview: string; count?: number }[] = [
+  const DECK_PRESETS: DeckPresetOption[] = [
     { id: 'fibonacci', label: 'Fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 · 55', count: 10 },
-    { id: 'linear',    label: 'Linear',    preview: '1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 12 · 15', count: 12 },
-    { id: 'tshirt',    label: 'T-shirt',   preview: 'XS · S · M · L · XL · XXL', count: 6 },
-    { id: 'custom',    label: 'Custom',    preview: 'Define your own sequence' },
+    { id: 'linear', label: 'Linear', preview: '1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 12 · 15', count: 12 },
+    { id: 'tshirt', label: 'T-shirt', preview: 'XS · S · M · L · XL · XXL', count: 6 },
+    { id: 'custom', label: 'Custom', preview: 'Define your own sequence' },
   ]
 
   const props = defineProps<{
@@ -41,9 +49,9 @@
       hide-details="auto"
       label="Room name"
       maxlength="60"
+      :model-value="modelValue.name"
       placeholder="e.g. Sprint 42 planning"
       required
-      :model-value="modelValue.name"
       variant="outlined"
       @update:model-value="patch({ name: $event })"
     />
@@ -66,6 +74,7 @@
             <span v-if="preset.count" class="deck-option-count">{{ preset.count }}</span>
             <v-icon v-else icon="mdi-pencil" size="12" style="color: var(--text-4)" />
           </div>
+
           <span class="deck-option-preview">{{ preset.preview }}</span>
         </button>
       </div>
@@ -75,9 +84,9 @@
         class="p0-field"
         hint="Comma-separated values — e.g. 1, 2, 3, 5, 8, 13"
         label="Custom values"
+        :model-value="modelValue.customDeck"
         persistent-hint
         variant="outlined"
-        :model-value="modelValue.customDeck"
         @update:model-value="patch({ customDeck: $event })"
       />
     </div>
@@ -92,10 +101,11 @@
             <span class="toggle-card">?</span>
             <span class="toggle-name">Unknown</span>
           </div>
+
           <input
+            :checked="modelValue.specialQuestion"
             class="p0-toggle"
             type="checkbox"
-            :checked="modelValue.specialQuestion"
             @change="patch({ specialQuestion: ($event.target as HTMLInputElement).checked })"
           >
         </label>
@@ -105,10 +115,11 @@
             <span class="toggle-card">☕</span>
             <span class="toggle-name">Break</span>
           </div>
+
           <input
+            :checked="modelValue.specialCoffee"
             class="p0-toggle"
             type="checkbox"
-            :checked="modelValue.specialCoffee"
             @change="patch({ specialCoffee: ($event.target as HTMLInputElement).checked })"
           >
         </label>
@@ -124,11 +135,30 @@
           <v-icon icon="mdi-history" size="15" style="color: var(--text-2)" />
           <span class="toggle-name">Save completed rounds</span>
         </div>
+
         <input
+          :checked="modelValue.historyEnabled"
           class="p0-toggle"
           type="checkbox"
-          :checked="modelValue.historyEnabled"
           @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
+        >
+      </label>
+    </div>
+
+    <div class="room-settings-section">
+      <span class="settings-label">Room control</span>
+
+      <label class="toggle-item">
+        <div class="toggle-info">
+          <v-icon icon="mdi-crown-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Enable leader mode</span>
+        </div>
+
+        <input
+          :checked="modelValue.leaderModeEnabled"
+          class="p0-toggle"
+          type="checkbox"
+          @change="patch({ leaderModeEnabled: ($event.target as HTMLInputElement).checked })"
         >
       </label>
     </div>

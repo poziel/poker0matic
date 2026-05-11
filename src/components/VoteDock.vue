@@ -26,6 +26,7 @@
     displayVoteCounts: Record<string, number> | null
     historyEnabled: boolean
     committedVote: string | null
+    canCommitVote: boolean
   }>()
 
   const emit = defineEmits<{
@@ -63,7 +64,7 @@
   const hasNumericStats = computed(() => props.stats?.numericTotal != null && props.stats.numericTotal > 0)
 
   const autoSelectedValue = computed<string | null>(() => {
-    if (!props.historyEnabled || !isConsensus.value || !props.displayVoteCounts || props.committedVote) return null
+    if (!props.historyEnabled || !props.canCommitVote || !isConsensus.value || !props.displayVoteCounts || props.committedVote) return null
     const keys = Object.keys(props.displayVoteCounts)
     return keys.length === 1 ? keys[0] : null
   })
@@ -79,7 +80,7 @@
     customVoteValue.value.length > 0 && customVoteValue.value === props.committedVote,
   )
   const canCommitCustom = computed(() =>
-    customVoteValue.value.length > 0 && customVoteValue.value !== props.committedVote,
+    props.canCommitVote && customVoteValue.value.length > 0 && customVoteValue.value !== props.committedVote,
   )
 
   function formatNum (num: number | null | undefined): string {
@@ -88,7 +89,7 @@
   }
 
   function commitValue (value: string) {
-    if (!props.historyEnabled) return
+    if (!props.historyEnabled || !props.canCommitVote) return
     emit('commit-vote', value)
     // Do NOT update customVoteInput — the text box is independent
   }
@@ -141,7 +142,8 @@
           {{ committedVote }}
         </span>
 
-        <span v-else-if="historyEnabled" class="dock-committed-hint">click a card to set final estimate</span>
+        <span v-else-if="historyEnabled && canCommitVote" class="dock-committed-hint">click a card to set final estimate</span>
+        <span v-else-if="historyEnabled" class="dock-committed-hint">leader selects the final estimate</span>
       </div>
 
       <!-- Distribution as cards -->
@@ -158,12 +160,12 @@
               :class="{
                 'dist-mode': count === maxVoteCount,
                 'dist-committed': String(value) === committedVote || String(value) === autoSelectedValue,
-                'dist-clickable': historyEnabled,
-                'p0-card-interactive': historyEnabled,
+                'dist-clickable': historyEnabled && canCommitVote,
+                'p0-card-interactive': historyEnabled && canCommitVote,
                 'p0-card-selected': String(value) === committedVote || String(value) === autoSelectedValue,
               }"
               :data-card-value="value"
-              :disabled="!historyEnabled"
+              :disabled="!historyEnabled || !canCommitVote"
               type="button"
               @click="commitValue(String(value))"
             >
@@ -176,7 +178,7 @@
           </div>
 
           <!-- Custom estimate card (inline, after a separator dot) -->
-          <template v-if="historyEnabled">
+          <template v-if="historyEnabled && canCommitVote">
             <span class="dist-custom-sep">·</span>
 
             <div class="dist-card-wrap">
@@ -236,7 +238,7 @@
 
       <div v-else class="dock-hint dock-stats-hint">
         <template v-if="stats && hasNumericStats">
-          <template v-if="historyEnabled">
+          <template v-if="historyEnabled && canCommitVote">
             <button class="dock-stat-btn" @click="commitValue(formatNum(stats.avg))">
               Avg <strong>{{ formatNum(stats.avg) }}</strong>
             </button>
