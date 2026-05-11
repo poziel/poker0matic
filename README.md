@@ -4,7 +4,7 @@ A real-time collaborative planning poker app for agile teams. Team members join 
 
 Firebase Realtime Database is the only backend — there is no server. Each team brings their own Firebase project.
 
-See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+Release notes are generated from merged pull requests with Release Drafter. `CHANGELOG.md` is kept for historical release notes.
 
 ## First-time setup
 
@@ -39,5 +39,25 @@ npm run preview   # serve dist/ locally
 npm run lint      # ESLint check
 npm run lint:fix  # ESLint auto-fix
 ```
+
+## Pull request labels
+
+Release Drafter updates the next GitHub Release draft whenever a PR is merged into `main`. Release-included PRs must have one semantic version label and one changelog category label before merge.
+
+Required semantic version labels:
+
+- `major` — breaking changes.
+- `minor` — new features or notable user-facing behavior changes.
+- `patch` — bug fixes, polish, or small maintenance changes.
+
+Required changelog category labels:
+
+- `feature` — new or changed user-facing functionality.
+- `fix` — bug fixes and regressions.
+- `chore` — release-visible maintenance, tooling, docs, or cleanup.
+
+Optional exclusion label:
+
+- `skip-changelog` — omit the PR from generated release notes. Use this only for work that should not appear in the release draft.
 
 Deployment is automatic via GitHub Actions on push to `main`, publishing to GitHub Pages at `/poker0matic/`.

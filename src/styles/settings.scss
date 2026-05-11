@@ -2022,11 +2022,33 @@ button { font-family: inherit; }
   color: var(--text-2);
   line-height: 1.6;
 }
-.about-line a {
+.about-version {
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+.about-line a,
+.about-credit-list a {
   color: var(--accent);
   text-decoration: none;
 }
-.about-line a:hover { text-decoration: underline; }
+.about-line a:hover,
+.about-credit-list a:hover { text-decoration: underline; }
+.about-credit-list {
+  color: var(--text-2);
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.55;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.about-credit-list li {
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+}
 
 /* --- theme picker -------------------------------------------------------- */
 .theme-grid {
