@@ -1,22 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import vuetify from '@/plugins/vuetify'
+import { DEFAULT_THEME_ID, THEME_IDS, type ThemeId } from '@/utils/themes'
 
 const THEME_KEY = 'poker_theme'
-const THEMES = ['midnight', 'slate', 'forest', 'amber', 'rose', 'violet', 'ocean', 'neon', 'candy'] as const
-type Theme = typeof THEMES[number]
 
 export const useAppStore = defineStore('app', () => {
   const roomName = ref('')
   const playerCount = ref(0)
   const currentRoomId = ref<string | null>(null)
 
-  // Load persisted theme, fall back to midnight
-  const saved = localStorage.getItem(THEME_KEY) as Theme | null
-  const initial: Theme = saved && (THEMES as readonly string[]).includes(saved) ? saved : 'midnight'
-  const currentTheme = ref<Theme>(initial)
-  if (initial !== 'midnight') {
-    document.documentElement.dataset.theme = initial
-  }
+  const saved = localStorage.getItem(THEME_KEY) as ThemeId | null
+  const initial: ThemeId = saved && THEME_IDS.includes(saved) ? saved : DEFAULT_THEME_ID
+  const currentTheme = ref<ThemeId>(initial)
+  applyTheme(initial)
 
   // -- toast --------------------------------------------------------------
   const toastMessage = ref('')
@@ -44,21 +41,26 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // -- theme --------------------------------------------------------------
-  function setTheme (theme: Theme) {
-    currentTheme.value = theme
+  function applyTheme (theme: ThemeId) {
     document.documentElement.dataset.theme = theme
+    vuetify.theme.global.name.value = theme
+  }
+
+  function setTheme (theme: ThemeId) {
+    currentTheme.value = theme
+    applyTheme(theme)
     localStorage.setItem(THEME_KEY, theme)
   }
 
   /** @deprecated use setTheme directly */
   function cycleTheme () {
-    const idx = THEMES.indexOf(currentTheme.value)
-    setTheme(THEMES[(idx + 1) % THEMES.length])
+    const idx = THEME_IDS.indexOf(currentTheme.value)
+    setTheme(THEME_IDS[(idx + 1) % THEME_IDS.length])
   }
 
   return {
     roomName, playerCount, currentRoomId,
-    currentTheme, THEMES,
+    currentTheme, THEMES: THEME_IDS,
     toastMessage, toastType, toastVisible,
     showToast, setRoomInfo, setTheme, cycleTheme,
   }

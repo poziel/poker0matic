@@ -3,12 +3,13 @@
     <template #activator="{ props }">
       <v-btn v-bind="props" class="user-menu-btn" variant="text">
         <PlayerAvatar
-          :avatar-style="configStore.avatarStyle"
-          :avatar-seed="configStore.avatarSeed || displayName"
           :avatar-bg="configStore.avatarBg"
+          :avatar-seed="configStore.avatarSeed || displayName"
+          :avatar-style="configStore.avatarStyle"
           :size="32"
           square
         />
+
         <span class="user-menu-name">{{ displayName }}</span>
       </v-btn>
     </template>
@@ -71,27 +72,39 @@
       </div>
 
       <div class="p0-modal-body">
+        <v-tabs
+          v-model="themeMode"
+          class="theme-tabs"
+          color="primary"
+          density="comfortable"
+          fixed-tabs
+        >
+          <v-tab value="dark">Dark Themes</v-tab>
+          <v-tab value="light">Light Themes</v-tab>
+        </v-tabs>
+
         <div class="theme-grid">
           <button
-            v-for="theme in THEME_OPTIONS"
+            v-for="theme in visibleThemes"
             :key="theme.id"
             class="theme-card"
-            :class="{ active: appStore.currentTheme === theme.id }"
+            :class="{ active: localTheme === theme.id }"
             type="button"
-            @click="appStore.setTheme(theme.id)"
+            @click="localTheme = theme.id"
           >
-            <span class="theme-swatch" :style="{ background: theme.bg }">
-              <span class="theme-dot" :style="{ background: theme.accent }" />
+            <span class="theme-swatch" :style="{ background: theme.preview.bg }">
+              <span class="theme-dot" :style="{ background: theme.preview.accent }" />
             </span>
 
             <span class="theme-label">{{ theme.label }}</span>
-            <v-icon v-if="appStore.currentTheme === theme.id" class="theme-check" icon="mdi-check-circle" size="14" />
+            <v-icon v-if="localTheme === theme.id" class="theme-check" icon="mdi-check-circle" size="14" />
           </button>
         </div>
       </div>
 
       <div class="p0-modal-foot">
-        <v-btn class="p0-btn p0-btn-primary" variant="flat" @click="themeDialog = false">Done</v-btn>
+        <v-btn class="p0-btn p0-btn-ghost" variant="flat" @click="themeDialog = false">Cancel</v-btn>
+        <v-btn class="p0-btn p0-btn-primary" variant="flat" @click="saveThemeDialog">Done</v-btn>
       </div>
     </v-card>
   </v-dialog>
@@ -116,6 +129,7 @@
               type="text"
               @keydown.enter="applyPreview"
             >
+
             <button class="avatar-preview-btn" type="button" @click="applyPreview">Preview</button>
           </div>
 
@@ -124,6 +138,7 @@
             <div class="toggle-info">
               <span class="toggle-name">Follow theme accent</span>
             </div>
+
             <input v-model="avatarBgFollowTheme" class="p0-toggle" type="checkbox">
           </label>
 
@@ -134,7 +149,9 @@
               class="avatar-color-input"
               type="color"
             >
+
             <span class="avatar-bg-label">Custom background</span>
+
             <code class="avatar-color-hex">{{ localAvatarBg }}</code>
           </label>
 
@@ -155,9 +172,9 @@
             <span v-if="style.recommended" class="avatar-style-rec">Recommended</span>
 
             <PlayerAvatar
-              :avatar-style="style.id"
-              :avatar-seed="effectiveSeed"
               :avatar-bg="effectiveBg"
+              :avatar-seed="effectiveSeed"
+              :avatar-style="style.id"
               :size="56"
             />
 
@@ -186,18 +203,7 @@
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import { AVATAR_STYLES, DEFAULT_AVATAR_BG, THEME_BG_VALUE } from '@/utils/avatarStyles'
-
-  const THEME_OPTIONS = [
-    { id: 'midnight' as const, label: 'Midnight', bg: '#0a0c10', accent: '#4f8cff' },
-    { id: 'slate' as const, label: 'Slate', bg: '#0d1015', accent: '#7c8cff' },
-    { id: 'forest' as const, label: 'Forest', bg: '#0a1110', accent: '#3ecf8e' },
-    { id: 'amber' as const, label: 'Amber', bg: '#0d0b08', accent: '#f5b14d' },
-    { id: 'rose' as const, label: 'Rose', bg: '#0f0810', accent: '#f472b6' },
-    { id: 'violet' as const, label: 'Violet', bg: '#090810', accent: '#a78bfa' },
-    { id: 'ocean' as const, label: 'Ocean', bg: '#070f12', accent: '#22d3ee' },
-    { id: 'neon' as const, label: 'Neon', bg: '#030505', accent: '#4ade80' },
-    { id: 'candy' as const, label: 'Candy', bg: '#0d0614', accent: '#e879f9' },
-  ]
+  import { THEME_LOOKUP, type ThemeId, type ThemeMode, THEMES_BY_MODE } from '@/utils/themes'
 
   const appStore = useAppStore()
   const configStore = useConfigStore()
@@ -206,6 +212,8 @@
   const MAX_NAME_LENGTH = 20
   const nameDialog = ref(false)
   const themeDialog = ref(false)
+  const themeMode = ref<ThemeMode>(THEME_LOOKUP[appStore.currentTheme].mode)
+  const localTheme = ref<ThemeId>(appStore.currentTheme)
   const avatarDialog = ref(false)
   const configModalOpen = ref(false)
   const aboutModalOpen = ref(false)
@@ -226,6 +234,7 @@
   const effectiveBg = computed(() => avatarBgFollowTheme.value ? THEME_BG_VALUE : localAvatarBg.value)
 
   const displayName = computed(() => userName.value || 'Guest')
+  const visibleThemes = computed(() => THEMES_BY_MODE[themeMode.value])
   // Seed used for avatar previews: applied preview seed if set, otherwise username
   const effectiveSeed = computed(() => previewSeed.value.trim() || displayName.value)
 
@@ -233,13 +242,20 @@
     if (open) localName.value = userName.value
   })
 
+  watch(themeDialog, open => {
+    if (open) {
+      localTheme.value = appStore.currentTheme
+      themeMode.value = THEME_LOOKUP[appStore.currentTheme].mode
+    }
+  })
+
   watch(avatarDialog, open => {
     if (open) {
-      localAvatarStyle.value    = configStore.avatarStyle
-      localAvatarSeed.value     = configStore.avatarSeed
-      previewSeed.value         = configStore.avatarSeed
+      localAvatarStyle.value = configStore.avatarStyle
+      localAvatarSeed.value = configStore.avatarSeed
+      previewSeed.value = configStore.avatarSeed
       avatarBgFollowTheme.value = configStore.avatarBg === THEME_BG_VALUE
-      localAvatarBg.value       = configStore.avatarBg === THEME_BG_VALUE
+      localAvatarBg.value = configStore.avatarBg === THEME_BG_VALUE
         ? DEFAULT_AVATAR_BG
         : configStore.avatarBg
     }
@@ -254,6 +270,11 @@
     configStore.setAvatarSeed(localAvatarSeed.value)
     configStore.setAvatarBg(avatarBgFollowTheme.value ? THEME_BG_VALUE : localAvatarBg.value)
     avatarDialog.value = false
+  }
+
+  function saveThemeDialog () {
+    appStore.setTheme(localTheme.value)
+    themeDialog.value = false
   }
 
   function saveName () {

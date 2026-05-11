@@ -1,24 +1,18 @@
 import { createVuetify } from 'vuetify'
+import { DEFAULT_THEME_ID, THEME_DEFINITIONS } from '@/utils/themes'
 import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 
-export default createVuetify({
+const vuetify = createVuetify({
   theme: {
-    defaultTheme: 'midnight',
-    themes: {
-      midnight: {
-        dark: true,
-        colors: {
-          background: '#0a0c10',
-          surface: '#0f131a',
-          primary: '#4f8cff',
-          secondary: '#3ecf8e',
-          error: '#f05a5a',
-          warning: '#f5b14d',
-          success: '#3ecf8e',
-          info: '#4f8cff',
-        },
-      },
-    },
+    defaultTheme: DEFAULT_THEME_ID,
+    themes: Object.fromEntries(
+      THEME_DEFINITIONS.map(theme => [theme.id, {
+        dark: theme.dark,
+        colors: theme.colors,
+      }]),
+    ),
   },
 })
+
+export default vuetify
