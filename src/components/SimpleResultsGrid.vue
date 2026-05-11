@@ -21,17 +21,9 @@
     showVotes: boolean
   }>()
 
-  const sortedPlayers = computed(() => {
-    if (!props.showVotes) {
-      return props.players.toSorted((a, b) => a.joinedAt - b.joinedAt)
-    }
-    // Post-reveal: sort by vote descending
-    return props.players.toSorted((a, b) => {
-      const rank = (v?: VoteValue) =>
-        v == null ? -2 : (typeof v === 'number' ? v : -1)
-      return rank(b.vote) - rank(a.vote)
-    })
-  })
+  const sortedPlayers = computed(() =>
+    props.players.toSorted((a, b) => a.joinedAt - b.joinedAt),
+  )
 </script>
 
 <template>
@@ -61,12 +53,9 @@
 
       <span
         v-if="showVotes && player.vote != null"
-        class="rg-vote p0-card p0-card-value p0-card-mini"
-        :data-card-value="player.vote"
+        class="rg-vote-value"
       >
-        <span class="corner p0-card-corner p0-card-corner-tl tl">{{ player.vote }}</span>
-        <span class="p0-card-main">{{ player.vote }}</span>
-        <span class="corner p0-card-corner p0-card-corner-br br">{{ player.vote }}</span>
+        {{ player.vote }}
       </span>
 
       <span v-else-if="showVotes" class="rg-vote-empty">—</span>

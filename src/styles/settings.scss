@@ -1422,8 +1422,14 @@ button { font-family: inherit; }
   border: 1px solid color-mix(in oklab, var(--accent), transparent 60%);
   flex-shrink: 0;
 }
-.rg-vote {
+.rg-vote-value {
   justify-self: end;
+  min-width: 34px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1);
+  text-align: center;
 }
 .rg-vote-empty {
   justify-self: end;

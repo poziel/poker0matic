@@ -2,15 +2,16 @@
   import { computed } from 'vue'
 
   interface RoundStats {
-    avg: number
-    median: number
-    closest: number
-    min: number
-    max: number
-    spread: number
-    counts: Record<number, number>
+    avg: number | null
+    median: number | null
+    closest: number | null
+    min: number | null
+    max: number | null
+    spread: number | null
+    counts: Record<string, number>
     maxCount: number
     total: number
+    numericTotal: number
     consensus: 'consensus' | 'close' | 'split'
   }
 
@@ -29,6 +30,8 @@
     if (props.stats.consensus === 'close') return 'Near match'
     return 'Split vote'
   })
+
+  const hasNumericStats = computed(() => props.stats?.numericTotal != null && props.stats.numericTotal > 0)
 
   function formatNum (num: number | null | undefined): string {
     if (num == null) return '-'
@@ -78,7 +81,7 @@
         <div class="lbl">Spread</div>
 
         <div class="val" :class="{ muted: !stats }">
-          <template v-if="stats">
+          <template v-if="stats && hasNumericStats">
             {{ stats.min }}<span class="spread-separator">-</span>{{ stats.max }}
           </template>
 

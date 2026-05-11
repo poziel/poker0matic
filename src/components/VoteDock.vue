@@ -4,14 +4,15 @@
   type VoteValue = number | string
 
   interface RoundStats {
-    avg: number
-    median: number
-    closest: number
-    min: number
-    max: number
-    counts: Record<number, number>
+    avg: number | null
+    median: number | null
+    closest: number | null
+    min: number | null
+    max: number | null
+    counts: Record<string, number>
     maxCount: number
     total: number
+    numericTotal: number
     consensus: 'consensus' | 'close' | 'split'
   }
 
@@ -59,10 +60,18 @@
 
   const isConsensus = computed(() => props.stats?.consensus === 'consensus')
 
+  const hasNumericStats = computed(() => props.stats?.numericTotal != null && props.stats.numericTotal > 0)
+
   const autoSelectedValue = computed<string | null>(() => {
-    if (!isConsensus.value || !props.displayVoteCounts || props.committedVote) return null
+    if (!props.historyEnabled || !isConsensus.value || !props.displayVoteCounts || props.committedVote) return null
     const keys = Object.keys(props.displayVoteCounts)
     return keys.length === 1 ? keys[0] : null
+  })
+
+  const collapsedStatsLabel = computed(() => {
+    if (!props.stats) return ''
+    if (props.stats.avg != null) return `avg ${formatNum(props.stats.avg)}`
+    return autoSelectedValue.value ?? consensusLabel.value
   })
 
   const customVoteValue = computed(() => customVoteInput.value.trim())
@@ -226,7 +235,7 @@
       </div>
 
       <div v-else class="dock-hint dock-stats-hint">
-        <template v-if="stats">
+        <template v-if="stats && hasNumericStats">
           <template v-if="historyEnabled">
             <button class="dock-stat-btn" @click="commitValue(formatNum(stats.avg))">
               Avg <strong>{{ formatNum(stats.avg) }}</strong>
@@ -240,7 +249,7 @@
 
             <span class="dock-hint-sep">·</span>
 
-            <button class="dock-stat-btn" @click="commitValue(String(stats.closest))">
+            <button class="dock-stat-btn" @click="commitValue(formatNum(stats.closest))">
               Closest <strong>{{ stats.closest }}</strong>
             </button>
 
@@ -270,7 +279,7 @@
     <div class="dock-toggle" @click="$emit('update:collapsed', !collapsed)">
       <template v-if="collapsed">
         <span v-if="showVotes && committedVote" class="dock-mini-vote">{{ committedVote }}</span>
-        <span v-else-if="showVotes && stats" class="dock-mini-vote">avg {{ formatNum(stats.avg) }}</span>
+        <span v-else-if="showVotes && stats" class="dock-mini-vote">{{ collapsedStatsLabel }}</span>
         <span v-else-if="selectedVote != null" class="dock-mini-vote">{{ selectedVote }}</span>
       </template>
 
