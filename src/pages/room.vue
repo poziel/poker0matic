@@ -27,7 +27,7 @@
               icon
               :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
               variant="text"
-              @click="historyPanelOpen = !historyPanelOpen"
+              @click="roomCommands.toggleSidePanel()"
             >
               <v-icon :icon="historyPanelOpen ? 'mdi-backburger' : 'mdi-menu'" size="16" />
             </v-btn>
@@ -38,8 +38,8 @@
               density="compact"
               icon
               title="Back to lobby"
-              to="/"
               variant="text"
+              @click="roomCommands.goToLobby()"
             >
               <v-icon icon="mdi-home-outline" size="16" />
             </v-btn>
@@ -126,7 +126,7 @@
               icon
               :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
               variant="text"
-              @click="shareRoomConfig"
+              @click="roomCommands.copyRoomLink()"
             >
               <v-icon :icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'" size="16" />
             </v-btn>
@@ -198,7 +198,7 @@
               prepend-icon="mdi-eye"
               :title="roundActionTitle"
               variant="flat"
-              @click="revealVotes"
+              @click="roomCommands.revealVotes()"
             >
               Reveal votes
               <span v-if="!allVoted" class="button-meta">
@@ -211,7 +211,7 @@
               :disabled="!canManageRound"
               :title="roundActionTitle"
               variant="flat"
-              @click="resetCurrentRound"
+              @click="roomCommands.resetRound()"
             >
               Reset round
             </v-btn>
@@ -224,7 +224,7 @@
               prepend-icon="mdi-eye-off"
               :title="roundActionTitle"
               variant="flat"
-              @click="hideVotes"
+              @click="roomCommands.hideVotes()"
             >
               Hide votes
             </v-btn>
@@ -235,7 +235,7 @@
               :prepend-icon="historyEnabled ? 'mdi-arrow-right' : 'mdi-refresh'"
               :title="roundActionTitle"
               variant="flat"
-              @click="advanceRound"
+              @click="roomCommands.advanceRound()"
             >
               {{ historyEnabled ? 'Next round' : 'New round' }}
             </v-btn>
@@ -322,6 +322,7 @@
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import { copyText } from '@/utils/clipboard'
+  import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
 
   const route = useRoute()
   const router = useRouter()
@@ -350,6 +351,7 @@
     linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
     tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
+  const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
 
   function parseCustomDeck (raw: string): VoteValue[] {
     return raw.split(',').flatMap(s => {
@@ -411,6 +413,7 @@
   let unsubscribeRoom: (() => void) | null = null
   let unsubscribeUsers: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
+  let unregisterShortcuts: (() => void) | null = null
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
@@ -507,6 +510,31 @@
     if (!showVotes.value) return null
     const counts = countVotes(revealedVotes.value)
     return Object.keys(counts).length > 0 ? counts : null
+  })
+  const historyShortcutVoteValues = computed(() => {
+    const counts = displayVoteCounts.value
+    if (!counts) return []
+
+    const presentValues = new Set(Object.keys(counts))
+    const orderedDeckValues = voteOptions.value
+      .map(String)
+      .filter(value => presentValues.has(value))
+    const extraValues = Object.keys(counts).filter(value => !orderedDeckValues.includes(value))
+    return [...orderedDeckValues, ...extraValues]
+  })
+  const voteShortcutLookup = computed(() => {
+    const availableValues = showVotes.value
+      ? historyShortcutVoteValues.value
+      : (dockCollapsed.value ? [] : voteOptions.value.map(String))
+
+    const lookup: Record<string, string> = {}
+    const standardValues = availableValues.filter(value => value !== '?' && value !== '☕')
+    for (const [index, value] of standardValues.slice(0, VOTE_SHORTCUT_KEYS.length).entries()) {
+      lookup[VOTE_SHORTCUT_KEYS[index]] = value
+    }
+    if (availableValues.includes('?')) lookup['-'] = '?'
+    if (availableValues.includes('☕')) lookup['+'] = '☕'
+    return lookup
   })
 
   const votedCount = computed(() =>
@@ -683,6 +711,112 @@
 
     window.addEventListener('click', closePlayerMenu)
     window.addEventListener('keydown', onWindowKeydown)
+    unregisterShortcuts = registerKeyboardShortcuts([
+      {
+        id: 'room.vote-card',
+        group: 'voting',
+        description: 'Select a vote card or final estimate',
+        keys: [
+          ...VOTE_SHORTCUT_KEYS.map(key => ({ key })),
+          { key: '-' },
+          { key: '-', code: 'NumpadSubtract' },
+          { key: '+' },
+          { code: 'NumpadAdd' },
+        ],
+        when: () => canUseRoomShortcuts() && canTriggerVoteShortcut(),
+        handler: event => {
+          const key = event.code === 'NumpadAdd'
+            ? '+'
+            : (event.code === 'NumpadSubtract'
+              ? '-'
+              : event.key)
+          const vote = voteShortcutLookup.value[key]
+          if (!vote) return
+          if (showVotes.value) onCommitVote(vote)
+          else castVote(parseShortcutVoteValue(vote))
+        },
+      },
+      {
+        id: 'room.toggle-deck',
+        group: 'voting',
+        description: 'Collapse or expand the vote dock',
+        keys: [{ key: 'd' }],
+        when: () => canUseRoomShortcuts() && currentRoom.value !== null,
+        handler: () => {
+          roomCommands.toggleDeck()
+        },
+      },
+      {
+        id: 'room.copy-link',
+        group: 'room',
+        description: 'Copy the room link',
+        keys: [{ key: 'c' }],
+        when: () => canUseRoomShortcuts() && !!firebaseConfig.value,
+        handler: () => {
+          roomCommands.copyRoomLink()
+        },
+      },
+      {
+        id: 'room.reveal-votes',
+        group: 'room',
+        description: 'Reveal votes',
+        keys: [{ key: 'v' }],
+        when: () => canUseRoomShortcuts() && !showVotes.value,
+        handler: () => {
+          roomCommands.revealVotes()
+        },
+      },
+      {
+        id: 'room.hide-votes',
+        group: 'room',
+        description: 'Hide votes',
+        keys: [{ key: 'h' }],
+        when: () => canUseRoomShortcuts() && showVotes.value,
+        handler: () => {
+          roomCommands.hideVotes()
+        },
+      },
+      {
+        id: 'room.reset-round',
+        group: 'room',
+        description: 'Reset the current round',
+        keys: [{ key: 'r' }],
+        when: () => canUseRoomShortcuts(),
+        handler: () => {
+          roomCommands.resetRound()
+        },
+      },
+      {
+        id: 'room.advance-round',
+        group: 'room',
+        description: 'Start the next round',
+        keys: [{ key: 'n' }],
+        when: () => canUseRoomShortcuts() && showVotes.value,
+        handler: () => {
+          roomCommands.advanceRound()
+        },
+      },
+      {
+        id: 'room.toggle-panel',
+        group: 'navigation',
+        description: 'Open or close the room side panel',
+        keys: [{ key: 'p' }],
+        when: () => canUseRoomShortcuts() && sidePanelEnabled.value,
+        handler: () => {
+          roomCommands.toggleSidePanel()
+        },
+      },
+      {
+        id: 'room.go-home',
+        group: 'navigation',
+        description: 'Return to the lobby',
+        keys: [{ key: 'g' }],
+        when: () => canUseRoomShortcuts(),
+        handler: () => {
+          roomCommands.goToLobby()
+        },
+      },
+    ])
 
     const roomRef = dbRef(db, `rooms/${roomId}`)
     unsubscribeRoom = onValue(roomRef, snapshot => {
@@ -737,6 +871,7 @@
   onUnmounted(() => {
     window.removeEventListener('click', closePlayerMenu)
     window.removeEventListener('keydown', onWindowKeydown)
+    unregisterShortcuts?.()
     unsubscribeRoom?.()
     unsubscribeUsers?.()
     unsubscribeHistory?.()
@@ -802,6 +937,24 @@
 
   function onWindowKeydown (event: KeyboardEvent) {
     if (event.key === 'Escape') closePlayerMenu()
+  }
+
+  function canUseRoomShortcuts (): boolean {
+    return currentRoom.value !== null
+      && !hasActiveOverlay()
+      && !roomConfigOpen.value
+      && !taskInfoModalOpen.value
+      && playerMenu.value === null
+  }
+
+  function canTriggerVoteShortcut (): boolean {
+    if (showVotes.value) return !dockCollapsed.value && historyEnabled.value && canCommitFinalVote.value
+    return !dockCollapsed.value && canVoteInCurrentRound.value
+  }
+
+  function parseShortcutVoteValue (value: string): VoteValue {
+    const numericValue = Number(value)
+    return Number.isNaN(numericValue) ? value : numericValue
   }
 
   function joinRoom () {
@@ -1232,5 +1385,25 @@
     setTimeout(() => {
       showConfetti.value = false
     }, 3500)
+  }
+
+  const roomCommands = {
+    toggleDeck () {
+      dockCollapsed.value = !dockCollapsed.value
+    },
+    toggleSidePanel () {
+      if (!sidePanelEnabled.value) return
+      historyPanelOpen.value = !historyPanelOpen.value
+    },
+    copyRoomLink () {
+      void shareRoomConfig()
+    },
+    revealVotes,
+    hideVotes,
+    resetRound: resetCurrentRound,
+    advanceRound,
+    goToLobby () {
+      router.push('/')
+    },
   }
 </script>

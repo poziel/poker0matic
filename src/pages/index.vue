@@ -5,6 +5,7 @@
       <div>
         <div class="kicker">Setup required</div>
         <h1 class="setup-title">Connect to Firebase</h1>
+
         <p class="setup-desc">
           To create and join planning rooms, connect this app to your Firebase Realtime Database project.
           You can update the configuration later from the
@@ -16,7 +17,7 @@
         class="p0-btn p0-btn-primary"
         prepend-icon="mdi-cog"
         variant="flat"
-        @click="configModalOpen = true"
+        @click="appStore.setConfigModalOpen(true)"
       >
         Set up configuration
       </v-btn>
@@ -27,6 +28,7 @@
       <div>
         <div class="kicker">Connection failed</div>
         <h1 class="setup-title">Firebase unreachable</h1>
+
         <p class="setup-desc">
           A configuration was found but the Firebase database could not be reached.
           Check your credentials, database URL, and network connection.
@@ -49,7 +51,7 @@
           class="p0-btn p0-btn-primary"
           prepend-icon="mdi-cog"
           variant="flat"
-          @click="configModalOpen = true"
+          @click="appStore.setConfigModalOpen(true)"
         >
           Review configuration
         </v-btn>
@@ -142,15 +144,13 @@
     </v-card>
   </v-container>
 
-  <ConfigModal v-model="configModalOpen" />
-  <FullScreenLoader :model-value="configStatus === 'checking'" message="Checking…" />
+  <FullScreenLoader message="Checking…" :model-value="configStatus === 'checking'" />
 </template>
 
 <script lang="ts" setup>
-  import { get, ref as dbRef } from 'firebase/database'
+  import { ref as dbRef, get } from 'firebase/database'
   import { onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
-  import ConfigModal from '@/components/ConfigModal.vue'
   import FullScreenLoader from '@/components/FullScreenLoader.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
@@ -162,7 +162,6 @@
   const configStore = useConfigStore()
   const roomCode = ref('')
   const joiningRoom = ref(false)
-  const configModalOpen = ref(false)
   const configStatus = ref<ConfigStatus>('checking')
 
   // --- config validation ---------------------------------------------------
@@ -238,14 +237,24 @@
   // reflect it here immediately (e.g. user opens config from a different page
   // then navigates back to lobby before the background check finishes).
   watch(() => configStore.configValidationStatus, status => {
-    if (status === 'valid') {
-      configStatus.value = 'valid'
-      pruneRecentRooms()
-    } else if (status === 'unreachable') {
-      configStatus.value = 'unreachable'
-    } else if (status === 'unknown') {
-      // Config was changed, re-check
-      runChecks()
+    switch (status) {
+      case 'valid': {
+        configStatus.value = 'valid'
+        pruneRecentRooms()
+        break
+      }
+      case 'unreachable': {
+        configStatus.value = 'unreachable'
+        break
+      }
+      case 'unknown': {
+        // Config was changed, re-check
+        runChecks()
+        break
+      }
+      default: {
+        break
+      }
     }
   })
 

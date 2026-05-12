@@ -9,6 +9,7 @@ export const useAppStore = defineStore('app', () => {
   const roomName = ref('')
   const playerCount = ref(0)
   const currentRoomId = ref<string | null>(null)
+  const configModalOpen = ref(false)
 
   const saved = localStorage.getItem(THEME_KEY) as ThemeId | null
   const initial: ThemeId = saved && THEME_IDS.includes(saved) ? saved : DEFAULT_THEME_ID
@@ -40,6 +41,10 @@ export const useAppStore = defineStore('app', () => {
     playerCount.value = count
   }
 
+  function setConfigModalOpen (open: boolean) {
+    configModalOpen.value = open
+  }
+
   // -- theme --------------------------------------------------------------
   function applyTheme (theme: ThemeId) {
     document.documentElement.dataset.theme = theme
@@ -60,6 +65,7 @@ export const useAppStore = defineStore('app', () => {
 
   return {
     roomName, playerCount, currentRoomId,
+    configModalOpen, setConfigModalOpen,
     currentTheme, THEMES: THEME_IDS,
     toastMessage, toastType, toastVisible,
     showToast, setRoomInfo, setTheme, cycleTheme,
