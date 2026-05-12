@@ -50,6 +50,8 @@
       {{ appStore.toastMessage }}
     </v-snackbar>
 
+    <ConfigModal v-model="appStore.configModalOpen" />
+
     <!-- ── Global username setup (shown once on first visit) ───────────── -->
     <v-dialog v-model="nameSetupOpen" max-width="400" persistent>
       <v-card class="p0-modal" flat>
@@ -90,13 +92,16 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue'
-  import { useRoute } from 'vue-router'
+  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
+  import ConfigModal from '@/components/ConfigModal.vue'
   import UserMenu from '@/components/UserMenu.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
 
   const route = useRoute()
+  const router = useRouter()
   const appStore = useAppStore()
   const configStore = useConfigStore()
 
@@ -105,12 +110,48 @@
 
   const nameSetupOpen = ref(false)
   const setupName = ref('')
+  let unregisterShortcuts: (() => void) | null = null
 
   onMounted(() => {
     configStore.initializeConfig()
     if (!configStore.userName.trim()) {
       nameSetupOpen.value = true
     }
+
+    unregisterShortcuts = registerKeyboardShortcuts([
+      {
+        id: 'app.open-config',
+        group: 'app',
+        description: 'Open Firebase configuration',
+        keys: [
+          { key: '.', ctrlKey: true },
+          { key: '.', metaKey: true },
+        ],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && !hasActiveOverlay(),
+        handler: () => {
+          appStore.setConfigModalOpen(true)
+        },
+      },
+      {
+        id: 'app.create-room',
+        group: 'app',
+        description: 'Create a new room',
+        keys: [
+          { key: 'n', ctrlKey: true, altKey: true },
+          { key: 'n', metaKey: true, altKey: true },
+        ],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/create',
+        handler: () => {
+          router.push('/create')
+        },
+      },
+    ])
+  })
+
+  onUnmounted(() => {
+    unregisterShortcuts?.()
   })
 
   function submitSetupName () {

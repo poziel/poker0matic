@@ -28,7 +28,7 @@
 
       <v-divider class="p0-menu-divider" />
 
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-cog" title="Configuration" @click="configModalOpen = true" />
+      <v-list-item class="p0-menu-item" prepend-icon="mdi-cog" title="Configuration" @click="appStore.setConfigModalOpen(true)" />
       <v-list-item class="p0-menu-item" prepend-icon="mdi-information-outline" title="About" @click="aboutModalOpen = true" />
     </v-list>
   </v-menu>
@@ -190,7 +190,6 @@
     </v-card>
   </v-dialog>
 
-  <ConfigModal v-model="configModalOpen" />
   <AboutModal v-model="aboutModalOpen" />
 </template>
 
@@ -198,7 +197,6 @@
   import { storeToRefs } from 'pinia'
   import { computed, ref, watch } from 'vue'
   import AboutModal from '@/components/AboutModal.vue'
-  import ConfigModal from '@/components/ConfigModal.vue'
   import PlayerAvatar from '@/components/PlayerAvatar.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
@@ -215,7 +213,6 @@
   const themeMode = ref<ThemeMode>(THEME_LOOKUP[appStore.currentTheme].mode)
   const localTheme = ref<ThemeId>(appStore.currentTheme)
   const avatarDialog = ref(false)
-  const configModalOpen = ref(false)
   const aboutModalOpen = ref(false)
   const localName = ref(userName.value)
   // localAvatarStyle: buffered choice — only committed on Done

@@ -2481,6 +2481,79 @@ button { font-family: inherit; }
   font-family: var(--font-mono);
   margin-bottom: 8px;
 }
+.about-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.about-section-title,
+.about-section-label {
+  margin: 0;
+}
+.about-section-title {
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 600;
+}
+.about-section-label {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.about-shortcuts-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.about-shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.about-shortcut-list li {
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(92px, auto) 1fr;
+  padding: 10px 12px;
+}
+.about-shortcut-keys {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.2;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+.about-shortcut-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.about-shortcut-text {
+  color: var(--text-1);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.about-shortcut-note {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
 .about-line a,
 .about-credit-list a {
   color: var(--accent);
