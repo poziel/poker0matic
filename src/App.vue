@@ -138,8 +138,8 @@
         group: 'app',
         description: 'Create a new room',
         keys: [
-          { key: 'n', ctrlKey: true },
-          { key: 'n', metaKey: true },
+          { key: 'n', ctrlKey: true, altKey: true },
+          { key: 'n', metaKey: true, altKey: true },
         ],
         allowInEditable: true,
         when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/create',

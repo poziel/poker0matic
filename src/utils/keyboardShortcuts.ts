@@ -20,6 +20,12 @@ export interface KeyboardShortcutDefinition {
   stopPropagation?: boolean
 }
 
+export interface ShortcutHelpEntry {
+  keys: string
+  description: string
+  note?: string
+}
+
 interface ShortcutRegistration {
   id: number
   shortcuts: KeyboardShortcutDefinition[]
@@ -28,6 +34,67 @@ interface ShortcutRegistration {
 const registrations: ShortcutRegistration[] = []
 let nextRegistrationId = 1
 let listenerAttached = false
+
+export const APP_SHORTCUT_HELP: ShortcutHelpEntry[] = [
+  {
+    keys: 'Ctrl/Cmd + .',
+    description: 'Open Firebase configuration',
+  },
+  {
+    keys: 'Ctrl/Cmd + Alt/Option + N',
+    description: 'Create a new room',
+    note: 'Uses a browser-safe combo because Ctrl/Cmd + N is reserved by browsers for a new window.',
+  },
+]
+
+export const ROOM_SHORTCUT_HELP: ShortcutHelpEntry[] = [
+  {
+    keys: '1-0',
+    description: 'Select a visible vote card or visible final estimate',
+    note: 'Works only while the vote dock is expanded and you are not typing.',
+  },
+  {
+    keys: '-',
+    description: 'Select the question mark card',
+  },
+  {
+    keys: '+ or =',
+    description: 'Select the coffee card',
+  },
+  {
+    keys: 'D',
+    description: 'Collapse or expand the vote dock',
+  },
+  {
+    keys: 'C',
+    description: 'Copy the current room link',
+  },
+  {
+    keys: 'V',
+    description: 'Reveal votes',
+  },
+  {
+    keys: 'H',
+    description: 'Hide votes',
+  },
+  {
+    keys: 'R',
+    description: 'Reset the current round',
+  },
+  {
+    keys: 'N',
+    description: 'Start the next round',
+    note: 'Available after votes are revealed.',
+  },
+  {
+    keys: 'P',
+    description: 'Open or close the room side panel',
+  },
+  {
+    keys: 'G',
+    description: 'Go back to the lobby',
+  },
+]
 
 function matchesShortcut (event: KeyboardEvent, matcher: ShortcutKeyMatcher): boolean {
   if (matcher.key !== undefined && event.key !== matcher.key) {

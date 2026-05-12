@@ -721,15 +721,17 @@
           { key: '-' },
           { key: '-', code: 'NumpadSubtract' },
           { key: '+' },
+          { key: '=', code: 'Equal' },
           { code: 'NumpadAdd' },
         ],
         when: () => canUseRoomShortcuts() && canTriggerVoteShortcut(),
         handler: event => {
-          const key = event.code === 'NumpadAdd'
-            ? '+'
-            : (event.code === 'NumpadSubtract'
-              ? '-'
-              : event.key)
+          let key = event.key
+          if (event.code === 'NumpadAdd' || (event.code === 'Equal' && event.key === '=')) {
+            key = '+'
+          } else if (event.code === 'NumpadSubtract') {
+            key = '-'
+          }
           const vote = voteShortcutLookup.value[key]
           if (!vote) return
           if (showVotes.value) onCommitVote(vote)

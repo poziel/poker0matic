@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { APP_SHORTCUT_HELP, ROOM_SHORTCUT_HELP } from '@/utils/keyboardShortcuts'
   import { appVersion } from '@/utils/version'
 
   defineProps<{
@@ -24,6 +25,40 @@
 
       <div class="p0-modal-body">
         <p class="about-line about-version">Version v{{ appVersion }}</p>
+
+        <div class="about-section">
+          <h3 class="about-section-title">Keyboard shortcuts</h3>
+
+          <p class="about-line">
+            Shortcuts pause automatically while typing in inputs or when a modal or overlay has focus.
+          </p>
+
+          <div class="about-shortcuts-block">
+            <p class="about-section-label">Global</p>
+
+            <ul class="about-shortcut-list">
+              <li v-for="shortcut in APP_SHORTCUT_HELP" :key="shortcut.keys">
+                <span class="about-shortcut-keys">{{ shortcut.keys }}</span>
+                <span class="about-shortcut-text">{{ shortcut.description }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="about-shortcuts-block">
+            <p class="about-section-label">Inside a room</p>
+
+            <ul class="about-shortcut-list">
+              <li v-for="shortcut in ROOM_SHORTCUT_HELP" :key="shortcut.keys">
+                <span class="about-shortcut-keys">{{ shortcut.keys }}</span>
+
+                <span class="about-shortcut-copy">
+                  <span class="about-shortcut-text">{{ shortcut.description }}</span>
+                  <span v-if="shortcut.note" class="about-shortcut-note">{{ shortcut.note }}</span>
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
 
         <p class="about-line">Thanks to the services and projects that help power poker0matic.</p>
 
