@@ -7,10 +7,13 @@
       <RoomSidePanel
         v-if="sidePanelEnabled"
         v-model:open="historyPanelOpen"
+        :can-restore-history="canRestoreHistoryEntry"
         :current-task="currentTask"
         :history="sessionHistory"
         :history-enabled="historyEnabled"
-        :task-information-enabled="taskInformationEnabled"
+        :restore-history-title="restoreHistoryActionTitle"
+        :task-information-enabled="taskInfoVisible"
+        @restore-history="restoreHistoryEntry"
       />
 
       <main class="main">
@@ -40,10 +43,10 @@
             >
               <v-icon icon="mdi-home-outline" size="16" />
             </v-btn>
-          </div>
 
-          <div class="main-head-center">
             <p class="room-name-label">{{ currentRoom.name }}</p>
+
+            <span aria-hidden="true" class="room-title-separator">•</span>
 
             <a
               v-if="currentTask?.title && currentTask?.url"
@@ -86,6 +89,20 @@
               @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
             >
               <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
+            </v-btn>
+
+            <v-btn
+              v-if="taskInformationEnabled && currentTask"
+              aria-label="Edit task information"
+              class="icon-btn"
+              density="compact"
+              :disabled="!canEditCurrentTask"
+              icon
+              :title="editTaskActionTitle"
+              variant="text"
+              @click="startTaskInfoFlow('current')"
+            >
+              <v-icon icon="mdi-pencil-outline" size="16" />
             </v-btn>
 
             <v-btn
@@ -290,7 +307,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { RoomHistoryEntry, RoomRecord, RoomUser, RoundEditLock, TaskInfo, VoteValue } from '@/types/room'
+  import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, TaskInfo, VoteValue } from '@/types/room'
   import { ref as dbRef, onDisconnect, onValue, runTransaction, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -399,7 +416,8 @@
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
-  const sidePanelEnabled = computed(() => historyEnabled.value || taskInformationEnabled.value)
+  const taskInfoVisible = computed(() => taskInformationEnabled.value || !!currentTask.value)
+  const sidePanelEnabled = computed(() => historyEnabled.value || taskInfoVisible.value)
   const leaderUserId = computed(() => currentRoom.value?.leaderUserId ?? null)
   const createdByUserId = computed(() => currentRoom.value?.createdByUserId ?? currentRoom.value?.createdBy ?? null)
   const isLeader = computed(() => !leaderModeEnabled.value || (!!configStore.userId && leaderUserId.value === configStore.userId))
@@ -409,15 +427,29 @@
   const canManageRound = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
   const canCommitFinalVote = computed(() => !leaderModeEnabled.value || isLeader.value)
   const canStartTaskInfoFlow = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
+  const canEditCurrentTask = computed(() =>
+    taskInformationEnabled.value
+    && !!currentTask.value
+    && ((!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value),
+  )
+  const canRestoreHistoryEntry = computed(() => canManageRound.value)
   const currentRound = computed(() => currentRoom.value?.roundNumber ?? (sessionHistory.value.length + 1))
-  const currentRoundLabel = computed(() => taskInformationEnabled.value && currentTask.value?.title
-    ? currentTask.value.title
-    : `Round ${currentRound.value}`)
+  const currentRoundLabel = computed(() => currentTask.value?.title || `Round ${currentRound.value}`)
   const roundActionTitle = computed(() => {
     if (leaderModeEnabled.value && !isLeader.value) return 'Only the leader can control the round'
     if (isRoundLockedByOther.value) return `${roundEditLock.value?.userName ?? 'Another participant'} is entering task information`
     if (taskInformationEnabled.value && !currentTask.value) return 'Enter task information to start this round'
     return ''
+  })
+  const editTaskActionTitle = computed(() => {
+    if (leaderModeEnabled.value && !isLeader.value) return 'Only the leader can edit task information'
+    if (isRoundLockedByOther.value) return `${roundEditLock.value?.userName ?? 'Another participant'} is editing task information`
+    return 'Edit task information'
+  })
+  const restoreHistoryActionTitle = computed(() => {
+    if (leaderModeEnabled.value && !isLeader.value) return 'Only the leader can restore a previous round'
+    if (isRoundLockedByOther.value) return `${roundEditLock.value?.userName ?? 'Another participant'} is editing task information`
+    return 'Restore this round for re-voting'
   })
   const voteActionHint = computed(() => {
     if (leaderModeEnabled.value && !isLeader.value) return 'Waiting for the leader to manage this round'
@@ -722,6 +754,48 @@
     return formatNum(num)
   }
 
+  function parseStoredVote (vote: string | VoteValue): VoteValue {
+    if (typeof vote !== 'string') return vote
+    const trimmed = vote.trim()
+    if (!trimmed) return vote
+    const parsed = Number(trimmed)
+    return Number.isNaN(parsed) ? vote : parsed
+  }
+
+  function buildLegacyVotes (): Record<string, string> {
+    const votes: Record<string, string> = {}
+    for (const user of Object.values(roomUsers.value)) {
+      if (user.vote != null) votes[user.name] = String(user.vote)
+    }
+    return votes
+  }
+
+  function buildVoteSnapshots (): Record<string, RoomHistoryVoteSnapshot> {
+    const snapshots: Record<string, RoomHistoryVoteSnapshot> = {}
+    for (const [userId, user] of Object.entries(roomUsers.value)) {
+      if (user.vote == null) continue
+      snapshots[userId] = {
+        name: user.name,
+        vote: user.vote,
+      }
+    }
+    return snapshots
+  }
+
+  function buildHistoryEntryBase () {
+    const id = String(Date.now())
+    const durationMs = Date.now() - roundStartTime
+    const completedAt = Date.now()
+
+    return {
+      id,
+      durationMs,
+      completedAt,
+      votes: buildLegacyVotes(),
+      voteSnapshots: buildVoteSnapshots(),
+    }
+  }
+
   function closePlayerMenu () {
     playerMenu.value = null
   }
@@ -938,14 +1012,7 @@
     }
 
     if (showVotes.value && currentRoom.value && historyEnabled.value) {
-      const id = String(Date.now())
-      const durationMs = Date.now() - roundStartTime
-      const completedAt = Date.now()
-
-      const votes: Record<string, string> = {}
-      for (const user of Object.values(roomUsers.value)) {
-        if (user.vote != null) votes[user.name] = String(user.vote)
-      }
+      const { id, durationMs, completedAt, votes, voteSnapshots } = buildHistoryEntryBase()
 
       updates[`history/${id}`] = {
         id,
@@ -958,6 +1025,7 @@
         participantCount: totalPlayers.value,
         consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
         votes,
+        voteSnapshots,
       }
 
       roundStartTime = Date.now()
@@ -1049,14 +1117,7 @@
       }
 
       if (showVotes.value && historyEnabled.value) {
-        const id = String(Date.now())
-        const durationMs = Date.now() - roundStartTime
-        const completedAt = Date.now()
-
-        const votes: Record<string, string> = {}
-        for (const user of Object.values(roomUsers.value)) {
-          if (user.vote != null) votes[user.name] = String(user.vote)
-        }
+        const { id, durationMs, completedAt, votes, voteSnapshots } = buildHistoryEntryBase()
 
         updates[`history/${id}`] = {
           id,
@@ -1072,6 +1133,7 @@
           participantCount: totalPlayers.value,
           consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
           votes,
+          voteSnapshots,
         }
 
         roundStartTime = Date.now()
@@ -1093,6 +1155,48 @@
       pendingTaskFlow.value = null
     }
   })
+
+  function restoreHistoryEntry (historyId: string) {
+    if (!db || !canRestoreHistoryEntry.value) return
+
+    const entry = sessionHistory.value.find(item => item.id === historyId)
+    if (!entry) return
+
+    closePlayerMenu()
+
+    const updates: Record<string, unknown> = {
+      'settings/showVotes': false,
+      'committedVote': null,
+      'lastActivity': Date.now(),
+      'currentTask': entry.title
+        ? {
+          title: entry.title,
+          url: entry.url ?? null,
+          description: entry.description ?? null,
+        }
+        : null,
+    }
+
+    for (const userId of Object.keys(roomUsers.value)) {
+      updates[`users/${userId}/vote`] = null
+    }
+
+    if (entry.voteSnapshots && Object.keys(entry.voteSnapshots).length > 0) {
+      for (const [userId, snapshot] of Object.entries(entry.voteSnapshots)) {
+        if (!roomUsers.value[userId]) continue
+        updates[`users/${userId}/vote`] = snapshot.vote
+      }
+    } else if (entry.votes) {
+      for (const [userId, user] of Object.entries(roomUsers.value)) {
+        const legacyVote = entry.votes[user.name]
+        if (legacyVote === undefined) continue
+        updates[`users/${userId}/vote`] = parseStoredVote(legacyVote)
+      }
+    }
+
+    roundStartTime = Date.now()
+    update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
+  }
 
   function openPlayerMenu (payload: { userId: string, name: string, x: number, y: number }) {
     if (!leaderModeEnabled.value || !isLeader.value || payload.userId === leaderUserId.value) {

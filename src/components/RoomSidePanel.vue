@@ -8,10 +8,13 @@
     historyEnabled: boolean
     taskInformationEnabled: boolean
     currentTask: TaskInfo | null
+    canRestoreHistory: boolean
+    restoreHistoryTitle: string
   }>()
 
   defineEmits<{
     'update:open': [value: boolean]
+    'restore-history': [id: string]
   }>()
 
   const historyExpanded = ref(true)
@@ -119,6 +122,9 @@
             v-for="entry in reversedHistory"
             :key="entry.id"
             class="hist-item"
+            :class="{ 'hist-item-action': canRestoreHistory }"
+            :title="canRestoreHistory ? restoreHistoryTitle : ''"
+            @click="canRestoreHistory ? $emit('restore-history', entry.id) : undefined"
           >
             <div class="top">
               <span class="hid">{{ historyLabel(entry) }}</span>
@@ -126,10 +132,16 @@
             </div>
 
             <div v-if="entry.url" class="hurl">
-              <a class="task-info-link" :href="entry.url" rel="noreferrer" target="_blank">{{ entry.url }}</a>
+              <a
+                class="task-info-link"
+                :href="entry.url"
+                rel="noreferrer"
+                target="_blank"
+                @click.stop
+              >
+                {{ entry.url }}
+              </a>
             </div>
-
-            <p v-if="entry.description" class="task-info-description hdesc">{{ entry.description }}</p>
 
             <div v-if="entry.avg != null || entry.closest != null" class="hstats">
               <span v-if="entry.avg != null">Avg <strong>{{ entry.avg }}</strong></span>

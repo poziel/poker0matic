@@ -47,6 +47,11 @@ export interface RoomUser {
   avatarBg?: string
 }
 
+export interface RoomHistoryVoteSnapshot {
+  name: string
+  vote: VoteValue
+}
+
 export interface RoomHistoryEntry {
   id: string
   title?: string | null
@@ -62,4 +67,5 @@ export interface RoomHistoryEntry {
   participantCount: number
   consensus: 'yes' | 'split'
   votes?: Record<string, string>
+  voteSnapshots?: Record<string, RoomHistoryVoteSnapshot>
 }
