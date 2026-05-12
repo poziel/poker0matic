@@ -3,7 +3,8 @@
 
   interface HistoryEntry {
     id: string
-    name: string
+    name?: string | null
+    title?: string | null
     finalVote: string | null
     round: number
     duration: string
@@ -50,7 +51,7 @@
         class="hist-item"
       >
         <div class="top">
-          <span class="hid">{{ entry.name }}</span>
+          <span class="hid">{{ entry.title?.trim() || entry.name || `Round ${entry.round}` }}</span>
           <span class="hvote">{{ entry.finalVote ?? '-' }}</span>
         </div>
 
