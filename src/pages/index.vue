@@ -4,10 +4,10 @@
     <v-card v-if="configStatus === 'incomplete'" class="setup-card" flat>
       <div>
         <div class="kicker">Setup required</div>
-        <h1 class="setup-title">Connect to Firebase</h1>
+        <h1 class="setup-title">Connect your backend</h1>
 
         <p class="setup-desc">
-          To create and join planning rooms, connect this app to your Firebase Realtime Database project.
+          To create and join planning rooms, connect this app to one of the supported backend providers.
           You can update the configuration later from the
           <strong style="color: var(--text-1)">user menu</strong> in the top-right corner.
         </p>
@@ -23,15 +23,15 @@
       </v-btn>
     </v-card>
 
-    <!-- Config present but Firebase unreachable -->
+    <!-- Config present but backend unreachable -->
     <v-card v-else-if="configStatus === 'unreachable'" class="setup-card" flat>
       <div>
         <div class="kicker">Connection failed</div>
-        <h1 class="setup-title">Firebase unreachable</h1>
+        <h1 class="setup-title">Backend unreachable</h1>
 
         <p class="setup-desc">
-          A configuration was found but the Firebase database could not be reached.
-          Check your credentials, database URL, and network connection.
+          A configuration was found but the selected backend could not be reached.
+          Check your credentials, endpoint details, and network connection.
           Configuration is also accessible from the
           <strong style="color: var(--text-1)">user menu</strong>.
         </p>
@@ -148,7 +148,6 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref as dbRef, get } from 'firebase/database'
   import { onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import FullScreenLoader from '@/components/FullScreenLoader.vue'
@@ -167,39 +166,26 @@
   // --- config validation ---------------------------------------------------
 
   async function checkConfig (): Promise<Exclude<ConfigStatus, 'checking'>> {
-    if (!configStore.configFound || !configStore.firebaseConfig) return 'incomplete'
+    if (!configStore.configFound || !configStore.backendConfig) return 'incomplete'
+    if (Object.values(configStore.backendConfig.settings).some(v => !String(v).trim())) return 'incomplete'
 
-    const cfg = configStore.firebaseConfig
-    if (Object.values(cfg).some(v => !String(v).trim())) return 'incomplete'
-
-    const baseUrl = cfg.databaseUrl.replace(/\/$/, '')
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 5000)
-
-    try {
-      const res = await fetch(`${baseUrl}/.json?shallow=true&print=silent`, {
-        signal: controller.signal,
-      })
-      clearTimeout(timer)
-      if (res.ok || res.status === 401 || res.status === 403) return 'valid'
-      return 'unreachable'
-    } catch {
-      clearTimeout(timer)
-      return 'unreachable'
-    }
+    const backend = configStore.getBackend()
+    if (!backend) return 'incomplete'
+    const status = await backend.validateConfig(configStore.backendConfig)
+    return status === 'unknown' ? 'unreachable' : status
   }
 
   // --- stale room pruning --------------------------------------------------
 
   async function pruneRecentRooms () {
-    const db = configStore.getDb()
-    if (!db) return
+    const backend = configStore.getBackend()
+    if (!backend) return
 
     await Promise.all(
       configStore.recentRooms.map(async room => {
         try {
-          const snap = await get(dbRef(db, `rooms/${room.id}/createdAt`))
-          if (!snap.exists()) configStore.removeRecentRoom(room.id)
+          const exists = await backend.roomExists(room.id)
+          if (!exists) configStore.removeRecentRoom(room.id)
         } catch {
           // network error — keep room rather than wrongly removing it
         }
@@ -264,19 +250,20 @@
     const code = roomCode.value.trim()
     if (!code || joiningRoom.value) return
 
-    const db = configStore.getDb()
-    if (!db) return
+    const backend = configStore.getBackend()
+    if (!backend) return
 
     joiningRoom.value = true
     try {
-      const snap = await get(dbRef(db, `rooms/${code}/createdAt`))
-      if (!snap.exists()) {
+      const exists = await backend.roomExists(code)
+      if (!exists) {
         appStore.showToast('Room not found.', 'error')
         return
       }
       router.push(`/rooms/${code}`)
-    } catch {
-      appStore.showToast('Could not check room. Please try again.', 'error')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not check room. Please try again.'
+      appStore.showToast(message, 'error')
     } finally {
       joiningRoom.value = false
     }

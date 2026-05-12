@@ -2,7 +2,7 @@
   <v-container class="page-container" fluid>
     <v-card class="page-card" flat>
       <div class="page-card-head">
-        <h2>Firebase Config</h2>
+        <h2>Backend Config</h2>
       </div>
 
       <div class="page-card-body">
@@ -12,7 +12,7 @@
           type="error"
           variant="tonal"
         >
-          No Firebase config found. Enter your project credentials below.
+          No backend config found. Enter your project credentials below.
         </v-alert>
 
         <v-alert
@@ -25,62 +25,34 @@
 
         <v-form @submit.prevent="saveConfig">
           <div class="config-fields">
-            <v-text-field
-              v-model="config.apiKey"
-              autocomplete="off"
+            <v-select
               class="p0-field"
               hide-details="auto"
-              label="apiKey"
-              type="password"
+              item-title="label"
+              item-value="id"
+              :items="BACKEND_PROVIDER_DEFINITIONS"
+              label="Backend provider"
+              :model-value="config.provider"
               variant="outlined"
+              @update:model-value="changeProvider"
             />
 
-            <v-text-field
-              v-model="config.authDomain"
-              class="p0-field"
-              hide-details="auto"
-              label="authDomain"
-              variant="outlined"
-            />
+            <v-alert class="cfg-alert cfg-alert-info" type="info" variant="tonal">
+              {{ currentProviderDefinition.shortDescription }}
+            </v-alert>
 
             <v-text-field
-              v-model="config.databaseUrl"
+              v-for="field in currentProviderDefinition.fields"
+              :key="field.key"
               class="p0-field"
               hide-details="auto"
-              label="databaseUrl"
+              :hint="field.hint"
+              :label="field.label"
+              :model-value="getFieldValue(field.key)"
+              :persistent-hint="!!field.hint"
+              :type="field.type === 'password' ? 'password' : 'text'"
               variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.projectId"
-              class="p0-field"
-              hide-details="auto"
-              label="projectId"
-              variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.storageBucket"
-              class="p0-field"
-              hide-details="auto"
-              label="storageBucket"
-              variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.messagingSenderId"
-              class="p0-field"
-              hide-details="auto"
-              label="messagingSenderId"
-              variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.appId"
-              class="p0-field"
-              hide-details="auto"
-              label="appId"
-              variant="outlined"
+              @update:model-value="setFieldValue(field.key, String($event ?? ''))"
             />
           </div>
 
@@ -110,11 +82,18 @@
 </template>
 
 <script setup lang="ts">
+  import type { BackendConfig, BackendProvider } from '@/backend/types'
   import { storeToRefs } from 'pinia'
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
   import { useRouter } from 'vue-router'
+  import {
+    BACKEND_PROVIDER_DEFINITIONS,
+    cloneBackendConfig,
+    createEmptyBackendConfig,
+    getBackendProviderDefinition,
+  } from '@/backend/config'
   import { useAppStore } from '@/stores/app'
-  import { type FirebaseConfig, useConfigStore } from '@/stores/config'
+  import { useConfigStore } from '@/stores/config'
   import { copyText } from '@/utils/clipboard'
 
   defineProps<{
@@ -124,26 +103,31 @@
   const router = useRouter()
   const appStore = useAppStore()
   const configStore = useConfigStore()
+  const { backendConfig } = storeToRefs(configStore)
 
-  const { firebaseConfig } = storeToRefs(configStore)
-
-  const config = ref<FirebaseConfig>({
-    apiKey: '',
-    authDomain: '',
-    databaseUrl: '',
-    projectId: '',
-    storageBucket: '',
-    messagingSenderId: '',
-    appId: '',
-  })
+  const config = ref<BackendConfig>(createEmptyBackendConfig())
+  const currentProviderDefinition = computed(() => getBackendProviderDefinition(config.value.provider))
 
   configStore.initializeConfig()
-  if (firebaseConfig?.value) {
-    Object.assign(config.value, firebaseConfig.value)
+  if (backendConfig.value) {
+    config.value = cloneBackendConfig(backendConfig.value)
+  }
+
+  function changeProvider (provider: BackendProvider) {
+    if (provider === config.value.provider) return
+    config.value = createEmptyBackendConfig(provider)
+  }
+
+  function getFieldValue (key: string): string {
+    return String((config.value.settings as Record<string, string>)[key] ?? '')
+  }
+
+  function setFieldValue (key: string, value: string) {
+    ;(config.value.settings as Record<string, string>)[key] = value
   }
 
   function saveConfig () {
-    configStore.saveFirebaseConfig({ ...config.value })
+    configStore.saveBackendConfig(cloneBackendConfig(config.value))
     appStore.setRoomInfo(null, '', 0)
     router.push('/')
   }

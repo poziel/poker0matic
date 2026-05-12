@@ -38,7 +38,7 @@ let listenerAttached = false
 export const APP_SHORTCUT_HELP: ShortcutHelpEntry[] = [
   {
     keys: 'Ctrl/Cmd + .',
-    description: 'Open Firebase configuration',
+    description: 'Open backend configuration',
   },
   {
     keys: 'Ctrl/Cmd + Alt/Option + N',

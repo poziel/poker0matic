@@ -1,8 +1,15 @@
 <script setup lang="ts">
+  import type { BackendConfig, BackendProvider } from '@/backend/types'
   import { storeToRefs } from 'pinia'
-  import { ref, watch } from 'vue'
+  import { computed, ref, watch } from 'vue'
+  import {
+    BACKEND_PROVIDER_DEFINITIONS,
+    cloneBackendConfig,
+    createEmptyBackendConfig,
+    getBackendProviderDefinition,
+  } from '@/backend/config'
   import { useAppStore } from '@/stores/app'
-  import { type FirebaseConfig, useConfigStore } from '@/stores/config'
+  import { useConfigStore } from '@/stores/config'
   import { copyText } from '@/utils/clipboard'
 
   const props = defineProps<{
@@ -15,56 +22,47 @@
 
   const appStore = useAppStore()
   const configStore = useConfigStore()
-  const { firebaseConfig } = storeToRefs(configStore)
+  const { backendConfig } = storeToRefs(configStore)
 
-  const config = ref<FirebaseConfig>({
-    apiKey: '',
-    authDomain: '',
-    databaseUrl: '',
-    projectId: '',
-    storageBucket: '',
-    messagingSenderId: '',
-    appId: '',
-  })
+  const config = ref<BackendConfig>(createEmptyBackendConfig())
+  const currentProviderDefinition = computed(() => getBackendProviderDefinition(config.value.provider))
 
-  // Sync form fields whenever the dialog opens
   watch(() => props.modelValue, open => {
-    if (open) {
-      configStore.initializeConfig()
-      if (firebaseConfig.value) {
-        Object.assign(config.value, firebaseConfig.value)
-      }
-    }
+    if (!open) return
+    configStore.initializeConfig()
+    config.value = backendConfig.value ? cloneBackendConfig(backendConfig.value) : createEmptyBackendConfig()
   }, { immediate: true })
 
-  function saveConfig () {
-    const configChanged = JSON.stringify(config.value) !== JSON.stringify(firebaseConfig.value)
-    configStore.saveFirebaseConfig({ ...config.value })
+  function changeProvider (provider: BackendProvider) {
+    if (provider === config.value.provider) return
+    config.value = createEmptyBackendConfig(provider)
+  }
+
+  function getFieldValue (key: string): string {
+    return String((config.value.settings as Record<string, string>)[key] ?? '')
+  }
+
+  function setFieldValue (key: string, value: string) {
+    ;(config.value.settings as Record<string, string>)[key] = value
+  }
+
+  async function saveConfig () {
+    const configChanged = JSON.stringify(config.value) !== JSON.stringify(backendConfig.value)
+    configStore.saveBackendConfig(cloneBackendConfig(config.value))
     appStore.setRoomInfo(null, '', 0)
-    appStore.showToast('Firebase config saved.', 'success')
+    appStore.showToast(`${currentProviderDefinition.value.label} config saved.`, 'success')
     emit('update:modelValue', false)
 
-    // Validate the new config in the background so the lobby (and any other
-    // page that watches configValidationStatus) can update without re-checking.
     if (configChanged) {
-      validateInBackground(config.value)
+      await validateInBackground()
     }
   }
 
-  async function validateInBackground (cfg: FirebaseConfig) {
-    const baseUrl = cfg.databaseUrl.replace(/\/$/, '')
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 5000)
-    try {
-      const res = await fetch(`${baseUrl}/.json?shallow=true&print=silent`, { signal: controller.signal })
-      clearTimeout(timer)
-      configStore.setConfigValidationStatus(
-        (res.ok || res.status === 401 || res.status === 403) ? 'valid' : 'unreachable',
-      )
-    } catch {
-      clearTimeout(timer)
-      configStore.setConfigValidationStatus('unreachable')
-    }
+  async function validateInBackground () {
+    const backend = configStore.getBackend()
+    if (!backend) return
+    const status = await backend.validateConfig(configStore.backendConfig!)
+    configStore.setConfigValidationStatus(status)
   }
 
   async function shareConfig () {
@@ -81,75 +79,47 @@
 
 <template>
   <v-dialog
-    max-width="500"
+    max-width="560"
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <v-card class="p0-modal" flat>
       <div class="p0-modal-head">
-        <h2>Firebase Config</h2>
-        <p>Connect the app to your own Firebase Realtime Database project.</p>
+        <h2>Backend Config</h2>
+        <p>Select your backend provider and enter the connection details required for that platform.</p>
       </div>
 
       <v-form @submit.prevent="saveConfig">
         <div class="p0-modal-body">
           <div class="config-fields">
-            <v-text-field
-              v-model="config.apiKey"
-              autocomplete="off"
+            <v-select
               class="p0-field"
               hide-details="auto"
-              label="apiKey"
-              type="password"
+              item-title="label"
+              item-value="id"
+              :items="BACKEND_PROVIDER_DEFINITIONS"
+              label="Backend provider"
+              :model-value="config.provider"
               variant="outlined"
+              @update:model-value="changeProvider"
             />
 
-            <v-text-field
-              v-model="config.authDomain"
-              class="p0-field"
-              hide-details="auto"
-              label="authDomain"
-              variant="outlined"
-            />
+            <v-alert class="cfg-alert cfg-alert-info" type="info" variant="tonal">
+              {{ currentProviderDefinition.shortDescription }}
+            </v-alert>
 
             <v-text-field
-              v-model="config.databaseUrl"
+              v-for="field in currentProviderDefinition.fields"
+              :key="field.key"
               class="p0-field"
               hide-details="auto"
-              label="databaseUrl"
+              :hint="field.hint"
+              :label="field.label"
+              :model-value="getFieldValue(field.key)"
+              :persistent-hint="!!field.hint"
+              :type="field.type === 'password' ? 'password' : 'text'"
               variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.projectId"
-              class="p0-field"
-              hide-details="auto"
-              label="projectId"
-              variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.storageBucket"
-              class="p0-field"
-              hide-details="auto"
-              label="storageBucket"
-              variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.messagingSenderId"
-              class="p0-field"
-              hide-details="auto"
-              label="messagingSenderId"
-              variant="outlined"
-            />
-
-            <v-text-field
-              v-model="config.appId"
-              class="p0-field"
-              hide-details="auto"
-              label="appId"
-              variant="outlined"
+              @update:model-value="setFieldValue(field.key, String($event ?? ''))"
             />
           </div>
         </div>

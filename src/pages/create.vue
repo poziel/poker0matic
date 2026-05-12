@@ -25,15 +25,16 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref as dbRef, onDisconnect, set } from 'firebase/database'
+  import type { RoomRecord, RoomUser } from '@/types/room'
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
+  import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
 
   const router = useRouter()
+  const appStore = useAppStore()
   const configStore = useConfigStore()
-  const db = configStore.getDb()
 
   const settings = ref<RoomFormSettings>({
     name: '',
@@ -46,15 +47,15 @@
     taskInformationEnabled: false,
   })
 
-  function createRoom () {
-    if (!settings.value.name.trim() || !db) return
+  async function createRoom () {
+    const backend = configStore.getBackend()
+    if (!settings.value.name.trim() || !backend || !configStore.userId) return
 
     const { name, deck, customDeck, specialQuestion, specialCoffee, historyEnabled, leaderModeEnabled, taskInformationEnabled } = settings.value
     const userName = configStore.userName || 'Guest'
     const newRoomId = Math.random().toString(36).slice(2, 10)
 
-    const roomRef = dbRef(db, `rooms/${newRoomId}`)
-    set(roomRef, {
+    const room: RoomRecord = {
       name: name.trim(),
       createdAt: Date.now(),
       createdBy: configStore.userId,
@@ -75,16 +76,19 @@
         taskInformationEnabled,
       },
       lastActivity: Date.now(),
-    }).catch(console.error)
+    }
 
-    const userRef = dbRef(db, `rooms/${newRoomId}/users/${configStore.userId}`)
-    set(userRef, {
+    const initialUser: RoomUser = {
       name: userName,
       joinedAt: Date.now(),
-    }).catch(console.error)
+    }
 
-    onDisconnect(userRef).remove()
-
-    router.push(`/rooms/${newRoomId}`)
+    try {
+      await backend.createRoom(newRoomId, room, initialUser, configStore.userId)
+      router.push(`/rooms/${newRoomId}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not create the room.'
+      appStore.showToast(message, 'error')
+    }
   }
 </script>

@@ -122,7 +122,7 @@
               :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
               class="icon-btn"
               density="compact"
-              :disabled="!firebaseConfig"
+              :disabled="!backendConfig"
               icon
               :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
               variant="text"
@@ -308,7 +308,6 @@
 
 <script lang="ts" setup>
   import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, TaskInfo, VoteValue } from '@/types/room'
-  import { ref as dbRef, onDisconnect, onValue, runTransaction, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
@@ -371,12 +370,12 @@
     return counts
   }
 
-  const { userName, firebaseConfig } = storeToRefs(configStore)
+  const { userName, backendConfig, encodedBackendConfig } = storeToRefs(configStore)
 
   const currentRoom = ref<RoomRecord | null>(null)
   const roomUsers = ref<Record<string, RoomUser>>({})
 
-  const db = configStore.getDb()
+  const backend = configStore.getBackend()
   const roomNotFound = ref(false)
   const dockCollapsed = ref(false)
   const shareCopied = ref(false)
@@ -638,9 +637,8 @@
   const sessionHistory = ref<RoomHistoryEntry[]>([])
 
   watch(userName, newName => {
-    if (!currentRoom.value || !db || !configStore.userId) return
-    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
-    update(userRef, {
+    if (!currentRoom.value || !backend || !configStore.userId) return
+    backend.upsertUser(roomId, configStore.userId, {
       name: newName || 'Anonymous',
       avatarSeed: configStore.avatarSeed || newName || 'Guest',
     }).catch(console.error)
@@ -655,12 +653,12 @@
     }
   })
 
-  // Sync avatar style/seed/bg to Firebase whenever the user changes them
+  // Sync avatar style/seed/bg to the active backend whenever the user changes them
   watch(
     [() => configStore.avatarStyle, () => configStore.avatarSeed, () => configStore.avatarBg],
     () => {
-      if (!db || !configStore.userId || !currentRoom.value) return
-      update(dbRef(db, `rooms/${roomId}/users/${configStore.userId}`), {
+      if (!backend || !configStore.userId || !currentRoom.value) return
+      backend.upsertUser(roomId, configStore.userId, {
         avatarStyle: configStore.avatarStyle,
         avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
         avatarBg: configStore.avatarBg,
@@ -707,7 +705,7 @@
   }, { deep: true })
 
   onMounted(() => {
-    if (!db) return
+    if (!backend) return
 
     window.addEventListener('click', closePlayerMenu)
     window.addEventListener('keydown', onWindowKeydown)
@@ -753,7 +751,7 @@
         group: 'room',
         description: 'Copy the room link',
         keys: [{ key: 'c' }],
-        when: () => canUseRoomShortcuts() && !!firebaseConfig.value,
+        when: () => canUseRoomShortcuts() && !!backendConfig.value,
         handler: () => {
           roomCommands.copyRoomLink()
         },
@@ -820,10 +818,7 @@
       },
     ])
 
-    const roomRef = dbRef(db, `rooms/${roomId}`)
-    unsubscribeRoom = onValue(roomRef, snapshot => {
-      const data = snapshot.val()
-
+    unsubscribeRoom = backend.subscribeRoom(roomId, data => {
       if (!data) {
         roomNotFound.value = true
         currentRoom.value = null
@@ -853,20 +848,12 @@
       }
     })
 
-    const usersRef = dbRef(db, `rooms/${roomId}/users`)
-    unsubscribeUsers = onValue(usersRef, snapshot => {
-      roomUsers.value = snapshot.val() || {}
+    unsubscribeUsers = backend.subscribeUsers(roomId, users => {
+      roomUsers.value = users
     })
 
-    const historyRef = dbRef(db, `rooms/${roomId}/history`)
-    unsubscribeHistory = onValue(historyRef, snapshot => {
-      const data = snapshot.val()
-      if (!data) {
-        sessionHistory.value = []
-        return
-      }
-      sessionHistory.value = (Object.values(data) as typeof sessionHistory.value)
-        .toSorted((a, b) => a.round - b.round)
+    unsubscribeHistory = backend.subscribeHistory(roomId, history => {
+      sessionHistory.value = history
     })
   })
 
@@ -960,23 +947,20 @@
   }
 
   function joinRoom () {
-    if (!db || !configStore.userId) return
-    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
-    update(userRef, {
+    if (!backend || !configStore.userId) return
+    backend.upsertUser(roomId, configStore.userId, {
       name: userName.value || 'Anonymous',
       joinedAt: Date.now(),
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
       avatarBg: configStore.avatarBg,
     }).catch(console.error)
-    onDisconnect(userRef).remove()
   }
 
   async function shareRoomConfig () {
-    if (!firebaseConfig.value) return
+    if (!encodedBackendConfig.value) return
 
-    const encoded = btoa(JSON.stringify(firebaseConfig.value))
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}rooms/${encodeURIComponent(roomId)}?config=${encodeURIComponent(encoded)}`
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}rooms/${encodeURIComponent(roomId)}?config=${encodeURIComponent(encodedBackendConfig.value)}`
     const ok = await copyText(url)
 
     if (ok) {
@@ -1001,18 +985,15 @@
   }
 
   function castVote (value: VoteValue) {
-    if (!db || !configStore.userId || !canVoteInCurrentRound.value) return
+    if (!backend || !configStore.userId || !canVoteInCurrentRound.value) return
 
     closePlayerMenu()
 
     const isVoteChange = selectedVote.value !== null && value !== selectedVote.value
 
-    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
     const newVote = value === selectedVote.value ? null : value
-    update(userRef, { vote: newVote }).catch(console.error)
-
-    const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, { lastActivity: Date.now() }).catch(console.error)
+    backend.upsertUser(roomId, configStore.userId, { vote: newVote }).catch(console.error)
+    backend.updateRoom(roomId, { lastActivity: Date.now() }).catch(console.error)
 
     if (isVoteChange && configStore.userId) {
       triggerShakeForUser(configStore.userId)
@@ -1047,7 +1028,7 @@
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
   }) {
-    if (!db || !currentRoom.value) return
+    if (!backend || !currentRoom.value) return
 
     closePlayerMenu()
     const taskInfoWasEnabled = taskInformationEnabled.value
@@ -1089,7 +1070,7 @@
       updates.roundEditLock = null
     }
 
-    update(dbRef(db, `rooms/${roomId}`), updates)
+    backend.updateRoom(roomId, updates)
       .then(() => {
         if (!taskInfoWasEnabled && settings.taskInformationEnabled && !currentTask.value) {
           return startTaskInfoFlow('current')
@@ -1104,26 +1085,24 @@
   }
 
   function onCommitVote (value: string) {
-    if (!db || !canCommitFinalVote.value) return
+    if (!backend || !canCommitFinalVote.value) return
     closePlayerMenu()
-    update(dbRef(db, `rooms/${roomId}`), { committedVote: value, lastActivity: Date.now() }).catch(console.error)
+    backend.updateRoom(roomId, { committedVote: value, lastActivity: Date.now() }).catch(console.error)
   }
 
   function revealVotes () {
-    if (!db || !canManageRound.value || (taskInformationEnabled.value && !currentTask.value)) return
+    if (!backend || !canManageRound.value || (taskInformationEnabled.value && !currentTask.value)) return
     closePlayerMenu()
-    const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, {
+    backend.updateRoom(roomId, {
       'settings/showVotes': true,
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
 
   function hideVotes () {
-    if (!db || !canManageRound.value) return
+    if (!backend || !canManageRound.value) return
     closePlayerMenu()
-    const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, {
+    backend.updateRoom(roomId, {
       'settings/showVotes': false,
       'committedVote': null,
       'lastActivity': Date.now(),
@@ -1131,11 +1110,10 @@
   }
 
   function resetCurrentRound () {
-    if (!db || !canManageRound.value) return
+    if (!backend || !canManageRound.value) return
 
     closePlayerMenu()
 
-    const roomRef = dbRef(db, `rooms/${roomId}`)
     const updates: Record<string, unknown> = {
       'settings/showVotes': false,
       'committedVote': null,
@@ -1146,11 +1124,11 @@
       updates[`users/${userId}/vote`] = null
     }
 
-    update(roomRef, updates).catch(console.error)
+    backend.updateRoom(roomId, updates).catch(console.error)
   }
 
   function advanceRound () {
-    if (!db || !canManageRound.value) return
+    if (!backend || !canManageRound.value) return
 
     if (taskInformationEnabled.value) {
       void startTaskInfoFlow('next')
@@ -1159,7 +1137,6 @@
 
     closePlayerMenu()
 
-    const roomRef = dbRef(db, `rooms/${roomId}`)
     const updates: Record<string, unknown> = {
       'settings/showVotes': false,
       'committedVote': null,
@@ -1190,11 +1167,11 @@
       updates[`users/${userId}/vote`] = null
     }
 
-    update(roomRef, updates).catch(console.error)
+    backend.updateRoom(roomId, updates).catch(console.error)
   }
 
   async function startTaskInfoFlow (mode: TaskFlowMode) {
-    if (!db || !configStore.userId || !canStartTaskInfoFlow.value) return
+    if (!backend || !configStore.userId || !canStartTaskInfoFlow.value) return
 
     closePlayerMenu()
 
@@ -1206,33 +1183,16 @@
   }
 
   async function acquireRoundEditLock (): Promise<boolean> {
-    if (!db || !configStore.userId) return false
-
-    const lockRef = dbRef(db, `rooms/${roomId}/roundEditLock`)
+    if (!backend || !configStore.userId) return false
     const userId = configStore.userId
     const userNameValue = userName.value || 'Anonymous'
 
     try {
-      const result = await runTransaction(lockRef, current => {
-        if (current && current.userId !== userId) return
-        return {
-          userId,
-          userName: userNameValue,
-          acquiredAt: Date.now(),
-        }
+      return await backend.acquireRoundEditLock(roomId, {
+        userId,
+        userName: userNameValue,
+        acquiredAt: Date.now(),
       })
-
-      if (!result.committed) {
-        return false
-      }
-
-      const lockValue = result.snapshot.val() as RoundEditLock | null
-      if (lockValue?.userId !== userId) {
-        return false
-      }
-
-      onDisconnect(lockRef).remove()
-      return true
     } catch (error) {
       console.error(error)
       return false
@@ -1240,22 +1200,18 @@
   }
 
   async function releaseRoundEditLock () {
-    if (!db || !configStore.userId || !isRoundLockedByMe.value) return
+    if (!backend || !configStore.userId || !isRoundLockedByMe.value) return
 
     try {
-      await update(dbRef(db, `rooms/${roomId}`), {
-        roundEditLock: null,
-        lastActivity: Date.now(),
-      })
+      await backend.releaseRoundEditLock(roomId, configStore.userId)
     } catch (error) {
       console.error(error)
     }
   }
 
   async function saveTaskInformation (task: TaskInfo) {
-    if (!db || !currentRoom.value || !pendingTaskFlow.value || !isRoundLockedByMe.value) return
+    if (!backend || !currentRoom.value || !pendingTaskFlow.value || !isRoundLockedByMe.value) return
 
-    const roomRef = dbRef(db, `rooms/${roomId}`)
     const updates: Record<string, unknown> = {
       currentTask: task,
       roundEditLock: null,
@@ -1295,7 +1251,7 @@
       }
     }
 
-    update(roomRef, updates)
+    backend.updateRoom(roomId, updates)
       .then(() => {
         taskInfoModalOpen.value = false
         pendingTaskFlow.value = null
@@ -1312,7 +1268,7 @@
   })
 
   function restoreHistoryEntry (historyId: string) {
-    if (!db || !canRestoreHistoryEntry.value) return
+    if (!backend || !canRestoreHistoryEntry.value) return
 
     const entry = sessionHistory.value.find(item => item.id === historyId)
     if (!entry) return
@@ -1350,7 +1306,7 @@
     }
 
     roundStartTime = Date.now()
-    update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
+    backend.updateRoom(roomId, updates).catch(console.error)
   }
 
   function openPlayerMenu (payload: { userId: string, name: string, x: number, y: number }) {
@@ -1363,10 +1319,10 @@
   }
 
   function transferLeadership (userId: string) {
-    if (!db || !leaderModeEnabled.value || !isLeader.value || userId === leaderUserId.value) return
+    if (!backend || !leaderModeEnabled.value || !isLeader.value || userId === leaderUserId.value) return
     closePlayerMenu()
 
-    update(dbRef(db, `rooms/${roomId}`), {
+    backend.updateRoom(roomId, {
       leaderUserId: userId,
       lastActivity: Date.now(),
     }).catch(console.error)

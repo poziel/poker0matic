@@ -122,7 +122,7 @@
       {
         id: 'app.open-config',
         group: 'app',
-        description: 'Open Firebase configuration',
+        description: 'Open backend configuration',
         keys: [
           { key: '.', ctrlKey: true },
           { key: '.', metaKey: true },

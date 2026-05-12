@@ -28,7 +28,7 @@
 
       <v-divider class="p0-menu-divider" />
 
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-cog" title="Configuration" @click="appStore.setConfigModalOpen(true)" />
+      <v-list-item class="p0-menu-item" prepend-icon="mdi-cog" title="Configuration" @click="openConfiguration" />
       <v-list-item class="p0-menu-item" prepend-icon="mdi-information-outline" title="About" @click="aboutModalOpen = true" />
     </v-list>
   </v-menu>
@@ -195,7 +195,8 @@
 
 <script lang="ts" setup>
   import { storeToRefs } from 'pinia'
-  import { computed, ref, watch } from 'vue'
+  import { computed, nextTick, ref, watch } from 'vue'
+  import { useRouter } from 'vue-router'
   import AboutModal from '@/components/AboutModal.vue'
   import PlayerAvatar from '@/components/PlayerAvatar.vue'
   import { useAppStore } from '@/stores/app'
@@ -205,6 +206,7 @@
 
   const appStore = useAppStore()
   const configStore = useConfigStore()
+  const router = useRouter()
   const { userName } = storeToRefs(configStore)
 
   const MAX_NAME_LENGTH = 20
@@ -279,5 +281,13 @@
     if (!trimmed) return
     configStore.setUserName(trimmed)
     nameDialog.value = false
+  }
+
+  async function openConfiguration () {
+    await nextTick()
+    appStore.setConfigModalOpen(true)
+    if (!appStore.configModalOpen) {
+      router.push('/config')
+    }
   }
 </script>

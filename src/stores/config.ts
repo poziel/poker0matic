@@ -1,60 +1,51 @@
-import { deleteApp, getApp, getApps, initializeApp } from 'firebase/app'
-import { type Database, getDatabase } from 'firebase/database'
+import type { BackendClient, BackendConfig, ConfigValidationStatus } from '@/backend/types'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { createBackendClient, resetBackendRuntime } from '@/backend'
+import { decodeBackendConfig, encodeBackendConfig, normalizeBackendConfig } from '@/backend/config'
 import { DEFAULT_AVATAR_BG, DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
-
-export interface FirebaseConfig {
-  apiKey: string
-  authDomain: string
-  databaseUrl: string
-  projectId: string
-  storageBucket: string
-  messagingSenderId: string
-  appId: string
-}
 
 const CONFIG_KEY = 'poker_config'
 const USER_ID_KEY = 'poker_user_id'
 const USER_NAME_KEY = 'poker_user_name'
 const RECENT_ROOMS_KEY = 'poker_recent_rooms'
 const AVATAR_STYLE_KEY = 'poker_avatar_style'
-const AVATAR_SEED_KEY  = 'poker_avatar_seed'
-const AVATAR_BG_KEY    = 'poker_avatar_bg'
+const AVATAR_SEED_KEY = 'poker_avatar_seed'
+const AVATAR_BG_KEY = 'poker_avatar_bg'
 const VIEW_MODE_KEY = 'poker_view_mode'
 const HISTORY_PANEL_KEY = 'poker_history_panel'
 const MAX_RECENT_ROOMS = 5
 
 export type ViewMode = 'table' | 'grid'
-export type ConfigValidationStatus = 'unknown' | 'valid' | 'unreachable'
 
 export interface RecentRoom {
   id: string
   name: string
   joinedAt: number
-  /** Base64-encoded FirebaseConfig used when this room was joined. */
+  /** Base64-encoded backend config used when this room was joined. */
   configBase64?: string
 }
 
-let _db: Database | null = null
+let backendClient: BackendClient | null = null
+let backendClientKey: string | null = null
 
 export const useConfigStore = defineStore('config', () => {
   const configFound = ref(false)
-  const firebaseConfig = ref<FirebaseConfig | null>(null)
+  const backendConfig = ref<BackendConfig | null>(null)
   const userId = ref<string | null>(null)
   const userName = ref('')
   const activeRoomId = ref<string | null>(null)
   const activeRoomName = ref<string | null>(null)
   const recentRooms = ref<RecentRoom[]>([])
   const avatarStyle = ref(localStorage.getItem(AVATAR_STYLE_KEY) ?? DEFAULT_AVATAR_STYLE)
-  const avatarSeed  = ref(localStorage.getItem(AVATAR_SEED_KEY)  ?? '')
-  const avatarBg    = ref(localStorage.getItem(AVATAR_BG_KEY)    ?? DEFAULT_AVATAR_BG)
+  const avatarSeed = ref(localStorage.getItem(AVATAR_SEED_KEY) ?? '')
+  const avatarBg = ref(localStorage.getItem(AVATAR_BG_KEY) ?? DEFAULT_AVATAR_BG)
   const viewMode = ref<ViewMode>((localStorage.getItem(VIEW_MODE_KEY) as ViewMode) ?? 'table')
   const historyPanelOpen = ref(localStorage.getItem(HISTORY_PANEL_KEY) === 'true')
-
-  // Cached validation result — reset to 'unknown' when config changes so the
-  // lobby re-checks; stays valid across page navigations for the same config.
   const configValidationStatus = ref<ConfigValidationStatus>('unknown')
+
+  const backendProvider = computed(() => backendConfig.value?.provider ?? null)
+  const encodedBackendConfig = computed(() => backendConfig.value ? encodeBackendConfig(backendConfig.value) : null)
 
   function setActiveRoom (id: string | null, name: string | null) {
     activeRoomId.value = id
@@ -63,28 +54,29 @@ export const useConfigStore = defineStore('config', () => {
 
   function saveRecentRoom (id: string, name: string) {
     const configBase64 = localStorage.getItem(CONFIG_KEY) ?? undefined
-    const filtered = recentRooms.value.filter(r => r.id !== id)
+    const filtered = recentRooms.value.filter(room => room.id !== id)
     recentRooms.value = [{ id, name, joinedAt: Date.now(), configBase64 }, ...filtered].slice(0, MAX_RECENT_ROOMS)
     localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(recentRooms.value))
   }
 
   function removeRecentRoom (id: string) {
-    recentRooms.value = recentRooms.value.filter(r => r.id !== id)
+    recentRooms.value = recentRooms.value.filter(room => room.id !== id)
     localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(recentRooms.value))
   }
 
   function updateRecentRoomName (id: string, name: string) {
-    const room = recentRooms.value.find(r => r.id === id)
-    if (room && room.name !== name) {
-      room.name = name
-      localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(recentRooms.value))
+    const room = recentRooms.value.find(entry => entry.id === id)
+    if (!room || room.name === name) {
+      return
     }
+    room.name = name
+    localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(recentRooms.value))
   }
 
   function initializeConfig () {
     try {
-      const raw = localStorage.getItem(RECENT_ROOMS_KEY)
-      recentRooms.value = raw ? JSON.parse(raw) : []
+      const rawRecentRooms = localStorage.getItem(RECENT_ROOMS_KEY)
+      recentRooms.value = rawRecentRooms ? JSON.parse(rawRecentRooms) : []
     } catch {
       recentRooms.value = []
     }
@@ -97,57 +89,43 @@ export const useConfigStore = defineStore('config', () => {
     userId.value = potentialUserId
     userName.value = localStorage.getItem(USER_NAME_KEY) || ''
 
-    const config = localStorage.getItem(CONFIG_KEY)
-    if (!config) {
+    const storedConfig = localStorage.getItem(CONFIG_KEY)
+    if (!storedConfig) {
       configFound.value = false
+      backendConfig.value = null
       return
     }
 
-    try {
-      const rawConfig = atob(config)
-      const parsedConfig = JSON.parse(rawConfig)
-      configFound.value = !!parsedConfig
-      firebaseConfig.value = parsedConfig || null
-    } catch (error) {
-      console.error('Error parsing config:', error)
-      configFound.value = false
+    const parsedConfig = decodeBackendConfig(storedConfig)
+    configFound.value = !!parsedConfig
+    backendConfig.value = parsedConfig
+  }
+
+  function saveBackendConfig (config: BackendConfig) {
+    const normalized = normalizeBackendConfig(config)
+    if (!normalized) {
+      return
+    }
+
+    const configChanged = JSON.stringify(normalized) !== JSON.stringify(backendConfig.value)
+    localStorage.setItem(CONFIG_KEY, encodeBackendConfig(normalized))
+    backendConfig.value = normalized
+    configFound.value = true
+    activeRoomId.value = null
+    activeRoomName.value = null
+    backendClient = null
+    backendClientKey = null
+    resetBackendRuntime()
+
+    if (configChanged) {
+      configValidationStatus.value = 'unknown'
     }
   }
 
-  function saveFirebaseConfig (config: FirebaseConfig) {
-    try {
-      const staleApps = [...getApps()]
-      const configChanged = JSON.stringify(config) !== JSON.stringify(firebaseConfig.value)
-
-      localStorage.setItem(CONFIG_KEY, btoa(JSON.stringify(config)))
-      firebaseConfig.value = config
-      configFound.value = true
-      activeRoomId.value = null
-      activeRoomName.value = null
-      _db = null
-
-      if (configChanged) {
-        configValidationStatus.value = 'unknown'
-      }
-
-      for (const app of staleApps) {
-        deleteApp(app).catch(() => {})
-      }
-    } catch (error) {
-      console.error('Error saving config:', error)
-    }
-  }
-
-  /**
-   * Apply a config from a base64 string (e.g. from a URL query param).
-   * Reuses saveFirebaseConfig so old apps are torn down and validation is reset.
-   */
   function applyConfigFromBase64 (base64: string) {
-    try {
-      const parsed: FirebaseConfig = JSON.parse(atob(base64))
-      if (parsed) saveFirebaseConfig(parsed)
-    } catch {
-      // malformed base64 — silently ignore
+    const parsed = decodeBackendConfig(base64)
+    if (parsed) {
+      saveBackendConfig(parsed)
     }
   }
 
@@ -167,8 +145,11 @@ export const useConfigStore = defineStore('config', () => {
 
   function setAvatarSeed (seed: string) {
     avatarSeed.value = seed
-    if (seed) localStorage.setItem(AVATAR_SEED_KEY, seed)
-    else localStorage.removeItem(AVATAR_SEED_KEY)
+    if (seed) {
+      localStorage.setItem(AVATAR_SEED_KEY, seed)
+    } else {
+      localStorage.removeItem(AVATAR_SEED_KEY)
+    }
   }
 
   function setAvatarBg (bg: string) {
@@ -186,26 +167,35 @@ export const useConfigStore = defineStore('config', () => {
     localStorage.setItem(HISTORY_PANEL_KEY, open ? 'true' : 'false')
   }
 
-  function getDb (): Database | null {
-    if (_db) return _db
-    if (!firebaseConfig.value) return null
-    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig.value)
-    _db = getDatabase(app)
-    return _db
+  function getBackend (): BackendClient | null {
+    if (!backendConfig.value) {
+      return null
+    }
+
+    const clientKey = JSON.stringify(backendConfig.value)
+    if (backendClient && backendClientKey === clientKey) {
+      return backendClient
+    }
+
+    backendClient = createBackendClient(backendConfig.value)
+    backendClientKey = clientKey
+    return backendClient
   }
 
   return {
     initializeConfig,
-    saveFirebaseConfig,
+    saveBackendConfig,
     applyConfigFromBase64,
     saveRecentRoom,
     setUserName,
     setActiveRoom,
-    getDb,
+    getBackend,
     configFound,
     configValidationStatus,
     setConfigValidationStatus,
-    firebaseConfig,
+    backendConfig,
+    backendProvider,
+    encodedBackendConfig,
     userId,
     userName,
     activeRoomId,

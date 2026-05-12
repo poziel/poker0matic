@@ -1,39 +1,46 @@
-# Firebase Setup Guide
+# Backend Setup Guide
 
-Poker0matic uses Firebase Realtime Database as its backend. Each team that self-hosts needs to create their own Firebase project and paste the config into the app's `/config` page.
+Poker0matic supports multiple backend providers, but the non-Firebase ones require you to create their storage schema first:
+
+- `Firebase`: ready after standard Firebase setup
+- `Supabase`: requires the `poker_rooms` table
+- `PocketBase`: requires the `poker_rooms` collection
+- `Appwrite`: requires a room collection with the expected attributes
 
 ---
 
-## Step 1 — Create a Firebase project
+## Firebase
 
-1. Go to the [Firebase Console](https://console.firebase.google.com/) and sign in with a Google account.
+### Step 1 - Create a Firebase project
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and sign in.
 2. Click **Add project**.
-3. Enter a project name (e.g. `my-team-poker`), then click **Continue**.
-4. Disable Google Analytics if you don't need it, then click **Create project**.
-5. Wait for the project to be provisioned, then click **Continue**.
+3. Enter a project name such as `my-team-poker`.
+4. Disable Google Analytics if you do not need it.
+5. Finish creating the project.
 
----
+### Step 2 - Enable Realtime Database
 
-## Step 2 — Enable Realtime Database
-
-1. In the left sidebar, click **Build → Realtime Database**.
+1. Open **Build -> Realtime Database**.
 2. Click **Create Database**.
-3. Choose a database location close to your team (e.g. `us-central1`).
-4. On the security rules step, select **Start in test mode** (allows reads/writes for 30 days — you can tighten this later).
-5. Click **Enable**.
+3. Choose a region close to your team.
+4. Select **Start in test mode** for initial setup.
+5. Finish the database creation flow.
 
-> After creation, note the **Database URL** shown at the top of the Realtime Database page. It looks like:
-> `https://my-team-poker-default-rtdb.firebaseio.com`
-> You will need this in Step 4.
+You will see a database URL like:
 
----
+```text
+https://my-team-poker-default-rtdb.firebaseio.com
+```
 
-## Step 3 — Register a web app
+### Step 3 - Register a web app
 
-1. In the left sidebar, click the **gear icon** next to "Project Overview" → **Project settings**.
-2. Scroll down to the **Your apps** section and click the **`</>`** (web) icon.
-3. Enter a nickname (e.g. `poker0matic`) and click **Register app**. You do **not** need Firebase Hosting.
-4. Firebase will show you a config snippet that looks like this:
+1. Open **Project settings**.
+2. In **Your apps**, click the web icon `</>`.
+3. Register a web app, for example `poker0matic`.
+4. Copy the generated config snippet.
+
+It looks like:
 
 ```js
 const firebaseConfig = {
@@ -47,42 +54,31 @@ const firebaseConfig = {
 };
 ```
 
-Keep this page open — you'll copy these values in the next step.
+### Step 4 - Paste the values into Poker0matic
 
----
+Open Poker0matic configuration and choose `Firebase`.
 
-## Step 4 — Enter the config in Poker0matic
+Field mapping:
 
-1. Open Poker0matic. If no config is saved yet you'll be redirected to `/config` automatically; otherwise navigate there manually.
-2. Fill in each field using the values from the Firebase snippet above:
+| Poker0matic field | Firebase value | Meaning |
+|---|---|---|
+| `apiKey` | `apiKey` | Public browser API key for the Firebase web app |
+| `authDomain` | `authDomain` | Firebase auth hostname for the project |
+| `databaseUrl` | `databaseURL` | Realtime Database base URL |
+| `projectId` | `projectId` | Firebase project id |
+| `storageBucket` | `storageBucket` | Project storage bucket |
+| `messagingSenderId` | `messagingSenderId` | Firebase Cloud Messaging sender id |
+| `appId` | `appId` | Unique id of the Firebase web app |
 
-| Field in the app | Firebase config key |
-|---|---|
-| `apiKey` | `apiKey` |
-| `authDomain` | `authDomain` |
-| `databaseUrl` | `databaseURL` |
-| `projectId` | `projectId` |
-| `storageBucket` | `storageBucket` |
-| `messagingSenderId` | `messagingSenderId` |
-| `appId` | `appId` |
+### Step 5 - Share the config with your team
 
-3. Click **Save**. You'll be redirected to the room page.
+1. Save the config.
+2. Click **Share config**.
+3. Send the copied URL to teammates.
 
----
+### Firebase security rules
 
-## Step 5 — Share the config with your team (optional)
-
-You don't need to repeat the above steps for every teammate. Once saved:
-
-1. Go back to `/config`.
-2. Click **Share config** — a URL is copied to your clipboard.
-3. Send that link to your teammates. Opening it will automatically load the Firebase config into their browser.
-
----
-
-## Security rules
-
-The default test-mode rules expire after 30 days and then block all access. Replace them in **Firebase Console → Realtime Database → Rules** with the following:
+The default test-mode rules expire after 30 days. Replace them with:
 
 ```json
 {
@@ -112,4 +108,126 @@ The default test-mode rules expire after 30 days and then block all access. Repl
 }
 ```
 
-These rules lock down the database at the top level (no global read/write) while allowing any client to read and write within individual rooms. User entries are validated to require a `name` (max 20 characters) and a `joinedAt` timestamp.
+---
+
+## Supabase
+
+Status: supported once the table exists.
+
+How to prepare Supabase:
+
+1. Create a project in [Supabase](https://supabase.com/dashboard).
+2. Open **Project Settings -> API**.
+3. Choose `Supabase` in Poker0matic config.
+4. Fill the fields below.
+
+Field meaning:
+
+| Poker0matic field | Where it comes from | Meaning |
+|---|---|---|
+| `url` | Project URL | Base URL of your Supabase project |
+| `anonKey` | anon public key | Public browser key used to call Supabase |
+| `projectRef` | project URL or project settings | The short project identifier |
+
+Example:
+
+```text
+url: https://abcd1234.supabase.co
+projectRef: abcd1234
+```
+
+Create this table before using Poker0matic:
+
+```sql
+create table if not exists public.poker_rooms (
+  id text primary key,
+  payload jsonb not null default '{}'::jsonb,
+  updated_at bigint not null default 0
+);
+```
+
+If you use Row Level Security, the role behind your `anonKey` must be allowed to:
+
+- `select`
+- `insert`
+- `update`
+
+on `public.poker_rooms`.
+
+---
+
+## PocketBase
+
+Status: supported once the collection exists.
+
+To prepare a PocketBase instance:
+
+1. Start or host PocketBase.
+2. Open the PocketBase admin UI.
+3. Create an admin account.
+4. Choose `PocketBase` in Poker0matic config.
+5. Fill the fields below.
+
+Field meaning:
+
+| Poker0matic field | Where it comes from | Meaning |
+|---|---|---|
+| `url` | Your PocketBase server address | Base URL of the running PocketBase instance |
+| `email` | Admin login | PocketBase admin email |
+| `password` | Admin login | PocketBase admin password |
+
+Example:
+
+```text
+url: http://127.0.0.1:8090
+```
+
+Create this collection before using Poker0matic:
+
+- collection name: `poker_rooms`
+- fields:
+- `roomId` as text
+- `payload` as json
+- `updatedAt` as number
+
+Poker0matic logs in with the superuser credentials you provide and then reads/writes records in that collection.
+
+---
+
+## Appwrite
+
+Status: supported once the collection exists.
+
+To prepare an Appwrite project:
+
+1. Create a project in [Appwrite](https://cloud.appwrite.io/).
+2. Create a database.
+3. Create a collection intended for room data.
+4. Generate an API key.
+5. Choose `Appwrite` in Poker0matic config.
+6. Fill the fields below.
+
+Field meaning:
+
+| Poker0matic field | Where it comes from | Meaning |
+|---|---|---|
+| `endpoint` | Your Appwrite instance URL + `/v1` | Base Appwrite API endpoint |
+| `projectId` | Project settings | Appwrite project id |
+| `apiKey` | API keys section | API key for the integration |
+| `databaseId` | Databases | Database id where room data will live |
+| `roomsCollectionId` | Databases -> collection | Collection id intended for rooms |
+
+Example:
+
+```text
+endpoint: https://cloud.appwrite.io/v1
+```
+
+Create this collection before using Poker0matic:
+
+- collection id: whatever you put in `roomsCollectionId`
+- attributes:
+- `payload` as long text / large string
+- `updatedAt` as integer
+
+Poker0matic stores one document per room and uses the room code as the document id.
