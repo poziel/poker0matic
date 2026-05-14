@@ -829,7 +829,7 @@
         currentRoom.value = null
         configStore.setActiveRoom(null, null)
         appStore.setRoomInfo(null, '', 0)
-        redirectTimeout = setTimeout(() => router.replace('/'), 3000)
+        redirectTimeout = setTimeout(() => router.replace('/app'), 3000)
         return
       }
 
@@ -976,7 +976,7 @@
     if (!firebaseConfig.value) return
 
     const encoded = btoa(JSON.stringify(firebaseConfig.value))
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}rooms/${encodeURIComponent(roomId)}?config=${encodeURIComponent(encoded)}`
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}app/room/${encodeURIComponent(roomId)}?config=${encodeURIComponent(encoded)}`
     const ok = await copyText(url)
 
     if (ok) {
@@ -1405,7 +1405,7 @@
     resetRound: resetCurrentRound,
     advanceRound,
     goToLobby () {
-      router.push('/')
+      router.push('/app')
     },
   }
 </script>

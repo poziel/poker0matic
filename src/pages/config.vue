@@ -145,7 +145,7 @@
   function saveConfig () {
     configStore.saveFirebaseConfig({ ...config.value })
     appStore.setRoomInfo(null, '', 0)
-    router.push('/')
+    router.push('/app')
   }
 
   async function shareConfig () {

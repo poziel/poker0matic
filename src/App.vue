@@ -1,6 +1,6 @@
 <template>
   <v-app class="p0-app">
-    <v-app-bar class="hdr" flat height="57">
+    <v-app-bar v-if="!isPublicRoute" class="hdr" flat height="57">
       <v-btn
         class="brand"
         :ripple="false"
@@ -21,7 +21,7 @@
           v-if="appStore.currentRoomId"
           class="room-pill"
           :class="{ 'room-pill-away': !isInRoom }"
-          :to="`/rooms/${appStore.currentRoomId}`"
+          :to="`/app/room/${appStore.currentRoomId}`"
         >
           <span class="dot" />
           <span class="room-name">{{ appStore.roomName }}</span>
@@ -92,7 +92,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import ConfigModal from '@/components/ConfigModal.vue'
   import UserMenu from '@/components/UserMenu.vue'
@@ -106,17 +106,27 @@
   const configStore = useConfigStore()
 
   // true when the user is actively viewing the room they last joined
-  const isInRoom = computed(() => route.path.startsWith('/rooms/'))
+  const isInRoom = computed(() => route.path.startsWith('/app/room/'))
+  const isPublicRoute = computed(() => route.meta.public === true)
 
   const nameSetupOpen = ref(false)
   const setupName = ref('')
   let unregisterShortcuts: (() => void) | null = null
 
-  onMounted(() => {
-    configStore.initializeConfig()
+  function syncNameSetupPrompt () {
+    if (isPublicRoute.value) {
+      nameSetupOpen.value = false
+      return
+    }
+
     if (!configStore.userName.trim()) {
       nameSetupOpen.value = true
     }
+  }
+
+  onMounted(() => {
+    configStore.initializeConfig()
+    syncNameSetupPrompt()
 
     unregisterShortcuts = registerKeyboardShortcuts([
       {
@@ -142,12 +152,16 @@
           { key: 'n', metaKey: true, altKey: true },
         ],
         allowInEditable: true,
-        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/create',
+        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/app/create',
         handler: () => {
-          router.push('/create')
+          router.push('/app/create')
         },
       },
     ])
+  })
+
+  watch(() => route.fullPath, () => {
+    syncNameSetupPrompt()
   })
 
   onUnmounted(() => {

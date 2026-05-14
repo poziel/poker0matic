@@ -20,10 +20,12 @@ See [CONFIG.md](CONFIG.md) for step-by-step instructions on creating a Firebase 
 
 ## Project structure
 
-- `src/pages/index.vue` — poker room: voting, reveal, reset, real-time sync
+- `src/pages/index.vue` — public landing page and onboarding entry point at `/`
+- `src/pages/app.vue` — internal application lobby at `/app`
+- `src/pages/room.vue` — poker room: voting, reveal, reset, and real-time sync
 - `src/pages/config.vue` — Firebase config input and sharing
 - `src/stores/config.ts` — Pinia store: Firebase config, user identity, localStorage persistence
-- `src/router/index.ts` — routes + guard that redirects to `/config` when no config is saved
+- `src/router/index.ts` — routes, shared-link handling, and page metadata updates
 - `src/App.vue` — root layout: toolbar, theme toggle, router outlet
 - `src/plugins/` — Vue plugin registrations
 

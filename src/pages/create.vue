@@ -85,6 +85,6 @@
 
     onDisconnect(userRef).remove()
 
-    router.push(`/rooms/${newRoomId}`)
+    router.push(`/app/room/${newRoomId}`)
   }
 </script>
