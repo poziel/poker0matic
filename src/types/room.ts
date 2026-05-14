@@ -32,6 +32,7 @@ export interface RoomRecord {
   leaderUserId?: string | null
   committedVote?: string | null
   currentTask?: TaskInfo | null
+  roundParticipants?: Record<string, RoomUser>
   roundEditLock?: RoundEditLock | null
   roundNumber?: number
   settings?: RoomSettings

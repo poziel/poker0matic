@@ -47,20 +47,28 @@
   })
 
   function createRoom () {
-    if (!settings.value.name.trim() || !db) return
+    if (!settings.value.name.trim() || !db || !configStore.userId) return
 
     const { name, deck, customDeck, specialQuestion, specialCoffee, historyEnabled, leaderModeEnabled, taskInformationEnabled } = settings.value
     const userName = configStore.userName || 'Guest'
+    const userId = configStore.userId
     const newRoomId = Math.random().toString(36).slice(2, 10)
 
     const roomRef = dbRef(db, `rooms/${newRoomId}`)
+    const joinedAt = Date.now()
     set(roomRef, {
       name: name.trim(),
-      createdAt: Date.now(),
-      createdBy: configStore.userId,
-      createdByUserId: configStore.userId,
-      leaderUserId: leaderModeEnabled ? configStore.userId : null,
+      createdAt: joinedAt,
+      createdBy: userId,
+      createdByUserId: userId,
+      leaderUserId: leaderModeEnabled ? userId : null,
       currentTask: null,
+      roundParticipants: {
+        [userId]: {
+          name: userName,
+          joinedAt,
+        },
+      },
       roundEditLock: null,
       roundNumber: 1,
       settings: {
@@ -74,13 +82,13 @@
         leaderModeEnabled,
         taskInformationEnabled,
       },
-      lastActivity: Date.now(),
+      lastActivity: joinedAt,
     }).catch(console.error)
 
-    const userRef = dbRef(db, `rooms/${newRoomId}/users/${configStore.userId}`)
+    const userRef = dbRef(db, `rooms/${newRoomId}/users/${userId}`)
     set(userRef, {
       name: userName,
-      joinedAt: Date.now(),
+      joinedAt,
     }).catch(console.error)
 
     onDisconnect(userRef).remove()
