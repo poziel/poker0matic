@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Upcoming release notes are copied from merged pull request changelog sections.
 
+## [1.4.2] - 2026-05-15
+
+### Added
+
+- Added a Ruler-managed source structure for AI agent instructions.
+- Added secret-safe Ruler apply tooling with `.ruler/.env*` support.
+- Added a repository pull request template with standardized changelog guidance and target-repository rules.
+
+### Modified
+
+- Regenerated agent instruction outputs from `.ruler` fragments.
+- Updated project scripts and ignore rules for the Ruler workflow.
+
+
 ## [1.4.1] - 2026-05-15
 
 ### Added
@@ -139,7 +153,8 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/poziel/poker0matic/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/poziel/poker0matic/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/poziel/poker0matic/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/poziel/poker0matic/compare/v1.2.0...v1.3.0
