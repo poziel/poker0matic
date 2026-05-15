@@ -2,7 +2,7 @@
   "name": "poker0matic",
   "private": true,
   "type": "module",
-  "version": "1.4.0",
+  "version": "1.4.2",
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
@@ -11,8 +11,11 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "mcp": "ruler apply",
-    "mcp:revert": "ruler revert"
+    "mcp": "npm run ruler:apply",
+    "mcp:dry": "npm run ruler:apply:dry",
+    "mcp:revert": "ruler revert",
+    "ruler:apply": "node scripts/ruler-apply.mjs",
+    "ruler:apply:dry": "node scripts/ruler-apply.mjs --dry-run"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.10",

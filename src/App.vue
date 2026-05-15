@@ -18,9 +18,9 @@
 
       <div class="hdr-right">
         <router-link
-          v-if="appStore.currentRoomId"
+          v-if="appStore.currentRoomId && (appStore.roomPresenceActive || appStore.roomHasActiveVote)"
           class="room-pill"
-          :class="{ 'room-pill-away': !isInRoom }"
+          :class="{ 'room-pill-away': !appStore.roomPresenceActive || !isInRoom }"
           :to="`/app/room/${appStore.currentRoomId}`"
         >
           <span class="dot" />
@@ -92,6 +92,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { ref as dbRef, get } from 'firebase/database'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import ConfigModal from '@/components/ConfigModal.vue'
@@ -105,7 +106,6 @@
   const appStore = useAppStore()
   const configStore = useConfigStore()
 
-  // true when the user is actively viewing the room they last joined
   const isInRoom = computed(() => route.path.startsWith('/app/room/'))
   const isPublicRoute = computed(() => route.meta.public === true)
 
@@ -124,9 +124,11 @@
     }
   }
 
-  onMounted(() => {
+  onMounted(async () => {
     configStore.initializeConfig()
     syncNameSetupPrompt()
+
+    await restoreRoomPillFromActiveVote()
 
     unregisterShortcuts = registerKeyboardShortcuts([
       {
@@ -172,5 +174,45 @@
     const trimmed = setupName.value.trim().slice(0, 20)
     configStore.setUserName(trimmed || 'Guest')
     nameSetupOpen.value = false
+  }
+
+  async function restoreRoomPillFromActiveVote () {
+    if (route.path.startsWith('/app/room/')) return
+    if (!configStore.userId) return
+
+    const db = configStore.getDb()
+    if (!db) return
+
+    for (const recentRoom of configStore.recentRooms) {
+      try {
+        const snapshot = await get(dbRef(db, `rooms/${recentRoom.id}`))
+        if (!snapshot.exists()) continue
+
+        const room = snapshot.val() as {
+          name?: string
+          users?: Record<string, unknown>
+          roundParticipants?: Record<string, { vote?: unknown }>
+        }
+
+        const userVote = room.roundParticipants?.[configStore.userId]?.vote
+        if (userVote == null) continue
+
+        const roomName = room.name ?? recentRoom.name
+        const connectedUsers = room.users ?? {}
+        const isConnected = Object.hasOwn(connectedUsers, configStore.userId)
+
+        configStore.setActiveRoom(recentRoom.id, roomName)
+        appStore.setRoomInfo(
+          recentRoom.id,
+          roomName,
+          Object.keys(connectedUsers).length,
+          isConnected,
+          true,
+        )
+        return
+      } catch {
+        // Ignore transient read errors and keep searching recents.
+      }
+    }
   }
 </script>

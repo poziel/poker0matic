@@ -308,10 +308,10 @@
 
 <script lang="ts" setup>
   import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, TaskInfo, VoteValue } from '@/types/room'
-  import { ref as dbRef, onDisconnect, onValue, runTransaction, update } from 'firebase/database'
+  import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
+  import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
   import PokerTable from '@/components/PokerTable.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
@@ -414,6 +414,7 @@
   let unsubscribeUsers: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
   let unregisterShortcuts: (() => void) | null = null
+  let leaveRoomPromise: Promise<void> | null = null
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
@@ -499,8 +500,12 @@
     voteOptions.value.filter((v): v is number => typeof v === 'number'),
   )
 
+  const activeRoundParticipants = computed<Record<string, RoomUser>>(() =>
+    currentRoom.value?.roundParticipants ?? roomUsers.value,
+  )
+
   const revealedVotes = computed(() =>
-    Object.values(roomUsers.value)
+    Object.values(activeRoundParticipants.value)
       .map(user => user.vote)
       .filter((vote): vote is VoteValue => vote != null),
   )
@@ -538,17 +543,24 @@
   })
 
   const votedCount = computed(() =>
-    Object.values(roomUsers.value).filter(user => user.vote != null).length,
+    Object.values(activeRoundParticipants.value).filter(user => user.vote != null).length,
   )
-  const totalPlayers = computed(() => Object.keys(roomUsers.value).length)
+  const connectedPlayerCount = computed(() => Object.keys(roomUsers.value).length)
+  const totalPlayers = computed(() => Object.keys(activeRoundParticipants.value).length)
   const allVoted = computed(() => votedCount.value > 0 && votedCount.value === totalPlayers.value)
+  const isCurrentUserConnected = computed(() =>
+    !!configStore.userId && !!roomUsers.value[configStore.userId],
+  )
+  const hasCurrentUserActiveVote = computed(() =>
+    !!configStore.userId && activeRoundParticipants.value[configStore.userId]?.vote != null,
+  )
   const selectedVote = computed(() => {
-    if (!configStore.userId || !roomUsers.value[configStore.userId]) return null
-    return roomUsers.value[configStore.userId].vote ?? null
+    if (!configStore.userId || !activeRoundParticipants.value[configStore.userId]) return null
+    return activeRoundParticipants.value[configStore.userId].vote ?? null
   })
 
   const sortedRoomUsers = computed(() =>
-    Object.entries(roomUsers.value)
+    Object.entries(activeRoundParticipants.value)
       .map(([userId, user]) => ({ userId, ...user }))
       .toSorted((a, b) => a.joinedAt - b.joinedAt),
   )
@@ -639,11 +651,15 @@
 
   watch(userName, newName => {
     if (!currentRoom.value || !db || !configStore.userId) return
-    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
-    update(userRef, {
-      name: newName || 'Anonymous',
-      avatarSeed: configStore.avatarSeed || newName || 'Guest',
-    }).catch(console.error)
+    const updates: Record<string, unknown> = {
+      [`users/${configStore.userId}/name`]: newName || 'Anonymous',
+      [`users/${configStore.userId}/avatarSeed`]: configStore.avatarSeed || newName || 'Guest',
+    }
+    if (activeRoundParticipants.value[configStore.userId]) {
+      updates[`roundParticipants/${configStore.userId}/name`] = newName || 'Anonymous'
+      updates[`roundParticipants/${configStore.userId}/avatarSeed`] = configStore.avatarSeed || newName || 'Guest'
+    }
+    update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
   })
 
   // When the global username modal (App.vue) sets a name after the room loaded,
@@ -660,11 +676,17 @@
     [() => configStore.avatarStyle, () => configStore.avatarSeed, () => configStore.avatarBg],
     () => {
       if (!db || !configStore.userId || !currentRoom.value) return
-      update(dbRef(db, `rooms/${roomId}/users/${configStore.userId}`), {
-        avatarStyle: configStore.avatarStyle,
-        avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
-        avatarBg: configStore.avatarBg,
-      }).catch(console.error)
+      const updates: Record<string, unknown> = {
+        [`users/${configStore.userId}/avatarStyle`]: configStore.avatarStyle,
+        [`users/${configStore.userId}/avatarSeed`]: configStore.avatarSeed || userName.value || 'Guest',
+        [`users/${configStore.userId}/avatarBg`]: configStore.avatarBg,
+      }
+      if (activeRoundParticipants.value[configStore.userId]) {
+        updates[`roundParticipants/${configStore.userId}/avatarStyle`] = configStore.avatarStyle
+        updates[`roundParticipants/${configStore.userId}/avatarSeed`] = configStore.avatarSeed || userName.value || 'Guest'
+        updates[`roundParticipants/${configStore.userId}/avatarBg`] = configStore.avatarBg
+      }
+      update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     },
   )
 
@@ -678,7 +700,14 @@
 
   watch([currentRoom, roomUsers], () => {
     if (!currentRoom.value) return
-    appStore.setRoomInfo(roomId, currentRoom.value.name, totalPlayers.value)
+    syncRoomSummary()
+  }, { deep: true })
+
+  watch([currentRoom, roomUsers], ([room, users]) => {
+    if (!db || !room || room.roundParticipants || Object.keys(users).length === 0) return
+    update(dbRef(db, `rooms/${roomId}`), {
+      roundParticipants: buildRoundParticipants(users),
+    }).catch(console.error)
   }, { deep: true })
 
   watch(showVotes, (revealed, wasRevealed) => {
@@ -691,7 +720,7 @@
     }
   })
 
-  watch(roomUsers, newUsers => {
+  watch(activeRoundParticipants, newUsers => {
     for (const [userId, user] of Object.entries(newUsers)) {
       const prev = previousVotes.value[userId]
       const curr = user.vote ?? null
@@ -835,8 +864,7 @@
 
       roomNotFound.value = false
       currentRoom.value = data
-      configStore.setActiveRoom(roomId, data.name)
-      appStore.setRoomInfo(roomId, data.name, totalPlayers.value)
+      syncRoomSummary(data.name)
       if (!taskInformationEnabled.value && taskInfoModalOpen.value) {
         taskInfoModalOpen.value = false
         pendingTaskFlow.value = null
@@ -881,6 +909,10 @@
     void releaseRoundEditLock()
   })
 
+  onBeforeRouteLeave(async () => {
+    await leaveRoomPresence()
+  })
+
   function formatNum (num: number | null | undefined): string {
     if (num == null) return '-'
     return Number.isInteger(num) ? String(num) : String(Number.parseFloat(num.toFixed(2)))
@@ -901,7 +933,7 @@
 
   function buildLegacyVotes (): Record<string, string> {
     const votes: Record<string, string> = {}
-    for (const user of Object.values(roomUsers.value)) {
+    for (const user of Object.values(activeRoundParticipants.value)) {
       if (user.vote != null) votes[user.name] = String(user.vote)
     }
     return votes
@@ -909,7 +941,7 @@
 
   function buildVoteSnapshots (): Record<string, RoomHistoryVoteSnapshot> {
     const snapshots: Record<string, RoomHistoryVoteSnapshot> = {}
-    for (const [userId, user] of Object.entries(roomUsers.value)) {
+    for (const [userId, user] of Object.entries(activeRoundParticipants.value)) {
       if (user.vote == null) continue
       snapshots[userId] = {
         name: user.name,
@@ -954,21 +986,108 @@
     return !dockCollapsed.value && canVoteInCurrentRound.value
   }
 
+  function buildRoundParticipants (users: Record<string, RoomUser>): Record<string, RoomUser> {
+    const participants: Record<string, RoomUser> = {}
+    for (const [userId, user] of Object.entries(users)) {
+      participants[userId] = {
+        name: user.name,
+        joinedAt: user.joinedAt,
+        avatarStyle: user.avatarStyle,
+        avatarSeed: user.avatarSeed,
+        avatarBg: user.avatarBg,
+      }
+    }
+    return participants
+  }
+
+  function normalizeRoomUsers (value: unknown): Record<string, RoomUser> {
+    if (!value || typeof value !== 'object') return {}
+    return value as Record<string, RoomUser>
+  }
+
+  function buildRoundParticipantsWithVotes (
+    users: Record<string, RoomUser>,
+    voteSnapshots?: Record<string, RoomHistoryVoteSnapshot>,
+  ): Record<string, RoomUser> {
+    const participants = buildRoundParticipants(users)
+    if (!voteSnapshots) return participants
+
+    for (const [userId, snapshot] of Object.entries(voteSnapshots)) {
+      if (!participants[userId]) continue
+      participants[userId].vote = snapshot.vote
+    }
+
+    return participants
+  }
+
   function parseShortcutVoteValue (value: string): VoteValue {
     const numericValue = Number(value)
     return Number.isNaN(numericValue) ? value : numericValue
   }
 
+  function syncRoomSummary (roomNameOverride?: string, connectedOverride?: boolean, hasVoteOverride?: boolean, countOverride?: number) {
+    const roomNameValue = roomNameOverride ?? currentRoom.value?.name ?? ''
+    const isConnected = connectedOverride ?? isCurrentUserConnected.value
+    const hasActiveVote = hasVoteOverride ?? hasCurrentUserActiveVote.value
+    const count = countOverride ?? connectedPlayerCount.value
+
+    if (isConnected || hasActiveVote) {
+      configStore.setActiveRoom(roomId, roomNameValue)
+      appStore.setRoomInfo(roomId, roomNameValue, count, isConnected, hasActiveVote)
+      return
+    }
+
+    configStore.setActiveRoom(null, null)
+    appStore.setRoomInfo(null, '', 0)
+  }
+
+  async function leaveRoomPresence () {
+    if (leaveRoomPromise) return leaveRoomPromise
+
+    const userId = configStore.userId
+    const roomNameValue = currentRoom.value?.name ?? configStore.activeRoomName ?? ''
+    const hasActiveVote = !!userId && activeRoundParticipants.value[userId]?.vote != null
+    const wasConnected = !!userId && !!roomUsers.value[userId]
+    const nextCount = Math.max(0, connectedPlayerCount.value - (wasConnected ? 1 : 0))
+
+    leaveRoomPromise = (async () => {
+      if (db && userId && wasConnected) {
+        await remove(dbRef(db, `rooms/${roomId}/users/${userId}`)).catch(console.error)
+      }
+      syncRoomSummary(roomNameValue, false, hasActiveVote, nextCount)
+    })()
+
+    try {
+      await leaveRoomPromise
+    } finally {
+      leaveRoomPromise = null
+    }
+  }
+
   function joinRoom () {
     if (!db || !configStore.userId) return
-    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
-    update(userRef, {
+    const existingParticipant = activeRoundParticipants.value[configStore.userId]
+    const userRecord = {
       name: userName.value || 'Anonymous',
       joinedAt: Date.now(),
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
       avatarBg: configStore.avatarBg,
-    }).catch(console.error)
+    }
+    const updates: Record<string, unknown> = {
+      [`users/${configStore.userId}`]: userRecord,
+      [`roundParticipants/${configStore.userId}`]: existingParticipant
+        ? {
+          ...existingParticipant,
+          name: userRecord.name,
+          avatarStyle: userRecord.avatarStyle,
+          avatarSeed: userRecord.avatarSeed,
+          avatarBg: userRecord.avatarBg,
+        }
+        : userRecord,
+    }
+    update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
+    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
     onDisconnect(userRef).remove()
   }
 
@@ -1007,7 +1126,7 @@
 
     const isVoteChange = selectedVote.value !== null && value !== selectedVote.value
 
-    const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
+    const userRef = dbRef(db, `rooms/${roomId}/roundParticipants/${configStore.userId}`)
     const newVote = value === selectedVote.value ? null : value
     update(userRef, { vote: newVote }).catch(console.error)
 
@@ -1071,13 +1190,13 @@
     }
 
     // Only reset votes that are no longer in the new deck
-    const invalidUserIds = Object.entries(roomUsers.value)
+    const invalidUserIds = Object.entries(activeRoundParticipants.value)
       .filter(([, user]) => user.vote != null && !newOptions.includes(user.vote))
       .map(([userId]) => userId)
 
     if (invalidUserIds.length > 0) {
       for (const userId of invalidUserIds) {
-        updates[`users/${userId}/vote`] = null
+        updates[`roundParticipants/${userId}/vote`] = null
       }
       if (showVotes.value) {
         updates['settings/showVotes'] = false
@@ -1130,26 +1249,31 @@
     }).catch(console.error)
   }
 
-  function resetCurrentRound () {
+  async function resetCurrentRound () {
     if (!db || !canManageRound.value) return
 
     closePlayerMenu()
 
     const roomRef = dbRef(db, `rooms/${roomId}`)
-    const updates: Record<string, unknown> = {
-      'settings/showVotes': false,
-      'committedVote': null,
-      'lastActivity': Date.now(),
-    }
+    const lastActivity = Date.now()
 
-    for (const userId of Object.keys(roomUsers.value)) {
-      updates[`users/${userId}/vote`] = null
-    }
+    await runTransaction(roomRef, current => {
+      if (!current) return current
 
-    update(roomRef, updates).catch(console.error)
+      const currentUsers = normalizeRoomUsers(current.users)
+      return {
+        ...current,
+        committedVote: null,
+        roundParticipants: buildRoundParticipants(currentUsers),
+        lastActivity,
+        settings: current.settings
+          ? { ...current.settings, showVotes: false }
+          : { showVotes: false },
+      }
+    }).catch(console.error)
   }
 
-  function advanceRound () {
+  async function advanceRound () {
     if (!db || !canManageRound.value) return
 
     if (taskInformationEnabled.value) {
@@ -1160,16 +1284,12 @@
     closePlayerMenu()
 
     const roomRef = dbRef(db, `rooms/${roomId}`)
-    const updates: Record<string, unknown> = {
-      'settings/showVotes': false,
-      'committedVote': null,
-      'lastActivity': Date.now(),
-    }
+    const lastActivity = Date.now()
 
     if (showVotes.value && currentRoom.value && historyEnabled.value) {
       const { id, durationMs, completedAt, votes, voteSnapshots } = buildHistoryEntryBase()
 
-      updates[`history/${id}`] = {
+      const historyEntry = {
         id,
         finalVote: defaultFinalVote.value,
         avg: formatOptionalNum(stats.value?.avg),
@@ -1184,13 +1304,42 @@
       }
 
       roundStartTime = Date.now()
+      await runTransaction(roomRef, current => {
+        if (!current) return current
+
+        const currentUsers = normalizeRoomUsers(current.users)
+        const roundParticipants = buildRoundParticipants(currentUsers)
+
+        return {
+          ...current,
+          committedVote: null,
+          roundParticipants,
+          lastActivity,
+          settings: current.settings
+            ? { ...current.settings, showVotes: false }
+            : { showVotes: false },
+          history: current.history
+            ? { ...current.history, [id]: historyEntry }
+            : { [id]: historyEntry },
+        }
+      }).catch(console.error)
+      return
     }
 
-    for (const userId of Object.keys(roomUsers.value)) {
-      updates[`users/${userId}/vote`] = null
-    }
+    await runTransaction(roomRef, current => {
+      if (!current) return current
 
-    update(roomRef, updates).catch(console.error)
+      const currentUsers = normalizeRoomUsers(current.users)
+      return {
+        ...current,
+        committedVote: null,
+        roundParticipants: buildRoundParticipants(currentUsers),
+        lastActivity,
+        settings: current.settings
+          ? { ...current.settings, showVotes: false }
+          : { showVotes: false },
+      }
+    }).catch(console.error)
   }
 
   async function startTaskInfoFlow (mode: TaskFlowMode) {
@@ -1256,25 +1405,18 @@
     if (!db || !currentRoom.value || !pendingTaskFlow.value || !isRoundLockedByMe.value) return
 
     const roomRef = dbRef(db, `rooms/${roomId}`)
+    const lastActivity = Date.now()
     const updates: Record<string, unknown> = {
       currentTask: task,
       roundEditLock: null,
-      lastActivity: Date.now(),
+      lastActivity,
     }
 
     if (pendingTaskFlow.value === 'next') {
-      updates['settings/showVotes'] = false
-      updates.committedVote = null
-      updates.roundNumber = currentRound.value + 1
-
-      for (const userId of Object.keys(roomUsers.value)) {
-        updates[`users/${userId}/vote`] = null
-      }
-
       if (showVotes.value && historyEnabled.value) {
         const { id, durationMs, completedAt, votes, voteSnapshots } = buildHistoryEntryBase()
 
-        updates[`history/${id}`] = {
+        const historyEntry = {
           id,
           title: currentTask.value?.title ?? null,
           url: currentTask.value?.url ?? null,
@@ -1292,7 +1434,57 @@
         }
 
         roundStartTime = Date.now()
+        runTransaction(roomRef, current => {
+          if (!current) return current
+
+          const currentUsers = normalizeRoomUsers(current.users)
+          return {
+            ...current,
+            currentTask: task,
+            roundEditLock: null,
+            committedVote: null,
+            roundNumber: (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1,
+            roundParticipants: buildRoundParticipants(currentUsers),
+            lastActivity,
+            settings: current.settings
+              ? { ...current.settings, showVotes: false }
+              : { showVotes: false },
+            history: current.history
+              ? { ...current.history, [id]: historyEntry }
+              : { [id]: historyEntry },
+          }
+        })
+          .then(() => {
+            taskInfoModalOpen.value = false
+            pendingTaskFlow.value = null
+          })
+          .catch(console.error)
+        return
       }
+
+      runTransaction(roomRef, current => {
+        if (!current) return current
+
+        const currentUsers = normalizeRoomUsers(current.users)
+        return {
+          ...current,
+          currentTask: task,
+          roundEditLock: null,
+          committedVote: null,
+          roundNumber: (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1,
+          roundParticipants: buildRoundParticipants(currentUsers),
+          lastActivity,
+          settings: current.settings
+            ? { ...current.settings, showVotes: false }
+            : { showVotes: false },
+        }
+      })
+        .then(() => {
+          taskInfoModalOpen.value = false
+          pendingTaskFlow.value = null
+        })
+        .catch(console.error)
+      return
     }
 
     update(roomRef, updates)
@@ -1323,6 +1515,10 @@
       'settings/showVotes': false,
       'committedVote': null,
       'lastActivity': Date.now(),
+      'roundParticipants': buildRoundParticipantsWithVotes(
+        roomUsers.value,
+        entry.voteSnapshots && Object.keys(entry.voteSnapshots).length > 0 ? entry.voteSnapshots : undefined,
+      ),
       'currentTask': entry.title
         ? {
           title: entry.title,
@@ -1332,21 +1528,14 @@
         : null,
     }
 
-    for (const userId of Object.keys(roomUsers.value)) {
-      updates[`users/${userId}/vote`] = null
-    }
-
-    if (entry.voteSnapshots && Object.keys(entry.voteSnapshots).length > 0) {
-      for (const [userId, snapshot] of Object.entries(entry.voteSnapshots)) {
-        if (!roomUsers.value[userId]) continue
-        updates[`users/${userId}/vote`] = snapshot.vote
-      }
-    } else if (entry.votes) {
-      for (const [userId, user] of Object.entries(roomUsers.value)) {
+    if (!entry.voteSnapshots && entry.votes) {
+      const participants = buildRoundParticipants(roomUsers.value)
+      for (const [userId, user] of Object.entries(participants)) {
         const legacyVote = entry.votes[user.name]
         if (legacyVote === undefined) continue
-        updates[`users/${userId}/vote`] = parseStoredVote(legacyVote)
+        participants[userId].vote = parseStoredVote(legacyVote)
       }
+      updates.roundParticipants = participants
     }
 
     roundStartTime = Date.now()
@@ -1405,7 +1594,9 @@
     resetRound: resetCurrentRound,
     advanceRound,
     goToLobby () {
-      router.push('/app')
+      void leaveRoomPresence().finally(() => {
+        router.push('/app')
+      })
     },
   }
 </script>
