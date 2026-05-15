@@ -1,6 +1,6 @@
 <template>
   <v-app class="p0-app">
-    <v-app-bar class="hdr" flat height="57">
+    <v-app-bar v-if="!isPublicRoute" class="hdr" flat height="57">
       <v-btn
         class="brand"
         :ripple="false"
@@ -20,8 +20,8 @@
         <router-link
           v-if="appStore.currentRoomId && (appStore.roomPresenceActive || appStore.roomHasActiveVote)"
           class="room-pill"
-          :class="{ 'room-pill-away': !appStore.roomPresenceActive }"
-          :to="`/rooms/${appStore.currentRoomId}`"
+          :class="{ 'room-pill-away': !appStore.roomPresenceActive || !isInRoom }"
+          :to="`/app/room/${appStore.currentRoomId}`"
         >
           <span class="dot" />
           <span class="room-name">{{ appStore.roomName }}</span>
@@ -93,7 +93,7 @@
 
 <script lang="ts" setup>
   import { ref as dbRef, get } from 'firebase/database'
-  import { onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import ConfigModal from '@/components/ConfigModal.vue'
   import UserMenu from '@/components/UserMenu.vue'
@@ -106,15 +106,27 @@
   const appStore = useAppStore()
   const configStore = useConfigStore()
 
+  const isInRoom = computed(() => route.path.startsWith('/app/room/'))
+  const isPublicRoute = computed(() => route.meta.public === true)
+
   const nameSetupOpen = ref(false)
   const setupName = ref('')
   let unregisterShortcuts: (() => void) | null = null
 
-  onMounted(async () => {
-    configStore.initializeConfig()
+  function syncNameSetupPrompt () {
+    if (isPublicRoute.value) {
+      nameSetupOpen.value = false
+      return
+    }
+
     if (!configStore.userName.trim()) {
       nameSetupOpen.value = true
     }
+  }
+
+  onMounted(async () => {
+    configStore.initializeConfig()
+    syncNameSetupPrompt()
 
     await restoreRoomPillFromActiveVote()
 
@@ -142,12 +154,16 @@
           { key: 'n', metaKey: true, altKey: true },
         ],
         allowInEditable: true,
-        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/create',
+        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/app/create',
         handler: () => {
-          router.push('/create')
+          router.push('/app/create')
         },
       },
     ])
+  })
+
+  watch(() => route.fullPath, () => {
+    syncNameSetupPrompt()
   })
 
   onUnmounted(() => {
@@ -161,7 +177,7 @@
   }
 
   async function restoreRoomPillFromActiveVote () {
-    if (route.path.startsWith('/rooms/')) return
+    if (route.path.startsWith('/app/room/')) return
     if (!configStore.userId) return
 
     const db = configStore.getDb()
