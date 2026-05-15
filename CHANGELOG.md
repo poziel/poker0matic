@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Upcoming release notes are copied from merged pull request changelog sections.
 
+## [1.4.1] - 2026-05-15
+
+### Added
+- persisted current-round participant tracking separate from live room presence
+- lobby refresh recovery for the room pill when the current user still has an active vote
+
+### Modified
+- room presence now clears immediately when a user leaves back to the lobby
+- lobby/header room summary now shows connected-player counts and away state separately from persisted votes
+- round reset and next-round flows now rebuild participants from currently connected users
+
+### Fixed
+- votes no longer disappear on temporary refreshes or disconnects during an active round
+- disconnected users are no longer carried into later rounds once they have left the room
+- stale participants no longer remain visible after resetting a round
+
+
 ## [1.4.0] - 2026-05-12
 
 ### Added
@@ -122,7 +139,8 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/poziel/poker0matic/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/poziel/poker0matic/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/poziel/poker0matic/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/poziel/poker0matic/compare/v1.1.2...v1.2.0
