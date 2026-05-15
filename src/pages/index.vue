@@ -50,8 +50,8 @@
 
           <ul aria-label="Product highlights" class="landing-highlights">
             <li>Anonymous voting, simultaneous reveal, and reset for every round.</li>
-            <li>Room links are easy to share and reconnect to across devices.</li>
-            <li>Your team keeps control of data by using its own Firebase project.</li>
+            <li>Custom room controls like flexible decks, round history, and task details.</li>
+            <li>Free to use, ad-free, and powered by your own Firebase project.</li>
           </ul>
 
           <p class="landing-free-note">
@@ -155,6 +155,42 @@
 
       <section class="landing-section">
         <div class="landing-section-head">
+          <div class="kicker">Why people pick it</div>
+          <h2>Built for teams that want control, practical room tools, and zero commercial friction.</h2>
+        </div>
+
+        <div class="landing-grid landing-grid-three">
+          <article class="landing-card">
+            <h3>You control the backend</h3>
+
+            <p>
+              Poker0matic uses your own Firebase project, so your team keeps ownership of room data instead of
+              depending on a shared hosted backend you do not control.
+            </p>
+          </article>
+
+          <article class="landing-card">
+            <h3>More room flexibility</h3>
+
+            <p>
+              Configure decks, enable round history, attach task information, and adapt the room to how your team
+              actually estimates instead of settling for a single rigid flow.
+            </p>
+          </article>
+
+          <article class="landing-card landing-card-emphasis">
+            <h3>Free and ad-free</h3>
+
+            <p>
+              There is no paywall, no usage tier, and no advertising layer trying to get between the team and the
+              estimation session.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="landing-section">
+        <div class="landing-section-head">
           <div class="kicker">How it works</div>
           <h2>From first visit to first vote in three steps.</h2>
         </div>
@@ -220,41 +256,60 @@
           </article>
         </div>
 
+        <div class="landing-section-head landing-section-head-compact">
+          <div class="kicker">Where data is stored</div>
+          <h2>Two storage layers work together: one local to the browser, one shared for the room.</h2>
+        </div>
+
         <div class="landing-grid landing-grid-two">
           <article class="landing-card">
-            <h3>What happens after setup</h3>
+            <h3>What stays in your browser</h3>
 
             <p>
-              Once the config is saved, it stays in your browser. User settings such as your profile name,
-              avatar choices, recent rooms, saved Firebase config, and UI preferences are stored locally in
-              your browser's localStorage.
+              Poker0matic uses browser localStorage for your generated user identity, display name, avatar
+              choices, recent rooms, saved Firebase configuration, and personal UI preferences. That local data
+              stays on the device and is reused when you come back.
             </p>
           </article>
 
           <article class="landing-card">
-            <h3>Important note</h3>
+            <h3>What stays in Firebase</h3>
 
             <p>
-              Firebase test rules expire, so teams should replace them with proper rules for longer-term use.
-              Poker0matic keeps the backend simple, but the database still belongs to the team using it.
+              Shared room state lives in Firebase Realtime Database: room settings, participants, votes, round
+              history, task details, and presence. That is what lets multiple people see the same estimation
+              session in real time.
             </p>
           </article>
         </div>
 
-        <article class="landing-card landing-card-code">
-          <div class="landing-card-code-head">
-            <div>
-              <h3>Realtime Database rules</h3>
+        <section class="landing-rules-section">
+          <div class="landing-rules-head">
+            <h3>Realtime Database rules</h3>
 
-              <p>
-                These example rules are updated for the current Poker0matic room schema and are a better starting
-                point than the default temporary snippet.
-              </p>
-            </div>
+            <button class="landing-rules-toggle" type="button" @click="rulesExpanded = !rulesExpanded">
+              <span>{{ rulesExpanded ? 'Hide rules' : 'Show rules' }}</span>
+              <v-icon :icon="rulesExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
+            </button>
           </div>
 
-          <pre class="landing-code-block"><code>{{ firebaseRules }}</code></pre>
-        </article>
+          <p class="landing-rules-copy">
+            These example rules are updated for the current Poker0matic room schema and are a better starting
+            point than the default temporary snippet.
+          </p>
+
+          <div v-if="rulesExpanded" class="landing-code-shell">
+            <v-btn
+              class="p0-btn p0-btn-ghost landing-copy-icon"
+              :icon="rulesCopied ? 'mdi-check' : 'mdi-content-copy'"
+              size="small"
+              variant="flat"
+              @click="copyFirebaseRules"
+            />
+
+            <pre class="landing-code-block"><code>{{ firebaseRules }}</code></pre>
+          </div>
+        </section>
 
         <div class="landing-actions">
           <v-btn
@@ -276,24 +331,19 @@
           <h2>Built with a lot of good tools, generous platforms, and one solid starter foundation.</h2>
         </div>
 
-        <div class="landing-grid landing-grid-two">
-          <article class="landing-card landing-card-emphasis">
-            <h3>Why this page exists</h3>
-
-            <p>
-              Poker0matic is a free project with no ads and no paid unlocks. The goal is to keep planning poker
-              fast, lightweight, and easy to run for teams that want control over their own backend.
-            </p>
-          </article>
-        </div>
-
         <article class="landing-card landing-card-featured">
-          <h3>Base project thanks</h3>
+          <div class="landing-feature-badge">
+            <v-icon icon="mdi-star-four-points" size="16" />
+            Special thanks
+          </div>
+
+          <h3>Special thanks to sky0matic</h3>
 
           <p>
-            Poker0matic is directly inspired by <strong>sky0matic's Poker0matic</strong>. That project helped
-            establish the original idea and deserves explicit credit as the upstream foundation this version grew
-            from.
+            This project started as a fork of <strong>sky0matic's Poker0matic</strong>. As the implementation
+            moved too far away from sky0matic's original direction for the project, it became its own project
+            instead. Special thanks to sky0matic for providing the initial foundation that made this version
+            possible.
           </p>
 
           <a
@@ -328,7 +378,7 @@
 
       <div class="landing-footer-links">
         <button class="landing-footer-link" type="button" @click="currentTab = 'pitch'">Overview</button>
-        <button class="landing-footer-link" type="button" @click="currentTab = 'firebase'">Firebase</button>
+        <button class="landing-footer-link" type="button" @click="currentTab = 'firebase'">How it works</button>
         <button class="landing-footer-link" type="button" @click="currentTab = 'about'">About</button>
         <router-link class="landing-footer-link landing-footer-link-accent" to="/app">Open app</router-link>
       </div>
@@ -337,15 +387,19 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref } from 'vue'
+  import { computed, onUnmounted, ref } from 'vue'
+  import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
 
   type LandingTabId = 'pitch' | 'firebase' | 'about'
 
+  const appStore = useAppStore()
   const configStore = useConfigStore()
   configStore.initializeConfig()
 
   const currentTab = ref<LandingTabId>('pitch')
+  const rulesExpanded = ref(false)
+  const rulesCopied = ref(false)
   const voteOptions = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕']
   const tabs: Array<{ id: LandingTabId, label: string }> = [
     { id: 'pitch', label: 'Overview' },
@@ -355,23 +409,28 @@
   const firebaseSteps = [
     {
       id: '01',
-      title: 'Create a Firebase project',
-      body: 'Open Firebase Console, create a project with any name you want, and skip extra services you do not need.',
+      title: 'Create your Firebase project',
+      body: 'Open Firebase Console, click "Create a project", give it any name you want, and finish the basic project setup. You can skip optional services that Poker0matic does not need.',
     },
     {
       id: '02',
       title: 'Enable Realtime Database',
-      body: 'Turn on Firebase Realtime Database, choose a region, and start with the database settings required to get rooms working.',
+      body: 'Inside the Firebase project, open Build > Realtime Database, create the database, choose the closest region for your team, and finish the database setup.',
     },
     {
       id: '03',
-      title: 'Register a web app',
-      body: 'Firebase gives you a config snippet with keys like apiKey, authDomain, databaseURL, projectId, and appId.',
+      title: 'Replace the default rules',
+      body: 'Open the Realtime Database Rules tab, replace the default temporary rules with the Poker0matic rules shown below, then publish them so the current room schema is accepted.',
     },
     {
       id: '04',
-      title: 'Paste the values into Poker0matic',
-      body: 'Open the configuration page or modal in Poker0matic, paste the values into the matching fields, and save.',
+      title: 'Register a web app and copy the config',
+      body: 'In Project settings, add a Web app and copy the generated Firebase values such as apiKey, authDomain, databaseURL, projectId, and appId from the config snippet.',
+    },
+    {
+      id: '05',
+      title: 'Paste the config into Poker0matic',
+      body: 'Open Poker0matic configuration, paste each Firebase value into the matching field, save, and the app will keep that setup in browser localStorage for future visits on that device.',
     },
   ]
   const firebaseRules = `{
@@ -481,6 +540,32 @@
   ]
 
   const primaryActionLabel = computed(() => configStore.configFound ? 'Open app' : 'Start planning')
+  let copiedResetTimer: number | null = null
+
+  async function copyFirebaseRules () {
+    try {
+      await navigator.clipboard.writeText(firebaseRules)
+      rulesCopied.value = true
+      appStore.showToast('Firebase rules copied.', 'success')
+
+      if (copiedResetTimer !== null) {
+        window.clearTimeout(copiedResetTimer)
+      }
+
+      copiedResetTimer = window.setTimeout(() => {
+        rulesCopied.value = false
+        copiedResetTimer = null
+      }, 2000)
+    } catch {
+      appStore.showToast('Could not copy the Firebase rules.', 'error')
+    }
+  }
+
+  onUnmounted(() => {
+    if (copiedResetTimer !== null) {
+      window.clearTimeout(copiedResetTimer)
+    }
+  })
 </script>
 
 <style scoped>
@@ -805,6 +890,10 @@
     margin: 0;
   }
 
+  .landing-section-head-compact {
+    margin-top: 6px;
+  }
+
   .landing-grid {
     display: grid;
     gap: 18px;
@@ -864,19 +953,78 @@
     padding: 28px;
   }
 
+  .landing-feature-badge {
+    align-items: center;
+    color: var(--accent);
+    display: inline-flex;
+    font-size: .8rem;
+    font-weight: 700;
+    gap: 8px;
+    letter-spacing: .08em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
   .landing-card-featured p strong {
     color: var(--text-1);
   }
 
-  .landing-card-code {
-    gap: 18px;
-    padding: 24px;
+  .landing-rules-section {
+    background: color-mix(in oklab, var(--bg-1), white 2%);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 22px;
   }
 
-  .landing-card-code-head {
-    align-items: flex-start;
+  .landing-rules-head {
+    align-items: center;
     display: flex;
+    gap: 16px;
     justify-content: space-between;
+  }
+
+  .landing-rules-head h3 {
+    font-size: .97rem;
+    letter-spacing: -.02em;
+    margin: 0;
+  }
+
+  .landing-rules-toggle {
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    display: inline-flex;
+    font-family: inherit;
+    font-size: .88rem;
+    font-weight: 700;
+    gap: 6px;
+    padding: 0;
+  }
+
+  .landing-rules-toggle:hover {
+    color: var(--text-1);
+  }
+
+  .landing-rules-copy {
+    color: var(--text-2);
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .landing-code-shell {
+    position: relative;
+  }
+
+  .landing-copy-icon {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    z-index: 1;
   }
 
   .landing-code-block {
@@ -890,6 +1038,7 @@
     margin: 0;
     overflow-x: auto;
     padding: 18px;
+    padding-top: 56px;
     white-space: pre;
   }
 
@@ -1048,5 +1197,6 @@
     .landing-vote-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+
   }
 </style>
