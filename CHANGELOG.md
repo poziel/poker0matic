@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Upcoming release notes are copied from merged pull request changelog sections.
 
+## [1.5.0] - 2026-05-15
+
+### Added
+- public landing page with overview, setup guidance, and project attribution content
+- dedicated `/app` lobby route and `/app/...` internal application route structure
+
+### Modified
+- root routing so shared entry links reach the correct internal app destinations
+- landing-page messaging to better explain Firebase setup, browser local storage, and project differentiators
+- app shell behavior so the public page does not show the in-app header
+
+
 ## [1.4.2] - 2026-05-15
 
 ### Added
@@ -153,7 +165,8 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/poziel/poker0matic/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/poziel/poker0matic/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/poziel/poker0matic/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/poziel/poker0matic/compare/v1.3.0...v1.4.0
