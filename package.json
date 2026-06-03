@@ -14,8 +14,8 @@
     "mcp": "npm run ruler:apply",
     "mcp:dry": "npm run ruler:apply:dry",
     "mcp:revert": "ruler revert",
-    "ruler:apply": "node scripts/ruler-apply.mjs",
-    "ruler:apply:dry": "node scripts/ruler-apply.mjs --dry-run"
+    "ruler": "node scripts/ruler-apply.mjs",
+    "ruler:dry": "node scripts/ruler-apply.mjs --dry-run"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.10",

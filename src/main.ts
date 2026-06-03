@@ -9,6 +9,7 @@ import { createApp } from 'vue'
 
 // Plugins
 import { registerPlugins } from '@/plugins'
+import { applyDocumentTheme } from '@/utils/themeBootstrap'
 
 // Components
 import App from './App.vue'
@@ -16,6 +17,8 @@ import App from './App.vue'
 // Styles
 import 'unfonts.css'
 import './styles/settings.scss'
+
+applyDocumentTheme()
 
 const app = createApp(App)
 
