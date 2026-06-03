@@ -22,6 +22,47 @@
         </button>
       </div>
 
+      <v-menu location="bottom end">
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            :aria-label="`Theme: ${currentThemeDefinition.label} ${currentThemeDefinition.mode}`"
+            class="landing-theme-trigger"
+            icon="mdi-palette-outline"
+            variant="text"
+          />
+        </template>
+
+        <div class="landing-theme-menu">
+          <div
+            v-for="group in themeGroups"
+            :key="group.mode"
+            class="landing-theme-group"
+          >
+            <div class="landing-theme-group-label">{{ group.label }}</div>
+
+            <div class="landing-theme-options">
+              <button
+                v-for="theme in group.themes"
+                :key="theme.id"
+                :aria-pressed="appStore.currentTheme === theme.id"
+                class="landing-theme-option"
+                :class="{ 'landing-theme-option-active': appStore.currentTheme === theme.id }"
+                type="button"
+                @click="setLandingTheme(theme.id)"
+              >
+                <span class="landing-theme-swatch" :style="{ background: theme.preview.bg }">
+                  <span class="landing-theme-dot" :style="{ background: theme.preview.accent }" />
+                </span>
+
+                <span>{{ theme.label }}</span>
+                <v-icon v-if="appStore.currentTheme === theme.id" icon="mdi-check" size="16" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </v-menu>
+
       <v-btn
         class="p0-btn p0-btn-primary landing-topbar-cta"
         prepend-icon="mdi-arrow-right"
@@ -390,6 +431,7 @@
   import { computed, onUnmounted, ref } from 'vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import { THEME_LOOKUP, type ThemeId, THEMES_BY_MODE } from '@/utils/themes'
 
   type LandingTabId = 'pitch' | 'firebase' | 'about'
 
@@ -405,6 +447,10 @@
     { id: 'pitch', label: 'Overview' },
     { id: 'firebase', label: 'How it works' },
     { id: 'about', label: 'About' },
+  ]
+  const themeGroups = [
+    { mode: 'dark', label: 'Dark', themes: THEMES_BY_MODE.dark },
+    { mode: 'light', label: 'Light', themes: THEMES_BY_MODE.light },
   ]
   const firebaseSteps = [
     {
@@ -540,7 +586,12 @@
   ]
 
   const primaryActionLabel = computed(() => configStore.configFound ? 'Open app' : 'Start planning')
+  const currentThemeDefinition = computed(() => THEME_LOOKUP[appStore.currentTheme])
   let copiedResetTimer: number | null = null
+
+  function setLandingTheme (theme: ThemeId) {
+    appStore.setTheme(theme)
+  }
 
   async function copyFirebaseRules () {
     try {
@@ -570,6 +621,12 @@
 
 <style scoped>
   .landing-page {
+    --landing-glass: color-mix(in oklab, var(--bg-1), transparent 14%);
+    --landing-surface: color-mix(in oklab, var(--bg-1), var(--bg-2) 24%);
+    --landing-surface-strong: color-mix(in oklab, var(--bg-1), var(--bg-3) 22%);
+    --landing-shadow: 0 30px 80px color-mix(in oklab, var(--bg-base), black 48%);
+    --landing-shadow-soft: 0 20px 60px color-mix(in oklab, var(--bg-base), black 30%);
+
     margin: 0 auto;
     max-width: 1240px;
     padding: 40px 24px 96px;
@@ -580,7 +637,7 @@
   .landing-topbar {
     align-items: center;
     backdrop-filter: blur(16px);
-    background: rgba(10, 12, 16, .58);
+    background: var(--landing-glass);
     border: 1px solid var(--border);
     border-radius: 22px;
     display: flex;
@@ -649,6 +706,96 @@
 
   .landing-topbar-cta {
     flex-shrink: 0;
+  }
+
+  .landing-theme-trigger {
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+
+  .landing-theme-trigger:hover {
+    color: var(--text-1);
+  }
+
+  .landing-theme-menu {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--landing-shadow-soft);
+    display: grid;
+    gap: 14px;
+    max-height: calc(100vh - 32px);
+    min-width: 280px;
+    overflow-y: auto;
+    padding: 14px;
+  }
+
+  .landing-theme-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .landing-theme-group-label {
+    color: var(--text-3);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .landing-theme-options {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-theme-option {
+    align-items: center;
+    appearance: none;
+    background: var(--bg-2);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    display: grid;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    gap: 6px;
+    justify-items: center;
+    min-height: 72px;
+    padding: 8px;
+    position: relative;
+    text-align: center;
+  }
+
+  .landing-theme-option:hover,
+  .landing-theme-option-active {
+    background: var(--bg-3);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+  }
+
+  .landing-theme-option .v-icon {
+    color: var(--accent);
+    position: absolute;
+    right: 7px;
+    top: 7px;
+  }
+
+  .landing-theme-swatch {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    display: grid;
+    height: 24px;
+    place-items: center;
+    width: 24px;
+  }
+
+  .landing-theme-dot {
+    border-radius: 999px;
+    height: 10px;
+    width: 10px;
   }
 
   .landing-brand-mark {
@@ -758,11 +905,11 @@
 
   .landing-mini-shell {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--bg-2), white 2%), var(--bg-1)),
+      linear-gradient(180deg, var(--landing-surface-strong), var(--landing-surface)),
       var(--bg-1);
     border: 1px solid var(--border);
     border-radius: 28px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, .34);
+    box-shadow: var(--landing-shadow);
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -819,7 +966,7 @@
     align-items: center;
     aspect-ratio: 3 / 4;
     background: linear-gradient(180deg, var(--card-face), var(--card-face-2));
-    border: 1px solid rgba(0, 0, 0, .08);
+    border: 1px solid color-mix(in oklab, var(--card-ink), transparent 88%);
     border-radius: 18px;
     color: var(--card-ink);
     display: flex;
@@ -908,7 +1055,7 @@
   }
 
   .landing-card {
-    background: color-mix(in oklab, var(--bg-1), white 2%);
+    background: var(--landing-surface);
     border: 1px solid var(--border);
     border-radius: 22px;
     min-height: 100%;
@@ -949,7 +1096,7 @@
   .landing-card-featured {
     background: linear-gradient(180deg, color-mix(in oklab, var(--accent-soft), var(--bg-1) 18%), var(--bg-1));
     border-color: color-mix(in oklab, var(--accent), var(--border) 45%);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
+    box-shadow: var(--landing-shadow-soft);
     padding: 28px;
   }
 
@@ -970,7 +1117,7 @@
   }
 
   .landing-rules-section {
-    background: color-mix(in oklab, var(--bg-1), white 2%);
+    background: var(--landing-surface);
     border: 1px solid var(--border);
     border-radius: 22px;
     display: flex;
@@ -1028,10 +1175,10 @@
   }
 
   .landing-code-block {
-    background: rgba(4, 7, 10, .72);
-    border: 1px solid color-mix(in oklab, var(--border), black 12%);
+    background: var(--bg-2);
+    border: 1px solid var(--border-strong);
     border-radius: 18px;
-    color: #d6edf2;
+    color: var(--text-1);
     font-family: var(--font-mono);
     font-size: .82rem;
     line-height: 1.6;
@@ -1049,7 +1196,7 @@
   }
 
   .landing-step {
-    background: var(--bg-1);
+    background: var(--landing-surface);
     border: 1px solid var(--border);
     border-radius: 22px;
     padding: 22px;
@@ -1120,6 +1267,14 @@
     color: var(--accent);
   }
 
+  :global([data-theme$="-light"]) .landing-page {
+    --landing-glass: color-mix(in oklab, var(--bg-1), transparent 8%);
+    --landing-surface: color-mix(in oklab, var(--bg-1), var(--bg-2) 34%);
+    --landing-surface-strong: color-mix(in oklab, var(--bg-1), var(--accent-soft) 42%);
+    --landing-shadow: 0 24px 70px color-mix(in oklab, var(--border-strong), transparent 48%);
+    --landing-shadow-soft: 0 18px 48px color-mix(in oklab, var(--border-strong), transparent 58%);
+  }
+
   @media (max-width: 1080px) {
     .landing-hero,
     .landing-grid-three,
@@ -1146,6 +1301,12 @@
       width: 100%;
     }
 
+    .landing-theme-trigger {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+    }
+
     .landing-footer {
       align-items: flex-start;
       flex-direction: column;
@@ -1163,6 +1324,10 @@
 
     .landing-nav {
       flex-wrap: wrap;
+    }
+
+    .landing-theme-menu {
+      min-width: min(320px, calc(100vw - 32px));
     }
 
     .landing-hero {
@@ -1192,6 +1357,10 @@
     .landing-cta-secondary,
     .landing-topbar-cta {
       width: 100%;
+    }
+
+    .landing-theme-options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .landing-vote-grid {
