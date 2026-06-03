@@ -81,8 +81,8 @@
         <div
           class="pname"
           :class="{
+            voted: player.vote != null,
             you: player.userId === currentUserId,
-            connected: player.isConnected,
           }"
         >
           <span>{{ player.name }}</span>
