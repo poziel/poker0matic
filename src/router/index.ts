@@ -85,6 +85,7 @@ const router = createRouter({
       component: AppLobby,
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
+        requiresUserName: true,
         title: 'Poker0matic App | Create or join a planning room',
         description: 'Create a new planning poker room, join an existing session, or connect your Firebase project to start estimating with Poker0matic.',
       },
@@ -94,6 +95,7 @@ const router = createRouter({
       component: () => import('@/pages/room.vue'),
       beforeEnter: requireConfig,
       meta: {
+        requiresUserName: true,
         title: 'Poker0matic Room',
         description: 'Collaborative planning poker room for live scrum estimation, anonymous voting, and shared reveal.',
       },
@@ -103,6 +105,7 @@ const router = createRouter({
       component: () => import('@/pages/create.vue'),
       beforeEnter: requireConfig,
       meta: {
+        requiresUserName: true,
         title: 'Create a Room | Poker0matic',
         description: 'Set up a new Poker0matic planning poker room and configure the estimation deck for your team.',
       },

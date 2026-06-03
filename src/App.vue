@@ -108,13 +108,14 @@
 
   const isInRoom = computed(() => route.path.startsWith('/app/room/'))
   const isPublicRoute = computed(() => route.meta.public === true)
+  const requiresUserName = computed(() => route.meta.requiresUserName === true)
 
   const nameSetupOpen = ref(false)
   const setupName = ref('')
   let unregisterShortcuts: (() => void) | null = null
 
   function syncNameSetupPrompt () {
-    if (isPublicRoute.value) {
+    if (!requiresUserName.value) {
       nameSetupOpen.value = false
       return
     }
