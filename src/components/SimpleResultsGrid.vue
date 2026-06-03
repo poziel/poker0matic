@@ -13,6 +13,7 @@
     avatarStyle?: string
     avatarSeed?: string
     avatarBg?: string
+    isConnected?: boolean
   }
 
   const props = defineProps<{
@@ -42,7 +43,11 @@
       v-for="player in sortedPlayers"
       :key="player.userId"
       class="rg-row"
-      :class="{ 'rg-row-you': player.userId === currentUserId, 'rg-row-leader': player.userId === leaderUserId }"
+      :class="{
+        'rg-row-you': player.userId === currentUserId,
+        'rg-row-leader': player.userId === leaderUserId,
+        'rg-row-connected': player.isConnected,
+      }"
       @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
     >
       <div class="rg-name-cell">

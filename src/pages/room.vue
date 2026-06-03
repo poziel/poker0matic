@@ -71,7 +71,7 @@
                   v-for="player in sortedRoomUsers"
                   :key="player.userId"
                   class="pdot"
-                  :class="{ done: player.vote != null }"
+                  :class="{ done: player.vote != null, connected: player.isConnected }"
                   :title="player.name"
                 />
               </span>
@@ -568,7 +568,11 @@
 
   const sortedRoomUsers = computed(() =>
     Object.entries(activeRoundParticipants.value)
-      .map(([userId, user]) => ({ userId, ...user }))
+      .map(([userId, user]) => ({
+        userId,
+        ...user,
+        isConnected: Object.hasOwn(roomUsers.value, userId),
+      }))
       .toSorted((a, b) => a.joinedAt - b.joinedAt),
   )
 

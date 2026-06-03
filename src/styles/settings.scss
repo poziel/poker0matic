@@ -2,6 +2,7 @@
 :root {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
+  --radius-control: 9px;
 
   /* midnight (default) */
   --bg-base: #0a0c10;
@@ -833,14 +834,20 @@ button { font-family: inherit; }
 }
 .pdot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--bg-3);
+  background: transparent;
   border: 1px solid var(--border-strong);
   transition: all .2s ease;
 }
 .pdot.done {
+  background: var(--text-4);
+  border-color: var(--text-4);
+}
+.pdot.connected {
+  border-color: var(--accent);
+}
+.pdot.connected.done {
   background: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(var(--accent-glow), .6);
 }
 
 /* --- player table ------------------------------------------------------ */
@@ -916,13 +923,12 @@ button { font-family: inherit; }
 .player .pname {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-1);
+  color: var(--text-3);
   letter-spacing: 0;
-  padding: 4px 10px 4px 8px;
-  border-radius: 999px;
+  padding: 4px 10px;
+  border-radius: var(--radius-control);
   background: var(--bg-2);
   border: 1px solid var(--border);
   transition: all .25s ease;
@@ -931,42 +937,11 @@ button { font-family: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/*
- * Name pill — 4 states, two accent-blue shades:
- *   others not voted  → neutral
- *   others voted      → mid blue
- *   you not voted     → muted accent
- *   you voted         → full accent
- */
-.player .pname.voted {
-  /* others voted — mid blue */
+.player .pname.connected {
   background: color-mix(in oklab, var(--accent), transparent 88%);
-  border-color: color-mix(in oklab, var(--accent), transparent 65%);
-  color: color-mix(in oklab, var(--accent), var(--text-1) 40%);
-}
-.player .pname.you:not(.voted) {
-  /* you, not yet voted — accent, full opacity */
-  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  border-color: color-mix(in oklab, var(--accent), transparent 58%);
   color: var(--accent);
 }
-.player .pname.voted.you {
-  /* you voted — full accent */
-  background: var(--accent-soft);
-  border-color: color-mix(in oklab, var(--accent), transparent 40%);
-  color: var(--accent);
-  opacity: 1;
-}
-.check-mini {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  /* others voted — mid blue dot */
-  background: color-mix(in oklab, var(--accent), transparent 45%);
-  color: #fff;
-  display: grid; place-items: center;
-  flex-shrink: 0;
-}
-/* you voted — full accent dot */
-.player .pname.you .check-mini { background: var(--accent); }
 
 /* avatar frame */
 .avatar {
@@ -982,32 +957,9 @@ button { font-family: inherit; }
 }
 .avatar > svg { display: block; }
 
-/* avatar rings — 4 states */
-.player:not(.is-you) .avatar.has-voted {
-  /* others voted — mid blue ring */
-  border-color: color-mix(in oklab, var(--accent), transparent 50%);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 86%);
-}
-.player.is-you .avatar {
-  /* you, any state — stronger ring + outer bloom */
-  border-color: color-mix(in oklab, var(--accent), transparent 30%);
-  box-shadow:
-    0 0 0 3px color-mix(in oklab, var(--accent), transparent 78%),
-    0 0 16px rgba(var(--accent-glow), .22);
-}
-.player.is-you .avatar.has-voted {
-  /* you voted — full accent ring + brighter bloom */
-  border-color: var(--accent);
-  box-shadow:
-    0 0 0 4px color-mix(in oklab, var(--accent), transparent 70%),
-    0 0 22px rgba(var(--accent-glow), .35);
-}
-
 .player.is-you {
   position: relative;
-  /* subtle glowing background tint — makes the slot clearly "yours" */
   background: color-mix(in oklab, var(--accent), transparent 94%);
-  box-shadow: 0 0 24px rgba(var(--accent-glow), .10);
 }
 
 /* --- shared poker card primitives ------------------------------------- */
@@ -1716,9 +1668,10 @@ button { font-family: inherit; }
   grid-template-columns: 1fr auto;
   align-items: center;
   padding: 10px 16px;
+  border-left: 3px solid transparent;
   border-bottom: 1px solid var(--border);
   gap: 16px;
-  transition: background .15s ease;
+  transition: background .15s ease, border-color .15s ease;
 }
 .rg-row:last-child { border-bottom: none; }
 .rg-row:hover { background: var(--bg-2); }
@@ -1730,6 +1683,9 @@ button { font-family: inherit; }
 }
 .rg-row-you:hover {
   background: color-mix(in oklab, var(--accent), transparent 88%);
+}
+.rg-row-connected {
+  border-left-color: var(--accent);
 }
 .rg-name-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .rg-name {
@@ -1830,7 +1786,7 @@ button { font-family: inherit; }
   font-weight: 500;
   font-size: 13px;
   padding: 9px 16px;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px;
   transition: all .15s ease;
