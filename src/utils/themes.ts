@@ -351,7 +351,9 @@ export const THEME_DEFINITIONS = [
 
 export type ThemeId = typeof THEME_DEFINITIONS[number]['id']
 
-export const DEFAULT_THEME_ID: ThemeId = 'midnight'
+export const SYSTEM_DARK_THEME_ID: ThemeId = 'midnight'
+export const SYSTEM_LIGHT_THEME_ID: ThemeId = 'midnight-light'
+export const DEFAULT_THEME_ID: ThemeId = SYSTEM_DARK_THEME_ID
 
 export const THEME_IDS = THEME_DEFINITIONS.map(theme => theme.id) as ThemeId[]
 

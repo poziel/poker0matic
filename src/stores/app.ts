@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import vuetify from '@/plugins/vuetify'
-import { DEFAULT_THEME_ID, THEME_IDS, type ThemeId } from '@/utils/themes'
-
-const THEME_KEY = 'poker_theme'
+import { applyDocumentTheme, getInitialTheme, THEME_STORAGE_KEY } from '@/utils/themeBootstrap'
+import { THEME_IDS, type ThemeId } from '@/utils/themes'
 
 export const useAppStore = defineStore('app', () => {
   const roomName = ref('')
@@ -13,8 +12,7 @@ export const useAppStore = defineStore('app', () => {
   const roomHasActiveVote = ref(false)
   const configModalOpen = ref(false)
 
-  const saved = localStorage.getItem(THEME_KEY) as ThemeId | null
-  const initial: ThemeId = saved && THEME_IDS.includes(saved) ? saved : DEFAULT_THEME_ID
+  const initial = getInitialTheme()
   const currentTheme = ref<ThemeId>(initial)
   applyTheme(initial)
 
@@ -57,14 +55,14 @@ export const useAppStore = defineStore('app', () => {
 
   // -- theme --------------------------------------------------------------
   function applyTheme (theme: ThemeId) {
-    document.documentElement.dataset.theme = theme
+    applyDocumentTheme(theme)
     vuetify.theme.global.name.value = theme
   }
 
   function setTheme (theme: ThemeId) {
     currentTheme.value = theme
     applyTheme(theme)
-    localStorage.setItem(THEME_KEY, theme)
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
   }
 
   /** @deprecated use setTheme directly */

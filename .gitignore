@@ -43,16 +43,15 @@ Thumbs.db
 # Claude Code local settings (user-specific, not project config)
 .claude/settings.local.json
 
-
 # START Ruler Generated Files
+/.claude/agents
+/.claude/skills
+/.codex/agents
 /.codex/config.toml
 /.codex/config.toml.bak
+/.codex/skills
 /.mcp.json
 /.mcp.json.bak
-/.trae/rules/project_rules.md
-/.trae/rules/project_rules.md.bak
-/.vscode/mcp.json
-/.vscode/mcp.json.bak
 /AGENTS.md
 /AGENTS.md.bak
 /CLAUDE.md
