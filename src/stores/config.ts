@@ -156,7 +156,7 @@ export const useConfigStore = defineStore('config', () => {
 
   function normalizeBase64Config (base64: string): string {
     const withoutWhitespace = base64.trim().replace(/\s/g, '')
-    const standardBase64 = withoutWhitespace.replaceAll('-', '+').replaceAll('_', '/')
+    const standardBase64 = withoutWhitespace.replace(/-/g, '+').replace(/_/g, '/')
     const paddingLength = (4 - (standardBase64.length % 4)) % 4
     return `${standardBase64}${'='.repeat(paddingLength)}`
   }

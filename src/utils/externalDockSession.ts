@@ -20,13 +20,13 @@ export interface ExternalDockSession {
 }
 
 export function createExternalDockSessionToken (): string {
-  return crypto.randomUUID().replaceAll('-', '')
+  return crypto.randomUUID().replace(/-/g, '')
 }
 
 export function encodeFirebaseConfig (config: FirebaseConfig): string {
   return btoa(JSON.stringify(config))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
     .replace(/=+$/, '')
 }
 
