@@ -340,6 +340,19 @@
         </template>
       </p>
 
+      <label class="phone-dock-url-field">
+        <span>QR app URL</span>
+
+        <input
+          v-model="phoneDockAppUrl"
+          :disabled="phoneDockConnected"
+          placeholder="http://192.168.50.82:3000/poker0matic/"
+          type="text"
+          @blur="refreshPhoneDockQr"
+          @keydown.enter.prevent="refreshPhoneDockQr"
+        >
+      </label>
+
       <div class="phone-dock-qr-shell" :class="{ connected: phoneDockConnected }">
         <img
           v-if="phoneDockQrImage"
@@ -391,6 +404,7 @@
     createExternalDockSessionToken,
     EXTERNAL_DOCK_SESSION_TTL_MS,
     isExternalDockSessionExpired,
+    normalizeExternalDockAppBaseUrl,
   } from '@/utils/externalDockSession'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
 
@@ -399,6 +413,7 @@
   const appStore = useAppStore()
   const configStore = useConfigStore()
   const roomId = route.params.roomId as string
+  const PHONE_DOCK_APP_URL_KEY = 'poker_phone_dock_app_url'
 
   type ConsensusState = 'consensus' | 'close' | 'split'
   type TaskFlowMode = 'current' | 'next'
@@ -466,6 +481,7 @@
   const phoneDockToken = ref<string | null>(null)
   const phoneDockConnected = ref(false)
   const phoneDockActive = ref(false)
+  const phoneDockAppUrl = ref(localStorage.getItem(PHONE_DOCK_APP_URL_KEY) || `${window.location.origin}${import.meta.env.BASE_URL}`)
   const playerMenu = ref<{ userId: string, name: string, x: number, y: number } | null>(null)
   const taskInfoModalOpen = ref(false)
   const pendingTaskFlow = ref<TaskFlowMode | null>(null)
@@ -1301,20 +1317,32 @@
       phoneDockToken.value = token
       phoneDockConnected.value = false
       phoneDockDialogOpen.value = true
-      phoneDockQrImage.value = await QRCode.toDataURL(
-        buildExternalDockUrl(roomId, firebaseConfig.value, token),
-        {
-          errorCorrectionLevel: 'L',
-          margin: 1,
-          width: 320,
-        },
-      )
+      await refreshPhoneDockQr()
 
       watchPhoneDockSession(token)
     } catch (error) {
       console.error(error)
       appStore.showToast('Could not create the phone voting dock.', 'error')
       await cleanupPhoneDockSession()
+    }
+  }
+
+  async function refreshPhoneDockQr () {
+    if (!firebaseConfig.value || !phoneDockToken.value) return
+
+    try {
+      phoneDockAppUrl.value = normalizeExternalDockAppBaseUrl(phoneDockAppUrl.value)
+      localStorage.setItem(PHONE_DOCK_APP_URL_KEY, phoneDockAppUrl.value)
+      phoneDockQrImage.value = await QRCode.toDataURL(
+        buildExternalDockUrl(roomId, firebaseConfig.value, phoneDockToken.value, phoneDockAppUrl.value),
+        {
+          errorCorrectionLevel: 'L',
+          margin: 1,
+          width: 320,
+        },
+      )
+    } catch {
+      appStore.showToast('Enter a valid URL for the phone QR code.', 'error')
     }
   }
 
