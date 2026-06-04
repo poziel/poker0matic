@@ -525,7 +525,12 @@
             "vote": { ".validate": "newData.val() === null || newData.isString() || newData.isNumber()" },
             "avatarStyle": { ".validate": "newData.val() === null || newData.isString()" },
             "avatarSeed": { ".validate": "newData.val() === null || newData.isString()" },
-            "avatarBg": { ".validate": "newData.val() === null || newData.isString()" }
+            "avatarBg": { ".validate": "newData.val() === null || newData.isString()" },
+            "avatarSource": { ".validate": "newData.val() === null || (newData.isString() && (newData.val() === 'dicebear' || newData.val() === 'custom'))" },
+            "customAvatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
+            "customAvatarCrop": {
+              ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
+            }
           }
         },
 
@@ -549,7 +554,15 @@
             },
             "voteSnapshots": {
               "$vote_user_id": {
-                ".validate": "newData.hasChildren(['name', 'vote']) && newData.child('name').isString() && (newData.child('vote').isString() || newData.child('vote').isNumber())"
+                ".validate": "newData.hasChildren(['name', 'vote']) && newData.child('name').isString() && (newData.child('vote').isString() || newData.child('vote').isNumber())",
+                "avatarStyle": { ".validate": "newData.val() === null || newData.isString()" },
+                "avatarSeed": { ".validate": "newData.val() === null || newData.isString()" },
+                "avatarBg": { ".validate": "newData.val() === null || newData.isString()" },
+                "avatarSource": { ".validate": "newData.val() === null || (newData.isString() && (newData.val() === 'dicebear' || newData.val() === 'custom'))" },
+                "customAvatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
+                "customAvatarCrop": {
+                  ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
+                }
               }
             }
           }
@@ -564,6 +577,11 @@
             "avatarStyle": { ".validate": "newData.val() === null || newData.isString()" },
             "avatarSeed": { ".validate": "newData.val() === null || newData.isString()" },
             "avatarBg": { ".validate": "newData.val() === null || newData.isString()" },
+            "avatarSource": { ".validate": "newData.val() === null || (newData.isString() && (newData.val() === 'dicebear' || newData.val() === 'custom'))" },
+            "customAvatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
+            "customAvatarCrop": {
+              ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
+            },
             "createdAt": { ".validate": "newData.isNumber()" },
             "expiresAt": { ".validate": "newData.isNumber()" },
             "claimedAt": { ".validate": "newData.val() === null || newData.isNumber()" },

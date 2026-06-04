@@ -1,5 +1,12 @@
 export type VoteValue = number | string
 
+export interface AvatarCrop {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export interface TaskInfo {
   title: string
   url?: string | null
@@ -67,11 +74,20 @@ export interface RoomUser {
   avatarStyle?: string
   avatarSeed?: string
   avatarBg?: string
+  avatarSource?: 'dicebear' | 'custom'
+  customAvatarUrl?: string | null
+  customAvatarCrop?: AvatarCrop | null
 }
 
 export interface RoomHistoryVoteSnapshot {
   name: string
   vote: VoteValue
+  avatarStyle?: string
+  avatarSeed?: string
+  avatarBg?: string
+  avatarSource?: 'dicebear' | 'custom'
+  customAvatarUrl?: string | null
+  customAvatarCrop?: AvatarCrop | null
 }
 
 export interface RoomHistoryEntry {

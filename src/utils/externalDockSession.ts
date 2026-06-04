@@ -13,6 +13,14 @@ export interface ExternalDockSession {
   avatarStyle?: string
   avatarSeed?: string
   avatarBg?: string
+  avatarSource?: 'dicebear' | 'custom'
+  customAvatarUrl?: string | null
+  customAvatarCrop?: {
+    left: number
+    top: number
+    width: number
+    height: number
+  } | null
   createdAt: number
   expiresAt: number
   claimedAt?: number | null

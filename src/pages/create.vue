@@ -85,6 +85,16 @@
 
     const roomRef = dbRef(db, `rooms/${newRoomId}`)
     const joinedAt = Date.now()
+    const creatorProfile = {
+      name: userName,
+      joinedAt,
+      avatarStyle: configStore.avatarStyle,
+      avatarSeed: configStore.avatarSeed || userName,
+      avatarBg: configStore.avatarBg,
+      avatarSource: configStore.avatarSource,
+      customAvatarUrl: configStore.customAvatarUrl || null,
+      customAvatarCrop: configStore.customAvatarCrop,
+    }
     const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(timerDurationSeconds)
     const timerSettings = {
       timerEnabled,
@@ -103,10 +113,7 @@
       leaderUserId: leaderModeEnabled ? userId : null,
       currentTask: null,
       roundParticipants: {
-        [userId]: {
-          name: userName,
-          joinedAt,
-        },
+        [userId]: creatorProfile,
       },
       roundEditLock: null,
       roundNumber: 1,
@@ -129,10 +136,7 @@
     }).catch(console.error)
 
     const userRef = dbRef(db, `rooms/${newRoomId}/users/${userId}`)
-    set(userRef, {
-      name: userName,
-      joinedAt,
-    }).catch(console.error)
+    set(userRef, creatorProfile).catch(console.error)
 
     onDisconnect(userRef).remove()
 

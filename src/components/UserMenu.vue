@@ -5,7 +5,10 @@
         <PlayerAvatar
           :avatar-bg="configStore.avatarBg"
           :avatar-seed="configStore.avatarSeed || displayName"
+          :avatar-source="configStore.avatarSource"
           :avatar-style="configStore.avatarStyle"
+          :custom-avatar-crop="configStore.customAvatarCrop"
+          :custom-avatar-url="configStore.customAvatarUrl"
           :size="32"
           square
         />

@@ -968,20 +968,33 @@
     }
   })
 
-  // Sync avatar style/seed/bg to Firebase whenever the user changes them
+  // Sync avatar settings to Firebase whenever the user changes them.
   watch(
-    [() => configStore.avatarStyle, () => configStore.avatarSeed, () => configStore.avatarBg],
+    [
+      () => configStore.avatarStyle,
+      () => configStore.avatarSeed,
+      () => configStore.avatarBg,
+      () => configStore.avatarSource,
+      () => configStore.customAvatarUrl,
+      () => configStore.customAvatarCrop,
+    ],
     () => {
       if (!db || !configStore.userId || !currentRoom.value) return
       const updates: Record<string, unknown> = {
         [`users/${configStore.userId}/avatarStyle`]: configStore.avatarStyle,
         [`users/${configStore.userId}/avatarSeed`]: configStore.avatarSeed || userName.value || 'Guest',
         [`users/${configStore.userId}/avatarBg`]: configStore.avatarBg,
+        [`users/${configStore.userId}/avatarSource`]: configStore.avatarSource,
+        [`users/${configStore.userId}/customAvatarUrl`]: configStore.customAvatarUrl || null,
+        [`users/${configStore.userId}/customAvatarCrop`]: configStore.customAvatarCrop,
       }
       if (activeRoundParticipants.value[configStore.userId]) {
         updates[`roundParticipants/${configStore.userId}/avatarStyle`] = configStore.avatarStyle
         updates[`roundParticipants/${configStore.userId}/avatarSeed`] = configStore.avatarSeed || userName.value || 'Guest'
         updates[`roundParticipants/${configStore.userId}/avatarBg`] = configStore.avatarBg
+        updates[`roundParticipants/${configStore.userId}/avatarSource`] = configStore.avatarSource
+        updates[`roundParticipants/${configStore.userId}/customAvatarUrl`] = configStore.customAvatarUrl || null
+        updates[`roundParticipants/${configStore.userId}/customAvatarCrop`] = configStore.customAvatarCrop
       }
       update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     },
@@ -1325,6 +1338,12 @@
       snapshots[userId] = {
         name: user.name,
         vote: user.vote,
+        avatarStyle: user.avatarStyle,
+        avatarSeed: user.avatarSeed,
+        avatarBg: user.avatarBg,
+        avatarSource: user.avatarSource,
+        customAvatarUrl: user.customAvatarUrl,
+        customAvatarCrop: user.customAvatarCrop,
       }
     }
     return snapshots
@@ -1428,6 +1447,9 @@
         avatarStyle: user.avatarStyle,
         avatarSeed: user.avatarSeed,
         avatarBg: user.avatarBg,
+        avatarSource: user.avatarSource,
+        customAvatarUrl: user.customAvatarUrl,
+        customAvatarCrop: user.customAvatarCrop,
       }
     }
     return participants
@@ -1446,8 +1468,17 @@
     if (!votes) return participants
 
     for (const [userId, snapshot] of Object.entries(votes)) {
-      if (!participants[userId]) continue
-      participants[userId].vote = snapshot.vote
+      participants[userId] = {
+        ...(participants[userId] ?? { name: snapshot.name, joinedAt: 0 }),
+        name: snapshot.name,
+        vote: snapshot.vote,
+        avatarStyle: snapshot.avatarStyle ?? participants[userId]?.avatarStyle,
+        avatarSeed: snapshot.avatarSeed ?? participants[userId]?.avatarSeed,
+        avatarBg: snapshot.avatarBg ?? participants[userId]?.avatarBg,
+        avatarSource: snapshot.avatarSource ?? participants[userId]?.avatarSource,
+        customAvatarUrl: snapshot.customAvatarUrl ?? participants[userId]?.customAvatarUrl,
+        customAvatarCrop: snapshot.customAvatarCrop ?? participants[userId]?.customAvatarCrop,
+      }
     }
 
     return participants
@@ -1506,6 +1537,9 @@
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
       avatarBg: configStore.avatarBg,
+      avatarSource: configStore.avatarSource,
+      customAvatarUrl: configStore.customAvatarUrl || null,
+      customAvatarCrop: configStore.customAvatarCrop,
     }
     const updates: Record<string, unknown> = {
       [`users/${configStore.userId}`]: userRecord,
@@ -1516,6 +1550,9 @@
           avatarStyle: userRecord.avatarStyle,
           avatarSeed: userRecord.avatarSeed,
           avatarBg: userRecord.avatarBg,
+          avatarSource: userRecord.avatarSource,
+          customAvatarUrl: userRecord.customAvatarUrl,
+          customAvatarCrop: userRecord.customAvatarCrop,
         }
         : userRecord,
     }
@@ -1581,6 +1618,9 @@
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
       avatarBg: configStore.avatarBg,
+      avatarSource: configStore.avatarSource,
+      customAvatarUrl: configStore.customAvatarUrl || null,
+      customAvatarCrop: configStore.customAvatarCrop,
       createdAt: now,
       expiresAt: now + EXTERNAL_DOCK_SESSION_TTL_MS,
       claimedAt: null,

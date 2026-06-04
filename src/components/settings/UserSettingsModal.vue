@@ -11,7 +11,7 @@
     <template #footer>
       <v-btn class="p0-btn p0-btn-ghost" variant="flat" @click="model = false">Cancel</v-btn>
 
-      <v-btn class="p0-btn p0-btn-primary" :disabled="!settingsDraft.userName.trim()" variant="flat" @click="saveSettings">
+      <v-btn class="p0-btn p0-btn-primary" :disabled="saveDisabled" variant="flat" @click="saveSettings">
         Save profile
       </v-btn>
     </template>
@@ -47,6 +47,16 @@
   const activeComponent = computed(() => {
     return profileSections.find(section => section.id === activeSection.value)?.component ?? ThemeSettings
   })
+  const saveDisabled = computed(() => (
+    !settingsDraft.value.userName.trim()
+    || (
+      settingsDraft.value.avatarSource === 'custom'
+      && (
+        settingsDraft.value.customAvatarModerationStatus === 'checking'
+        || settingsDraft.value.customAvatarModerationStatus === 'blocked'
+      )
+    )
+  ))
 
   watch(model, open => {
     if (open) {
@@ -57,9 +67,13 @@
   function createSettingsDraft (): SettingsDraft {
     return {
       theme: appStore.currentTheme,
+      avatarSource: configStore.avatarSource,
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed,
       avatarBg: configStore.avatarBg,
+      customAvatarUrl: configStore.customAvatarUrl,
+      customAvatarCrop: configStore.customAvatarCrop,
+      customAvatarModerationStatus: 'idle',
       userName: configStore.userName,
       viewMode: configStore.viewMode,
     }
@@ -73,6 +87,9 @@
     configStore.setAvatarStyle(settingsDraft.value.avatarStyle)
     configStore.setAvatarSeed(settingsDraft.value.avatarSeed)
     configStore.setAvatarBg(settingsDraft.value.avatarBg)
+    configStore.setAvatarSource(settingsDraft.value.avatarSource)
+    configStore.setCustomAvatarUrl(settingsDraft.value.customAvatarUrl)
+    configStore.setCustomAvatarCrop(settingsDraft.value.customAvatarCrop)
     configStore.setUserName(trimmedName)
     configStore.setViewMode(settingsDraft.value.viewMode)
     model.value = false

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import type { AvatarCrop } from '@/utils/avatarStyles'
   import { computed } from 'vue'
   import { DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
   import PlayerAvatar from './PlayerAvatar.vue'
@@ -13,6 +14,9 @@
     avatarStyle?: string
     avatarSeed?: string
     avatarBg?: string
+    avatarSource?: 'dicebear' | 'custom'
+    customAvatarUrl?: string | null
+    customAvatarCrop?: AvatarCrop | null
     isConnected?: boolean
   }
 
@@ -55,7 +59,10 @@
           <PlayerAvatar
             :avatar-bg="player.avatarBg"
             :avatar-seed="player.avatarSeed || player.name"
+            :avatar-source="player.avatarSource"
             :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
+            :custom-avatar-crop="player.customAvatarCrop"
+            :custom-avatar-url="player.customAvatarUrl"
             :size="28"
           />
         </span>
