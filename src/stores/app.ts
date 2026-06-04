@@ -9,7 +9,7 @@ export const useAppStore = defineStore('app', () => {
   const playerCount = ref(0)
   const currentRoomId = ref<string | null>(null)
   const roomPresenceActive = ref(false)
-  const roomHasActiveVote = ref(false)
+  const roomHasRoundParticipant = ref(false)
   const configModalOpen = ref(false)
 
   const initial = getInitialTheme()
@@ -40,13 +40,13 @@ export const useAppStore = defineStore('app', () => {
     name: string,
     count: number,
     presenceActive = false,
-    hasActiveVote = false,
+    hasRoundParticipant = false,
   ) {
     currentRoomId.value = id
     roomName.value = name
     playerCount.value = count
     roomPresenceActive.value = presenceActive
-    roomHasActiveVote.value = hasActiveVote
+    roomHasRoundParticipant.value = hasRoundParticipant
   }
 
   function setConfigModalOpen (open: boolean) {
@@ -72,7 +72,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   return {
-    roomName, playerCount, currentRoomId, roomPresenceActive, roomHasActiveVote,
+    roomName, playerCount, currentRoomId, roomPresenceActive, roomHasRoundParticipant,
     configModalOpen, setConfigModalOpen,
     currentTheme, THEMES: THEME_IDS,
     toastMessage, toastType, toastVisible,

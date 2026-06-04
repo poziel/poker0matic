@@ -71,7 +71,7 @@
                   v-for="player in sortedRoomUsers"
                   :key="player.userId"
                   class="pdot"
-                  :class="{ done: player.vote != null }"
+                  :class="{ done: player.vote != null, connected: player.isConnected }"
                   :title="player.name"
                 />
               </span>
@@ -348,6 +348,9 @@
   type NormalizedRoomHistoryEntry = RoomHistoryEntry & {
     legacyVotesByName?: Record<string, string>
   }
+  type WritableRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
+    votes?: Record<string, string>
+  }
   type LegacyRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
     votes?: unknown
     voteSnapshots?: unknown
@@ -558,8 +561,8 @@
   const isCurrentUserConnected = computed(() =>
     !!configStore.userId && !!roomUsers.value[configStore.userId],
   )
-  const hasCurrentUserActiveVote = computed(() =>
-    !!configStore.userId && activeRoundParticipants.value[configStore.userId]?.vote != null,
+  const hasCurrentUserRoundParticipant = computed(() =>
+    !!configStore.userId && Object.hasOwn(activeRoundParticipants.value, configStore.userId),
   )
   const selectedVote = computed(() => {
     if (!configStore.userId || !activeRoundParticipants.value[configStore.userId]) return null
@@ -568,7 +571,11 @@
 
   const sortedRoomUsers = computed(() =>
     Object.entries(activeRoundParticipants.value)
-      .map(([userId, user]) => ({ userId, ...user }))
+      .map(([userId, user]) => ({
+        userId,
+        ...user,
+        isConnected: Object.hasOwn(roomUsers.value, userId),
+      }))
       .toSorted((a, b) => a.joinedAt - b.joinedAt),
   )
 
@@ -971,23 +978,7 @@
     return Object.values(value).every(vote => typeof vote === 'string')
   }
 
-  function migrateHistoryEntryVotes (historyId: string, entry: LegacyRoomHistoryEntry) {
-    if (!db || !isVoteSnapshotRecord(entry.voteSnapshots)) return
-
-    const updates: Record<string, unknown> = {
-      voteSnapshots: null,
-    }
-
-    if (!isVoteSnapshotRecord(entry.votes)) {
-      updates.votes = entry.voteSnapshots
-    }
-
-    update(dbRef(db, `rooms/${roomId}/history/${historyId}`), updates).catch(console.error)
-  }
-
-  function normalizeHistoryEntry (historyId: string, entry: LegacyRoomHistoryEntry): NormalizedRoomHistoryEntry {
-    migrateHistoryEntryVotes(historyId, entry)
-
+  function normalizeHistoryEntry (_historyId: string, entry: LegacyRoomHistoryEntry): NormalizedRoomHistoryEntry {
     const { votes: storedVotes, voteSnapshots, ...historyEntry } = entry
     const votes = isVoteSnapshotRecord(storedVotes)
       ? storedVotes
@@ -1001,19 +992,21 @@
     }
   }
 
-  function sanitizeHistoryForWrite (history: unknown): Record<string, RoomHistoryEntry> {
+  function sanitizeHistoryForWrite (history: unknown): Record<string, WritableRoomHistoryEntry> {
     if (!history || typeof history !== 'object' || Array.isArray(history)) return {}
 
-    const sanitizedHistory: Record<string, RoomHistoryEntry> = {}
+    const sanitizedHistory: Record<string, WritableRoomHistoryEntry> = {}
     for (const [historyId, entry] of Object.entries(history as Record<string, LegacyRoomHistoryEntry>)) {
       const { votes: storedVotes, voteSnapshots, ...historyEntry } = entry
-      const votes = isVoteSnapshotRecord(storedVotes)
+      const snapshots = isVoteSnapshotRecord(storedVotes)
         ? storedVotes
         : (isVoteSnapshotRecord(voteSnapshots) ? voteSnapshots : undefined)
+      const legacyVotes = isLegacyVoteRecord(storedVotes) ? storedVotes : undefined
 
       sanitizedHistory[historyId] = {
         ...historyEntry,
-        ...(votes ? { votes } : {}),
+        ...(legacyVotes ? { votes: legacyVotes } : {}),
+        ...(snapshots ? { voteSnapshots: snapshots } : {}),
       }
     }
 
@@ -1029,7 +1022,7 @@
       id,
       durationMs,
       completedAt,
-      votes: buildHistoryVotes(),
+      voteSnapshots: buildHistoryVotes(),
     }
   }
 
@@ -1093,15 +1086,15 @@
     return Number.isNaN(numericValue) ? value : numericValue
   }
 
-  function syncRoomSummary (roomNameOverride?: string, connectedOverride?: boolean, hasVoteOverride?: boolean, countOverride?: number) {
+  function syncRoomSummary (roomNameOverride?: string, connectedOverride?: boolean, hasParticipantOverride?: boolean, countOverride?: number) {
     const roomNameValue = roomNameOverride ?? currentRoom.value?.name ?? ''
     const isConnected = connectedOverride ?? isCurrentUserConnected.value
-    const hasActiveVote = hasVoteOverride ?? hasCurrentUserActiveVote.value
+    const hasRoundParticipant = hasParticipantOverride ?? hasCurrentUserRoundParticipant.value
     const count = countOverride ?? connectedPlayerCount.value
 
-    if (isConnected || hasActiveVote) {
+    if (isConnected || hasRoundParticipant) {
       configStore.setActiveRoom(roomId, roomNameValue)
-      appStore.setRoomInfo(roomId, roomNameValue, count, isConnected, hasActiveVote)
+      appStore.setRoomInfo(roomId, roomNameValue, count, isConnected, hasRoundParticipant)
       return
     }
 
@@ -1114,7 +1107,7 @@
 
     const userId = configStore.userId
     const roomNameValue = currentRoom.value?.name ?? configStore.activeRoomName ?? ''
-    const hasActiveVote = !!userId && activeRoundParticipants.value[userId]?.vote != null
+    const hasRoundParticipant = !!userId && Object.hasOwn(activeRoundParticipants.value, userId)
     const wasConnected = !!userId && !!roomUsers.value[userId]
     const nextCount = Math.max(0, connectedPlayerCount.value - (wasConnected ? 1 : 0))
 
@@ -1122,7 +1115,7 @@
       if (db && userId && wasConnected) {
         await remove(dbRef(db, `rooms/${roomId}/users/${userId}`)).catch(console.error)
       }
-      syncRoomSummary(roomNameValue, false, hasActiveVote, nextCount)
+      syncRoomSummary(roomNameValue, false, hasRoundParticipant, nextCount)
     })()
 
     try {
@@ -1355,7 +1348,7 @@
     const lastActivity = Date.now()
 
     if (showVotes.value && currentRoom.value && historyEnabled.value) {
-      const { id, durationMs, completedAt, votes } = buildHistoryEntryBase()
+      const { id, durationMs, completedAt, voteSnapshots } = buildHistoryEntryBase()
 
       const historyEntry = {
         id,
@@ -1367,7 +1360,7 @@
         completedAt,
         participantCount: totalPlayers.value,
         consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
-        votes,
+        voteSnapshots,
       }
 
       roundStartTime = Date.now()
@@ -1482,7 +1475,7 @@
 
     if (pendingTaskFlow.value === 'next') {
       if (showVotes.value && historyEnabled.value) {
-        const { id, durationMs, completedAt, votes } = buildHistoryEntryBase()
+        const { id, durationMs, completedAt, voteSnapshots } = buildHistoryEntryBase()
 
         const historyEntry = {
           id,
@@ -1497,7 +1490,7 @@
           completedAt,
           participantCount: totalPlayers.value,
           consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
-          votes,
+          voteSnapshots,
         }
 
         roundStartTime = Date.now()

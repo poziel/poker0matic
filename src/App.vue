@@ -18,7 +18,7 @@
 
       <div class="hdr-right">
         <router-link
-          v-if="appStore.currentRoomId && (appStore.roomPresenceActive || appStore.roomHasActiveVote)"
+          v-if="appStore.currentRoomId && (appStore.roomPresenceActive || appStore.roomHasRoundParticipant)"
           class="room-pill"
           :class="{ 'room-pill-away': !appStore.roomPresenceActive || !isInRoom }"
           :to="`/app/room/${appStore.currentRoomId}`"
@@ -129,7 +129,7 @@
     configStore.initializeConfig()
     syncNameSetupPrompt()
 
-    await restoreRoomPillFromActiveVote()
+    await restoreRoomPillFromRoundParticipant()
 
     unregisterShortcuts = registerKeyboardShortcuts([
       {
@@ -177,12 +177,20 @@
     nameSetupOpen.value = false
   }
 
-  async function restoreRoomPillFromActiveVote () {
+  async function restoreRoomPillFromRoundParticipant () {
     if (route.path.startsWith('/app/room/')) return
     if (!configStore.userId) return
 
     const db = configStore.getDb()
     if (!db) return
+
+    let mostRecentParticipantRoom: {
+      id: string
+      name: string
+      connectedCount: number
+      isConnected: boolean
+      joinedAt: number
+    } | null = null
 
     for (const recentRoom of configStore.recentRooms) {
       try {
@@ -192,28 +200,44 @@
         const room = snapshot.val() as {
           name?: string
           users?: Record<string, unknown>
-          roundParticipants?: Record<string, { vote?: unknown }>
+          roundParticipants?: Record<string, { joinedAt?: unknown }>
         }
 
-        const userVote = room.roundParticipants?.[configStore.userId]?.vote
-        if (userVote == null) continue
+        const participant = room.roundParticipants?.[configStore.userId]
+        if (!participant) continue
+
+        const joinedAt = typeof participant.joinedAt === 'number'
+          ? participant.joinedAt
+          : recentRoom.joinedAt
+        if (mostRecentParticipantRoom && joinedAt <= mostRecentParticipantRoom.joinedAt) continue
 
         const roomName = room.name ?? recentRoom.name
         const connectedUsers = room.users ?? {}
-        const isConnected = Object.hasOwn(connectedUsers, configStore.userId)
-
-        configStore.setActiveRoom(recentRoom.id, roomName)
-        appStore.setRoomInfo(
-          recentRoom.id,
-          roomName,
-          Object.keys(connectedUsers).length,
-          isConnected,
-          true,
-        )
-        return
+        mostRecentParticipantRoom = {
+          id: recentRoom.id,
+          name: roomName,
+          connectedCount: Object.keys(connectedUsers).length,
+          isConnected: Object.hasOwn(connectedUsers, configStore.userId),
+          joinedAt,
+        }
       } catch {
         // Ignore transient read errors and keep searching recents.
       }
     }
+
+    if (!mostRecentParticipantRoom) {
+      configStore.setActiveRoom(null, null)
+      appStore.setRoomInfo(null, '', 0)
+      return
+    }
+
+    configStore.setActiveRoom(mostRecentParticipantRoom.id, mostRecentParticipantRoom.name)
+    appStore.setRoomInfo(
+      mostRecentParticipantRoom.id,
+      mostRecentParticipantRoom.name,
+      mostRecentParticipantRoom.connectedCount,
+      mostRecentParticipantRoom.isConnected,
+      true,
+    )
   }
 </script>

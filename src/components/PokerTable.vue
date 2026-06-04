@@ -12,6 +12,7 @@
     avatarStyle?: string
     avatarSeed?: string
     avatarBg?: string
+    isConnected?: boolean
   }
 
   const props = defineProps<{
@@ -36,7 +37,11 @@
         v-for="player in players"
         :key="player.userId"
         class="player"
-        :class="{ 'is-you': player.userId === currentUserId, 'is-leader': player.userId === leaderUserId }"
+        :class="{
+          'is-you': player.userId === currentUserId,
+          'is-leader': player.userId === leaderUserId,
+          'is-connected': player.isConnected,
+        }"
         @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
       >
         <div v-if="player.userId === leaderUserId" class="leader-crown-avatar">
@@ -80,18 +85,6 @@
             you: player.userId === currentUserId,
           }"
         >
-          <span v-if="player.vote != null" class="check-mini">
-            <svg fill="none" height="8" viewBox="0 0 11 11" width="8">
-              <path
-                d="M2 5.5L4.5 8L9 3"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-              />
-            </svg>
-          </span>
-
           <span>{{ player.name }}</span>
         </div>
       </div>
