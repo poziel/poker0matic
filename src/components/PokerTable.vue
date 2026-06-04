@@ -48,7 +48,11 @@
           <v-icon icon="mdi-crown" size="12" />
         </div>
 
-        <div class="avatar" :class="{ 'has-voted': player.vote != null }">
+        <div
+          class="avatar"
+          :class="{ 'has-voted': player.vote != null }"
+          :data-reaction-user-id="player.userId"
+        >
           <PlayerAvatar
             :avatar-bg="player.avatarBg"
             :avatar-seed="player.avatarSeed || player.name"

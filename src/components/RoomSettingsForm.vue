@@ -1,4 +1,7 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
+  import { MAX_REACTION_EMOJIS } from '@/utils/reactions'
+
   export type DeckPreset = 'fibonacci' | 'linear' | 'tshirt' | 'custom'
 
   type DeckPresetOption = {
@@ -24,6 +27,8 @@
     timerWarningEnabled: boolean
     timerWarningType: 'seconds' | 'percentage'
     timerWarningValue: number
+    reactionsEnabled: boolean
+    reactionEmojis: string[]
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
@@ -43,6 +48,10 @@
     'update:modelValue': [settings: RoomFormSettings]
   }>()
 
+  const reactionEmojiSlots = computed(() =>
+    Array.from({ length: MAX_REACTION_EMOJIS }, (_, index) => props.modelValue.reactionEmojis[index] ?? ''),
+  )
+
   function patch (changes: Partial<RoomFormSettings>) {
     emit('update:modelValue', { ...props.modelValue, ...changes })
   }
@@ -55,6 +64,12 @@
   function patchTimerWarningValue (value: number | string) {
     const warningValue = typeof value === 'number' ? value : Number(value)
     patch({ timerWarningValue: warningValue })
+  }
+
+  function patchReactionEmoji (index: number, value: string) {
+    const reactionEmojis = [...props.modelValue.reactionEmojis]
+    reactionEmojis[index] = value
+    patch({ reactionEmojis })
   }
 </script>
 
@@ -306,6 +321,41 @@
             </template>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="room-settings-section">
+      <span class="settings-label">Emoji reactions</span>
+
+      <label class="toggle-item">
+        <div class="toggle-info">
+          <v-icon icon="mdi-emoticon-happy-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Enable reaction bar</span>
+        </div>
+
+        <input
+          :checked="modelValue.reactionsEnabled"
+          class="p0-toggle"
+          type="checkbox"
+          @change="patch({ reactionsEnabled: ($event.target as HTMLInputElement).checked })"
+        >
+      </label>
+
+      <div v-if="modelValue.reactionsEnabled" class="reaction-settings-grid">
+        <label
+          v-for="(_, index) in reactionEmojiSlots"
+          :key="index"
+          class="reaction-emoji-field"
+        >
+          <span>{{ index + 1 }}</span>
+
+          <input
+            :aria-label="`Reaction emoji ${index + 1}`"
+            maxlength="8"
+            :value="modelValue.reactionEmojis[index]"
+            @input="patchReactionEmoji(index, ($event.target as HTMLInputElement).value)"
+          >
+        </label>
       </div>
     </div>
 
