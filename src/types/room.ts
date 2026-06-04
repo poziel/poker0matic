@@ -68,4 +68,5 @@ export interface RoomHistoryEntry {
   participantCount: number
   consensus: 'yes' | 'split'
   votes?: Record<string, RoomHistoryVoteSnapshot>
+  voteSnapshots?: Record<string, RoomHistoryVoteSnapshot>
 }

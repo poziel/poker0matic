@@ -348,6 +348,9 @@
   type NormalizedRoomHistoryEntry = RoomHistoryEntry & {
     legacyVotesByName?: Record<string, string>
   }
+  type WritableRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
+    votes?: Record<string, string>
+  }
   type LegacyRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
     votes?: unknown
     voteSnapshots?: unknown
@@ -975,23 +978,7 @@
     return Object.values(value).every(vote => typeof vote === 'string')
   }
 
-  function migrateHistoryEntryVotes (historyId: string, entry: LegacyRoomHistoryEntry) {
-    if (!db || !isVoteSnapshotRecord(entry.voteSnapshots)) return
-
-    const updates: Record<string, unknown> = {
-      voteSnapshots: null,
-    }
-
-    if (!isVoteSnapshotRecord(entry.votes)) {
-      updates.votes = entry.voteSnapshots
-    }
-
-    update(dbRef(db, `rooms/${roomId}/history/${historyId}`), updates).catch(console.error)
-  }
-
-  function normalizeHistoryEntry (historyId: string, entry: LegacyRoomHistoryEntry): NormalizedRoomHistoryEntry {
-    migrateHistoryEntryVotes(historyId, entry)
-
+  function normalizeHistoryEntry (_historyId: string, entry: LegacyRoomHistoryEntry): NormalizedRoomHistoryEntry {
     const { votes: storedVotes, voteSnapshots, ...historyEntry } = entry
     const votes = isVoteSnapshotRecord(storedVotes)
       ? storedVotes
@@ -1005,19 +992,21 @@
     }
   }
 
-  function sanitizeHistoryForWrite (history: unknown): Record<string, RoomHistoryEntry> {
+  function sanitizeHistoryForWrite (history: unknown): Record<string, WritableRoomHistoryEntry> {
     if (!history || typeof history !== 'object' || Array.isArray(history)) return {}
 
-    const sanitizedHistory: Record<string, RoomHistoryEntry> = {}
+    const sanitizedHistory: Record<string, WritableRoomHistoryEntry> = {}
     for (const [historyId, entry] of Object.entries(history as Record<string, LegacyRoomHistoryEntry>)) {
       const { votes: storedVotes, voteSnapshots, ...historyEntry } = entry
-      const votes = isVoteSnapshotRecord(storedVotes)
+      const snapshots = isVoteSnapshotRecord(storedVotes)
         ? storedVotes
         : (isVoteSnapshotRecord(voteSnapshots) ? voteSnapshots : undefined)
+      const legacyVotes = isLegacyVoteRecord(storedVotes) ? storedVotes : undefined
 
       sanitizedHistory[historyId] = {
         ...historyEntry,
-        ...(votes ? { votes } : {}),
+        ...(legacyVotes ? { votes: legacyVotes } : {}),
+        ...(snapshots ? { voteSnapshots: snapshots } : {}),
       }
     }
 
@@ -1033,7 +1022,7 @@
       id,
       durationMs,
       completedAt,
-      votes: buildHistoryVotes(),
+      voteSnapshots: buildHistoryVotes(),
     }
   }
 
@@ -1359,7 +1348,7 @@
     const lastActivity = Date.now()
 
     if (showVotes.value && currentRoom.value && historyEnabled.value) {
-      const { id, durationMs, completedAt, votes } = buildHistoryEntryBase()
+      const { id, durationMs, completedAt, voteSnapshots } = buildHistoryEntryBase()
 
       const historyEntry = {
         id,
@@ -1371,7 +1360,7 @@
         completedAt,
         participantCount: totalPlayers.value,
         consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
-        votes,
+        voteSnapshots,
       }
 
       roundStartTime = Date.now()
@@ -1486,7 +1475,7 @@
 
     if (pendingTaskFlow.value === 'next') {
       if (showVotes.value && historyEnabled.value) {
-        const { id, durationMs, completedAt, votes } = buildHistoryEntryBase()
+        const { id, durationMs, completedAt, voteSnapshots } = buildHistoryEntryBase()
 
         const historyEntry = {
           id,
@@ -1501,7 +1490,7 @@
           completedAt,
           participantCount: totalPlayers.value,
           consensus: stats.value?.consensus === 'consensus' ? 'yes' : 'split',
-          votes,
+          voteSnapshots,
         }
 
         roundStartTime = Date.now()

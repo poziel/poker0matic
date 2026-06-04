@@ -545,12 +545,12 @@
             "participantCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
             "consensus": { ".validate": "newData.isString() && (newData.val() === 'yes' || newData.val() === 'split')" },
             "votes": {
+              "$vote_user_id": { ".validate": "newData.isString()" }
+            },
+            "voteSnapshots": {
               "$vote_user_id": {
                 ".validate": "newData.hasChildren(['name', 'vote']) && newData.child('name').isString() && (newData.child('vote').isString() || newData.child('vote').isNumber())"
               }
-            },
-            "voteSnapshots": {
-              ".validate": "false"
             }
           }
         }
