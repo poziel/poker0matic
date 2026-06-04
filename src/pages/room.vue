@@ -558,8 +558,8 @@
   const isCurrentUserConnected = computed(() =>
     !!configStore.userId && !!roomUsers.value[configStore.userId],
   )
-  const hasCurrentUserActiveVote = computed(() =>
-    !!configStore.userId && activeRoundParticipants.value[configStore.userId]?.vote != null,
+  const hasCurrentUserRoundParticipant = computed(() =>
+    !!configStore.userId && Object.hasOwn(activeRoundParticipants.value, configStore.userId),
   )
   const selectedVote = computed(() => {
     if (!configStore.userId || !activeRoundParticipants.value[configStore.userId]) return null
@@ -1097,15 +1097,15 @@
     return Number.isNaN(numericValue) ? value : numericValue
   }
 
-  function syncRoomSummary (roomNameOverride?: string, connectedOverride?: boolean, hasVoteOverride?: boolean, countOverride?: number) {
+  function syncRoomSummary (roomNameOverride?: string, connectedOverride?: boolean, hasParticipantOverride?: boolean, countOverride?: number) {
     const roomNameValue = roomNameOverride ?? currentRoom.value?.name ?? ''
     const isConnected = connectedOverride ?? isCurrentUserConnected.value
-    const hasActiveVote = hasVoteOverride ?? hasCurrentUserActiveVote.value
+    const hasRoundParticipant = hasParticipantOverride ?? hasCurrentUserRoundParticipant.value
     const count = countOverride ?? connectedPlayerCount.value
 
-    if (isConnected || hasActiveVote) {
+    if (isConnected || hasRoundParticipant) {
       configStore.setActiveRoom(roomId, roomNameValue)
-      appStore.setRoomInfo(roomId, roomNameValue, count, isConnected, hasActiveVote)
+      appStore.setRoomInfo(roomId, roomNameValue, count, isConnected, hasRoundParticipant)
       return
     }
 
@@ -1118,7 +1118,7 @@
 
     const userId = configStore.userId
     const roomNameValue = currentRoom.value?.name ?? configStore.activeRoomName ?? ''
-    const hasActiveVote = !!userId && activeRoundParticipants.value[userId]?.vote != null
+    const hasRoundParticipant = !!userId && Object.hasOwn(activeRoundParticipants.value, userId)
     const wasConnected = !!userId && !!roomUsers.value[userId]
     const nextCount = Math.max(0, connectedPlayerCount.value - (wasConnected ? 1 : 0))
 
@@ -1126,7 +1126,7 @@
       if (db && userId && wasConnected) {
         await remove(dbRef(db, `rooms/${roomId}/users/${userId}`)).catch(console.error)
       }
-      syncRoomSummary(roomNameValue, false, hasActiveVote, nextCount)
+      syncRoomSummary(roomNameValue, false, hasRoundParticipant, nextCount)
     })()
 
     try {
