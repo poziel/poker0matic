@@ -99,6 +99,11 @@
   import UserMenu from '@/components/UserMenu.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import {
+    EXTERNAL_DOCK_HEARTBEAT_KEY,
+    isExternalDockHeartbeatActive,
+    writeExternalDockContext,
+  } from '@/utils/externalDock'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
 
   const route = useRoute()
@@ -107,12 +112,13 @@
   const configStore = useConfigStore()
 
   const isInRoom = computed(() => route.path.startsWith('/app/room/'))
-  const isPublicRoute = computed(() => route.meta.public === true)
+  const isPublicRoute = computed(() => route.meta.public === true || route.meta.dockOnly === true)
   const requiresUserName = computed(() => route.meta.requiresUserName === true)
 
   const nameSetupOpen = ref(false)
   const setupName = ref('')
   let unregisterShortcuts: (() => void) | null = null
+  let externalDockMonitor: ReturnType<typeof setInterval> | null = null
 
   function syncNameSetupPrompt () {
     if (!requiresUserName.value) {
@@ -128,6 +134,11 @@
   onMounted(async () => {
     configStore.initializeConfig()
     syncNameSetupPrompt()
+    syncExternalDockStatus()
+    syncExternalDockContext()
+
+    window.addEventListener('storage', onStorage)
+    externalDockMonitor = setInterval(syncExternalDockStatus, 1000)
 
     await restoreRoomPillFromRoundParticipant()
 
@@ -165,10 +176,23 @@
 
   watch(() => route.fullPath, () => {
     syncNameSetupPrompt()
+    syncExternalDockContext()
   })
+
+  watch(
+    [
+      () => appStore.currentRoomId,
+      () => appStore.roomName,
+      () => appStore.roomPresenceActive,
+      () => appStore.roomHasRoundParticipant,
+    ],
+    syncExternalDockContext,
+  )
 
   onUnmounted(() => {
     unregisterShortcuts?.()
+    window.removeEventListener('storage', onStorage)
+    if (externalDockMonitor !== null) clearInterval(externalDockMonitor)
   })
 
   function submitSetupName () {
@@ -239,5 +263,28 @@
       mostRecentParticipantRoom.isConnected,
       true,
     )
+  }
+
+  function onStorage (event: StorageEvent) {
+    if (event.key === EXTERNAL_DOCK_HEARTBEAT_KEY) {
+      syncExternalDockStatus()
+    }
+  }
+
+  function syncExternalDockStatus () {
+    appStore.setExternalDockActive(isExternalDockHeartbeatActive())
+  }
+
+  function syncExternalDockContext () {
+    if (route.meta.dockOnly === true) return
+    if (isInRoom.value) {
+      const routeRoomId = typeof route.params.roomId === 'string' ? route.params.roomId : null
+      const roomId = appStore.currentRoomId ?? routeRoomId
+      if (roomId) {
+        writeExternalDockContext(roomId, appStore.roomName || configStore.activeRoomName)
+      }
+      return
+    }
+    writeExternalDockContext(null, null)
   }
 </script>

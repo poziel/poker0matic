@@ -10,6 +10,7 @@ export const useAppStore = defineStore('app', () => {
   const currentRoomId = ref<string | null>(null)
   const roomPresenceActive = ref(false)
   const roomHasRoundParticipant = ref(false)
+  const externalDockActive = ref(false)
   const configModalOpen = ref(false)
 
   const initial = getInitialTheme()
@@ -53,6 +54,10 @@ export const useAppStore = defineStore('app', () => {
     configModalOpen.value = open
   }
 
+  function setExternalDockActive (active: boolean) {
+    externalDockActive.value = active
+  }
+
   // -- theme --------------------------------------------------------------
   function applyTheme (theme: ThemeId) {
     applyDocumentTheme(theme)
@@ -73,6 +78,7 @@ export const useAppStore = defineStore('app', () => {
 
   return {
     roomName, playerCount, currentRoomId, roomPresenceActive, roomHasRoundParticipant,
+    externalDockActive, setExternalDockActive,
     configModalOpen, setConfigModalOpen,
     currentTheme, THEMES: THEME_IDS,
     toastMessage, toastType, toastVisible,

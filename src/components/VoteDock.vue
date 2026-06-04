@@ -29,12 +29,15 @@
     canCommitVote: boolean
     canVote: boolean
     disabledHint?: string
+    externalDockActive?: boolean
+    externalWindow?: boolean
   }>()
 
   const emit = defineEmits<{
     'update:collapsed': [value: boolean]
     'cast-vote': [value: VoteValue]
     'commit-vote': [value: string]
+    'toggle-external-dock': []
   }>()
 
   const customVoteInput = ref('')
@@ -103,10 +106,16 @@
 </script>
 
 <template>
-  <aside class="dock" :class="{ 'dock-collapsed': collapsed }">
+  <aside
+    class="dock"
+    :class="{
+      'dock-collapsed': collapsed,
+      'dock-external-window': externalWindow,
+    }"
+  >
 
     <!-- ── Voting state ───────────────────────────────────────────────── -->
-    <template v-if="!showVotes && !collapsed">
+    <template v-if="!showVotes && (!collapsed || externalWindow)">
       <div class="dock-cards">
         <button
           v-for="option in voteOptions"
@@ -140,7 +149,7 @@
     </template>
 
     <!-- ── Insights state ────────────────────────────────────────────── -->
-    <template v-if="showVotes && !collapsed">
+    <template v-if="showVotes && (!collapsed || externalWindow)">
       <!-- Header at top -->
       <div class="dock-insights-header">
         <span class="dock-insights-label">Round insights</span>
@@ -289,24 +298,40 @@
     </template>
 
     <!-- ── Toggle (always at bottom) ─────────────────────────────────── -->
-    <div class="dock-toggle" @click="$emit('update:collapsed', !collapsed)">
-      <template v-if="collapsed">
-        <span v-if="showVotes && committedVote" class="dock-mini-vote">{{ committedVote }}</span>
-        <span v-else-if="showVotes && stats" class="dock-mini-vote">{{ collapsedStatsLabel }}</span>
-        <span v-else-if="selectedVote != null" class="dock-mini-vote">{{ selectedVote }}</span>
-      </template>
-
-      <span class="dock-toggle-label">
+    <div v-if="!externalWindow" class="dock-toggle">
+      <button
+        class="dock-toggle-main"
+        type="button"
+        @click="$emit('update:collapsed', !collapsed)"
+      >
         <template v-if="collapsed">
-          {{ showVotes ? 'Expand insights' : (selectedVote != null ? 'Your vote · expand deck' : 'Expand deck') }}
+          <span v-if="showVotes && committedVote" class="dock-mini-vote">{{ committedVote }}</span>
+          <span v-else-if="showVotes && stats" class="dock-mini-vote">{{ collapsedStatsLabel }}</span>
+          <span v-else-if="selectedVote != null" class="dock-mini-vote">{{ selectedVote }}</span>
         </template>
 
-        <template v-else>
-          {{ showVotes ? 'Collapse insights' : 'Collapse deck' }}
-        </template>
-      </span>
+        <span class="dock-toggle-label">
+          <template v-if="collapsed">
+            {{ showVotes ? 'Expand insights' : (selectedVote != null ? 'Your vote · expand deck' : 'Expand deck') }}
+          </template>
 
-      <v-icon :icon="collapsed ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
+          <template v-else>
+            {{ showVotes ? 'Collapse insights' : 'Collapse deck' }}
+          </template>
+        </span>
+
+        <v-icon :icon="collapsed ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
+      </button>
+
+      <button
+        :aria-label="externalDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+        class="dock-external-btn"
+        :title="externalDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+        type="button"
+        @click.stop="$emit('toggle-external-dock')"
+      >
+        <v-icon :icon="externalDockActive ? 'mdi-monitor-off' : 'mdi-open-in-new'" size="14" />
+      </button>
     </div>
   </aside>
 </template>

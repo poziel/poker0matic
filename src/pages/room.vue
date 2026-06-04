@@ -250,12 +250,14 @@
         </div>
 
         <VoteDock
+          v-if="!appStore.externalDockActive"
           v-model:collapsed="dockCollapsed"
           :can-commit-vote="canCommitFinalVote"
           :can-vote="canVoteInCurrentRound"
           :committed-vote="committedVote"
           :disabled-hint="voteActionHint"
           :display-vote-counts="displayVoteCounts"
+          :external-dock-active="appStore.externalDockActive"
           :history-enabled="currentRoom?.settings?.historyEnabled !== false"
           :selected-vote="selectedVote"
           :show-votes="showVotes"
@@ -264,7 +266,15 @@
           :vote-options="voteOptions"
           @cast-vote="castVote"
           @commit-vote="onCommitVote"
+          @toggle-external-dock="toggleExternalDock"
         />
+
+        <div v-else class="external-dock-return">
+          <button class="external-dock-return-btn" type="button" @click="toggleExternalDock">
+            <v-icon icon="mdi-monitor-off" size="16" />
+            Bring voting dock back
+          </button>
+        </div>
 
         <div
           v-if="playerMenu"
@@ -322,6 +332,7 @@
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import { copyText } from '@/utils/clipboard'
+  import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
 
   const route = useRoute()
@@ -1168,6 +1179,19 @@
     } else {
       appStore.showToast('Copy failed. Your browser blocked clipboard access.', 'error')
     }
+  }
+
+  function toggleExternalDock () {
+    if (appStore.externalDockActive) {
+      requestExternalDockClose()
+      appStore.setExternalDockActive(false)
+      return
+    }
+
+    writeExternalDockContext(roomId, currentRoom.value?.name ?? configStore.activeRoomName)
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`
+    const dockWindow = window.open(url, 'poker0matic-voting-dock', 'popup,width=520,height=720')
+    dockWindow?.focus()
   }
 
   function triggerShakeForUser (userId: string) {

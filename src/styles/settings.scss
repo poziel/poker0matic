@@ -1377,21 +1377,70 @@ button { font-family: inherit; }
 .dock-toggle {
   display: flex; align-items: center; justify-content: center;
   gap: 8px;
+  position: relative;
   padding: 8px 16px;
-  cursor: pointer;
   user-select: none;
   border-top: 1px solid var(--border);
   transition: background .15s ease;
   min-height: 38px;
 }
 .dock-toggle:hover { background: var(--bg-2); }
+.dock-toggle-main,
+.dock-external-btn,
+.external-dock-return-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+.dock-toggle-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 24px;
+  color: var(--text-3);
+}
 .dock-toggle-label {
   font-size: 11.5px;
   font-family: var(--font-mono);
   color: var(--text-3);
   transition: color .15s ease;
 }
-.dock-toggle:hover .dock-toggle-label { color: var(--text-1); }
+.dock-toggle-main:hover .dock-toggle-label { color: var(--text-1); }
+.dock-external-btn,
+.external-dock-return-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.dock-external-btn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  transform: translateY(-50%);
+}
+.dock-external-btn:hover,
+.external-dock-return-btn:hover {
+  border-color: color-mix(in oklab, var(--accent), transparent 50%);
+  background: var(--bg-3);
+  color: var(--text-1);
+}
 
 .dock-mini-vote {
   font-family: var(--font-mono); font-weight: 700; font-size: 13px;
@@ -1448,20 +1497,6 @@ button { font-family: inherit; }
 
 .dist-card:disabled {
   cursor: default;
-}
-
-.dist-card.dist-mode:not(.p0-card-selected) {
-  box-shadow:
-    inset 0 0 0 1px rgba(0,0,0,.06),
-    0 2px 6px rgba(0,0,0,.4),
-    0 0 0 2px color-mix(in oklab, var(--accent), transparent 82%);
-}
-
-[data-theme$="-light"] .dist-card.dist-mode:not(.p0-card-selected) {
-  box-shadow:
-    inset 0 0 0 1px rgba(0,0,0,.04),
-    0 8px 18px rgba(18, 32, 51, .12),
-    0 0 0 2px color-mix(in oklab, var(--accent), transparent 84%);
 }
 
 .dist-card.dist-clickable {
@@ -1629,6 +1664,176 @@ button { font-family: inherit; }
 .vote-card {
   border: none;
   text-decoration: none;
+}
+
+.dock-external-window {
+  position: static;
+  justify-content: flex-end;
+  flex: 1;
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.dock-external-window .dock-cards {
+  align-content: flex-end;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow: visible;
+  gap: 16px;
+  padding: 0 18px 14px;
+}
+
+.dock-external-window:not(.dock-collapsed) .dock-cards {
+  overflow-x: visible;
+}
+
+.dock-external-window .vote-card {
+  flex: 0 0 var(--p0-card-w);
+}
+
+.dock-external-window .p0-card {
+  --p0-card-w: 90px;
+  --p0-card-h: 128px;
+  --p0-card-radius: 14px;
+  font-size: 32px;
+}
+
+.dock-external-window .p0-card-corner {
+  font-size: 14px;
+}
+
+.dock-external-window .p0-card-corner-tl {
+  top: 8px;
+  left: 10px;
+}
+
+.dock-external-window .p0-card-corner-br {
+  right: 10px;
+  bottom: 8px;
+}
+
+.dock-external-window .p0-card-compact {
+  --p0-card-w: 83px;
+  --p0-card-h: 115px;
+}
+
+.dock-external-window .dock-cards-insights {
+  overflow: visible;
+}
+
+.dock-external-window .dock-hint {
+  font-size: 19px;
+  padding-bottom: 0;
+}
+
+.dock-external-window .dock-insights-label,
+.dock-external-window .dock-committed-hint,
+.dock-external-window .dist-count {
+  font-size: 16px;
+}
+
+.dock-external-window .dock-insights-header {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  margin: 0 0 14px;
+}
+
+.dock-external-window .consensus-pill,
+.dock-external-window .dock-committed-badge,
+.dock-external-window .dock-stat-btn,
+.dock-external-window .dock-no-data,
+.dock-external-window .consensus-celebration {
+  font-size: 19px;
+}
+
+.dock-external-window .custom-card-input {
+  width: 64px;
+  font-size: 35px;
+}
+
+.external-dock-return {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  background: rgba(15, 19, 26, .92);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 -8px 32px rgba(0,0,0,.35);
+}
+
+[data-theme$="-light"] .external-dock-return {
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 -12px 32px rgba(18, 32, 51, .12);
+}
+
+.dock-window {
+  min-height: 100vh;
+  padding: 18px;
+  background: var(--bg-1);
+  color: var(--text-1);
+}
+
+.dock-window-panel {
+  display: flex;
+  min-height: calc(100vh - 36px);
+  height: calc(100vh - 36px);
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dock-window-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 0;
+}
+
+.dock-window-kicker {
+  margin: 0 0 4px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dock-window-head h1 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dock-window-empty {
+  display: flex;
+  min-height: 260px;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.dock-window-empty p {
+  max-width: 280px;
+  margin: 0;
 }
 
 /* --- simple results grid ----------------------------------------------- */
@@ -2836,6 +3041,11 @@ button { font-family: inherit; }
   /* Dock cards: voting = scroll from start, insights = centered + wrapping */
   .dock-cards { overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; }
   .dock-cards.dock-cards-insights { justify-content: center; flex-wrap: wrap; overflow-x: hidden; }
+  .dock-external-window .dock-cards {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+  }
 
   .main-head {
     grid-template-columns: auto auto;
