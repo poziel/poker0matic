@@ -22,6 +22,24 @@ export interface RoomSettings {
   historyEnabled?: boolean
   leaderModeEnabled?: boolean
   taskInformationEnabled?: boolean
+  timerEnabled?: boolean
+  timerMode?: 'automatic' | 'manual'
+  timerDurationSeconds?: number
+  timerAutoRevealEnabled?: boolean
+  timerWarningEnabled?: boolean
+  timerWarningType?: 'seconds' | 'percentage'
+  timerWarningValue?: number
+}
+
+export interface RoundTimerState {
+  status: 'idle' | 'running' | 'paused' | 'finished'
+  mode: 'automatic' | 'manual'
+  durationMs: number
+  roundNumber: number
+  startedAt?: number | null
+  endsAt?: number | null
+  remainingMs?: number | null
+  finishedBy?: 'expired' | 'revealed' | null
 }
 
 export interface RoomRecord {
@@ -35,6 +53,7 @@ export interface RoomRecord {
   roundParticipants?: Record<string, RoomUser>
   roundEditLock?: RoundEditLock | null
   roundNumber?: number
+  roundTimer?: RoundTimerState | null
   settings?: RoomSettings
   lastActivity?: number
 }

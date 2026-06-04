@@ -17,6 +17,13 @@
     historyEnabled: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
+    timerEnabled: boolean
+    timerMode: 'automatic' | 'manual'
+    timerDurationSeconds: number
+    timerAutoRevealEnabled: boolean
+    timerWarningEnabled: boolean
+    timerWarningType: 'seconds' | 'percentage'
+    timerWarningValue: number
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
@@ -38,6 +45,16 @@
 
   function patch (changes: Partial<RoomFormSettings>) {
     emit('update:modelValue', { ...props.modelValue, ...changes })
+  }
+
+  function patchTimerDuration (value: number | string) {
+    const duration = typeof value === 'number' ? value : Number(value)
+    patch({ timerDurationSeconds: duration })
+  }
+
+  function patchTimerWarningValue (value: number | string) {
+    const warningValue = typeof value === 'number' ? value : Number(value)
+    patch({ timerWarningValue: warningValue })
   }
 </script>
 
@@ -162,6 +179,134 @@
           @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
         >
       </label>
+    </div>
+
+    <div class="room-settings-section">
+      <span class="settings-label">Round timer</span>
+
+      <label class="toggle-item">
+        <div class="toggle-info">
+          <v-icon icon="mdi-timer-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Enable round timer</span>
+        </div>
+
+        <input
+          :checked="modelValue.timerEnabled"
+          class="p0-toggle"
+          type="checkbox"
+          @change="patch({ timerEnabled: ($event.target as HTMLInputElement).checked })"
+        >
+      </label>
+
+      <div v-if="modelValue.timerEnabled" class="timer-settings">
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-eye-check-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Reveal votes when timer ends</span>
+          </div>
+
+          <input
+            :checked="modelValue.timerAutoRevealEnabled"
+            class="p0-toggle"
+            type="checkbox"
+            @change="patch({ timerAutoRevealEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <div class="timer-config-group">
+          <span class="timer-config-label">Mode</span>
+
+          <div class="timer-config-controls timer-mode-controls">
+            <v-btn-toggle
+              class="timer-mode-toggle"
+              density="compact"
+              mandatory
+              :model-value="modelValue.timerMode"
+              variant="outlined"
+              @update:model-value="patch({ timerMode: $event as RoomFormSettings['timerMode'] })"
+            >
+              <v-btn value="automatic">
+                <v-icon icon="mdi-play-circle-outline" size="15" />
+                Automatic
+              </v-btn>
+
+              <v-btn value="manual">
+                <v-icon icon="mdi-hand-back-left-outline" size="15" />
+                Manual
+              </v-btn>
+            </v-btn-toggle>
+
+            <div class="timer-value-control">
+              <v-text-field
+                class="p0-field timer-number-field"
+                hide-details="auto"
+                inputmode="numeric"
+                label="Duration"
+                :model-value="modelValue.timerDurationSeconds"
+                type="number"
+                variant="outlined"
+                @update:model-value="patchTimerDuration"
+              />
+
+              <span class="timer-unit-label">sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="timer-config-group">
+          <span class="timer-config-label">Warning</span>
+
+          <div class="timer-config-controls timer-warning-controls">
+            <label class="toggle-item timer-warning-toggle">
+              <div class="toggle-info">
+                <v-icon icon="mdi-alert-circle-outline" size="15" style="color: var(--text-2)" />
+                <span class="toggle-name">Enable warning threshold</span>
+              </div>
+
+              <input
+                :checked="modelValue.timerWarningEnabled"
+                class="p0-toggle"
+                type="checkbox"
+                @change="patch({ timerWarningEnabled: ($event.target as HTMLInputElement).checked })"
+              >
+            </label>
+
+            <template v-if="modelValue.timerWarningEnabled">
+              <v-btn-toggle
+                class="timer-mode-toggle"
+                density="compact"
+                mandatory
+                :model-value="modelValue.timerWarningType"
+                variant="outlined"
+                @update:model-value="patch({ timerWarningType: $event as RoomFormSettings['timerWarningType'] })"
+              >
+                <v-btn value="seconds">
+                  Seconds
+                </v-btn>
+
+                <v-btn value="percentage">
+                  Percent
+                </v-btn>
+              </v-btn-toggle>
+
+              <div class="timer-value-control">
+                <v-text-field
+                  class="p0-field timer-number-field"
+                  hide-details="auto"
+                  inputmode="numeric"
+                  label="Value"
+                  :model-value="modelValue.timerWarningValue"
+                  type="number"
+                  variant="outlined"
+                  @update:model-value="patchTimerWarningValue"
+                />
+
+                <span class="timer-unit-label">{{ modelValue.timerWarningType === 'percentage' ? '%' : 'sec' }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="room-settings-section">
