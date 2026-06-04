@@ -37,6 +37,7 @@
     'update:collapsed': [value: boolean]
     'cast-vote': [value: VoteValue]
     'commit-vote': [value: string]
+    'open-phone-dock': []
     'toggle-external-dock': []
   }>()
 
@@ -321,6 +322,16 @@
         </span>
 
         <v-icon :icon="collapsed ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
+      </button>
+
+      <button
+        aria-label="Open voting dock on phone"
+        class="dock-phone-btn"
+        title="Open voting dock on phone"
+        type="button"
+        @click.stop="$emit('open-phone-dock')"
+      >
+        <v-icon icon="mdi-qrcode" size="14" />
       </button>
 
       <button

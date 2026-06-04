@@ -1,7 +1,7 @@
 import type { RoomRecord, RoomUser, VoteValue } from '@/types/room'
 import { ref as dbRef, onValue, update } from 'firebase/database'
 import { storeToRefs } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, type ComputedRef, ref, type Ref } from 'vue'
 import { useConfigStore } from '@/stores/config'
 
 type ConsensusState = 'consensus' | 'close' | 'split'
@@ -18,6 +18,11 @@ interface RoundStats {
   total: number
   numericTotal: number
   consensus: ConsensusState
+}
+
+interface RoomVotingDockOptions {
+  userId?: ComputedRef<string | null> | Ref<string | null>
+  userName?: ComputedRef<string> | Ref<string>
 }
 
 const PRESET_DECKS: Record<string, VoteValue[]> = {
@@ -53,7 +58,7 @@ function formatNum (num: number | null | undefined): string {
   return Number.isInteger(num) ? String(num) : String(Number.parseFloat(num.toFixed(2)))
 }
 
-export function useRoomVotingDock () {
+export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
   const configStore = useConfigStore()
   const { userName } = storeToRefs(configStore)
 
@@ -73,18 +78,20 @@ export function useRoomVotingDock () {
   const currentTask = computed(() => currentRoom.value?.currentTask ?? null)
   const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const leaderUserId = computed(() => currentRoom.value?.leaderUserId ?? null)
-  const isLeader = computed(() => !leaderModeEnabled.value || (!!configStore.userId && leaderUserId.value === configStore.userId))
+  const effectiveUserId = computed(() => options.userId?.value ?? configStore.userId)
+  const effectiveUserName = computed(() => options.userName?.value ?? userName.value)
+  const isLeader = computed(() => !leaderModeEnabled.value || (!!effectiveUserId.value && leaderUserId.value === effectiveUserId.value))
   const isRoundLockedByOther = computed(() =>
     !!currentRoom.value?.roundEditLock
-    && !!configStore.userId
-    && currentRoom.value.roundEditLock.userId !== configStore.userId,
+    && !!effectiveUserId.value
+    && currentRoom.value.roundEditLock.userId !== effectiveUserId.value,
   )
 
   const activeRoundParticipants = computed<Record<string, RoomUser>>(() =>
     currentRoom.value?.roundParticipants ?? roomUsers.value,
   )
   const currentParticipant = computed(() =>
-    configStore.userId ? activeRoundParticipants.value[configStore.userId] : undefined,
+    effectiveUserId.value ? activeRoundParticipants.value[effectiveUserId.value] : undefined,
   )
 
   const voteOptions = computed((): VoteValue[] => {
@@ -247,12 +254,12 @@ export function useRoomVotingDock () {
   }
 
   function castVote (value: VoteValue) {
-    if (!db.value || !activeRoomId.value || !configStore.userId || !canVoteInCurrentRound.value) {
+    if (!db.value || !activeRoomId.value || !effectiveUserId.value || !canVoteInCurrentRound.value) {
       return
     }
 
     const newVote = value === selectedVote.value ? null : value
-    update(dbRef(db.value, `rooms/${activeRoomId.value}/roundParticipants/${configStore.userId}`), { vote: newVote }).catch(console.error)
+    update(dbRef(db.value, `rooms/${activeRoomId.value}/roundParticipants/${effectiveUserId.value}`), { vote: newVote }).catch(console.error)
     update(dbRef(db.value, `rooms/${activeRoomId.value}`), { lastActivity: Date.now() }).catch(console.error)
   }
 
@@ -280,7 +287,7 @@ export function useRoomVotingDock () {
     stats,
     stop,
     subscribeToRoom,
-    userName,
+    userName: effectiveUserName,
     voteActionHint,
     voteOptions,
   }

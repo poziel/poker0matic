@@ -250,7 +250,7 @@
         </div>
 
         <VoteDock
-          v-if="!appStore.externalDockActive"
+          v-if="!externalVotingDockActive"
           v-model:collapsed="dockCollapsed"
           :can-commit-vote="canCommitFinalVote"
           :can-vote="canVoteInCurrentRound"
@@ -266,11 +266,12 @@
           :vote-options="voteOptions"
           @cast-vote="castVote"
           @commit-vote="onCommitVote"
+          @open-phone-dock="openPhoneDockQr"
           @toggle-external-dock="toggleExternalDock"
         />
 
         <div v-else class="external-dock-return">
-          <button class="external-dock-return-btn" type="button" @click="toggleExternalDock">
+          <button class="external-dock-return-btn" type="button" @click="bringVotingDockBack">
             <v-icon icon="mdi-monitor-off" size="16" />
             Bring voting dock back
           </button>
@@ -314,12 +315,64 @@
     Room not found. Redirecting...
   </v-snackbar>
 
+  <v-dialog v-model="phoneDockDialogOpen" max-width="420" @update:model-value="onPhoneDockDialogUpdate">
+    <v-card class="phone-dock-card" flat>
+      <button
+        aria-label="Close phone dock QR code"
+        class="phone-dock-close"
+        type="button"
+        @click="closePhoneDockDialog"
+      >
+        <v-icon icon="mdi-close" size="16" />
+      </button>
+
+      <div class="kicker">Phone voting dock</div>
+
+      <h2 class="phone-dock-title">{{ phoneDockConnected ? 'Phone connected' : 'Scan to vote privately' }}</h2>
+
+      <p class="phone-dock-copy">
+        <template v-if="phoneDockConnected">
+          This phone can now vote as {{ userName || 'you' }} for the current room. You can close this QR code.
+        </template>
+
+        <template v-else>
+          Scan this code from your phone while it is visible. The link expires if this dialog is closed before the phone connects.
+        </template>
+      </p>
+
+      <div class="phone-dock-qr-shell" :class="{ connected: phoneDockConnected }">
+        <img
+          v-if="phoneDockQrImage"
+          alt="QR code for phone voting dock"
+          class="phone-dock-qr"
+          :src="phoneDockQrImage"
+        >
+
+        <div v-else class="phone-dock-qr-loading">
+          <v-icon icon="mdi-loading" size="28" />
+          <span>Generating QR code</span>
+        </div>
+
+        <div v-if="phoneDockConnected" class="phone-dock-connected">
+          <v-icon icon="mdi-check-circle" size="32" />
+          <span>Connected</span>
+        </div>
+      </div>
+
+      <v-btn class="p0-btn p0-btn-primary phone-dock-action" variant="flat" @click="closePhoneDockDialog">
+        {{ phoneDockConnected ? 'Close' : 'Cancel' }}
+      </v-btn>
+    </v-card>
+  </v-dialog>
+
 </template>
 
 <script lang="ts" setup>
   import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, TaskInfo, VoteValue } from '@/types/room'
-  import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, update } from 'firebase/database'
+  import type { ExternalDockSession } from '@/utils/externalDockSession'
+  import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
+  import QRCode from 'qrcode'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
@@ -333,6 +386,12 @@
   import { useConfigStore } from '@/stores/config'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
+  import {
+    buildExternalDockUrl,
+    createExternalDockSessionToken,
+    EXTERNAL_DOCK_SESSION_TTL_MS,
+    isExternalDockSessionExpired,
+  } from '@/utils/externalDockSession'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
 
   const route = useRoute()
@@ -402,6 +461,11 @@
   const dockCollapsed = ref(false)
   const shareCopied = ref(false)
   const roomConfigOpen = ref(false)
+  const phoneDockDialogOpen = ref(false)
+  const phoneDockQrImage = ref('')
+  const phoneDockToken = ref<string | null>(null)
+  const phoneDockConnected = ref(false)
+  const phoneDockActive = ref(false)
   const playerMenu = ref<{ userId: string, name: string, x: number, y: number } | null>(null)
   const taskInfoModalOpen = ref(false)
   const pendingTaskFlow = ref<TaskFlowMode | null>(null)
@@ -434,6 +498,7 @@
   let unsubscribeRoom: (() => void) | null = null
   let unsubscribeUsers: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
+  let unsubscribePhoneDockSession: (() => void) | null = null
   let unregisterShortcuts: (() => void) | null = null
   let leaveRoomPromise: Promise<void> | null = null
 
@@ -452,6 +517,7 @@
   const canManageRound = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
   const canCommitFinalVote = computed(() => !leaderModeEnabled.value || isLeader.value)
   const canStartTaskInfoFlow = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
+  const externalVotingDockActive = computed(() => appStore.externalDockActive || phoneDockActive.value)
   const canEditCurrentTask = computed(() =>
     taskInformationEnabled.value
     && !!currentTask.value
@@ -931,6 +997,8 @@
     unsubscribeRoom?.()
     unsubscribeUsers?.()
     unsubscribeHistory?.()
+    unsubscribePhoneDockSession?.()
+    void cleanupPhoneDockSession()
     if (redirectTimeout !== null) clearTimeout(redirectTimeout)
     void releaseRoundEditLock()
   })
@@ -1192,6 +1260,126 @@
     const url = `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`
     const dockWindow = window.open(url, 'poker0matic-voting-dock', 'popup,width=520,height=720')
     dockWindow?.focus()
+  }
+
+  function bringVotingDockBack () {
+    if (phoneDockActive.value || phoneDockToken.value) {
+      void cleanupPhoneDockSession()
+      return
+    }
+
+    toggleExternalDock()
+  }
+
+  async function openPhoneDockQr () {
+    if (!db || !firebaseConfig.value || !configStore.userId) {
+      appStore.showToast('Room configuration is required before creating a phone dock.', 'error')
+      return
+    }
+
+    await cleanupPhoneDockSession()
+
+    const now = Date.now()
+    const token = createExternalDockSessionToken()
+    const session: ExternalDockSession = {
+      token,
+      userId: configStore.userId,
+      userName: userName.value || 'Anonymous',
+      avatarStyle: configStore.avatarStyle,
+      avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
+      avatarBg: configStore.avatarBg,
+      createdAt: now,
+      expiresAt: now + EXTERNAL_DOCK_SESSION_TTL_MS,
+      claimedAt: null,
+      lastSeenAt: null,
+      status: 'waiting',
+    }
+
+    try {
+      await set(dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`), session)
+
+      phoneDockToken.value = token
+      phoneDockConnected.value = false
+      phoneDockDialogOpen.value = true
+      phoneDockQrImage.value = await QRCode.toDataURL(
+        buildExternalDockUrl(roomId, firebaseConfig.value, token),
+        {
+          errorCorrectionLevel: 'L',
+          margin: 1,
+          width: 320,
+        },
+      )
+
+      watchPhoneDockSession(token)
+    } catch (error) {
+      console.error(error)
+      appStore.showToast('Could not create the phone voting dock.', 'error')
+      await cleanupPhoneDockSession()
+    }
+  }
+
+  function watchPhoneDockSession (token: string) {
+    if (!db) return
+
+    unsubscribePhoneDockSession?.()
+    unsubscribePhoneDockSession = onValue(dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`), snapshot => {
+      const session = snapshot.val() as ExternalDockSession | null
+      if (!session) {
+        phoneDockConnected.value = false
+        phoneDockActive.value = false
+        phoneDockToken.value = null
+        phoneDockQrImage.value = ''
+        unsubscribePhoneDockSession?.()
+        unsubscribePhoneDockSession = null
+        return
+      }
+
+      if (session.claimedAt && !isExternalDockSessionExpired(session)) {
+        phoneDockConnected.value = true
+        phoneDockActive.value = true
+      }
+    })
+  }
+
+  function onPhoneDockDialogUpdate (open: boolean) {
+    if (!open) {
+      closePhoneDockDialog()
+    }
+  }
+
+  function closePhoneDockDialog () {
+    phoneDockDialogOpen.value = false
+    if (phoneDockConnected.value) {
+      phoneDockQrImage.value = ''
+      phoneDockActive.value = true
+      return
+    }
+
+    void cleanupPhoneDockSession()
+  }
+
+  async function cleanupPhoneDockSession (options: { keepConnected?: boolean } = {}) {
+    const token = phoneDockToken.value
+
+    if (!options.keepConnected) {
+      unsubscribePhoneDockSession?.()
+      unsubscribePhoneDockSession = null
+    }
+    phoneDockQrImage.value = ''
+
+    if (db && token && (!options.keepConnected || !phoneDockConnected.value)) {
+      try {
+        await remove(dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`))
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    if (!options.keepConnected) {
+      phoneDockToken.value = null
+      phoneDockConnected.value = false
+      phoneDockActive.value = false
+    }
   }
 
   function triggerShakeForUser (userId: string) {

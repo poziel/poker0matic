@@ -1386,6 +1386,7 @@ button { font-family: inherit; }
 }
 .dock-toggle:hover { background: var(--bg-2); }
 .dock-toggle-main,
+.dock-phone-btn,
 .dock-external-btn,
 .external-dock-return-btn {
   appearance: none;
@@ -1410,6 +1411,7 @@ button { font-family: inherit; }
   transition: color .15s ease;
 }
 .dock-toggle-main:hover .dock-toggle-label { color: var(--text-1); }
+.dock-phone-btn,
 .dock-external-btn,
 .external-dock-return-btn {
   display: inline-flex;
@@ -1426,20 +1428,115 @@ button { font-family: inherit; }
   padding: 4px 9px;
   transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
+.dock-phone-btn,
 .dock-external-btn {
   position: absolute;
   top: 50%;
-  right: 12px;
   width: 28px;
   min-width: 28px;
   padding: 0;
   transform: translateY(-50%);
 }
+.dock-phone-btn {
+  right: 46px;
+}
+.dock-external-btn {
+  right: 12px;
+}
+.dock-phone-btn:hover,
 .dock-external-btn:hover,
 .external-dock-return-btn:hover {
   border-color: color-mix(in oklab, var(--accent), transparent 50%);
   background: var(--bg-3);
   color: var(--text-1);
+}
+
+.phone-dock-card {
+  position: relative;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-1);
+  color: var(--text-1);
+}
+
+.phone-dock-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.phone-dock-close:hover {
+  border-color: color-mix(in oklab, var(--accent), transparent 50%);
+  color: var(--text-1);
+}
+
+.phone-dock-title {
+  margin: 6px 36px 8px 0;
+  color: var(--text-1);
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.phone-dock-copy {
+  margin: 0 0 18px;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.phone-dock-qr-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 344px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+
+.phone-dock-qr {
+  width: min(320px, 100%);
+  height: auto;
+  border-radius: 6px;
+}
+
+.phone-dock-qr-loading,
+.phone-dock-connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.phone-dock-connected {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+  flex-direction: column;
+  background: color-mix(in oklab, var(--bg-1), transparent 10%);
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.phone-dock-action {
+  width: 100%;
+  margin-top: 16px;
 }
 
 .dock-mini-vote {

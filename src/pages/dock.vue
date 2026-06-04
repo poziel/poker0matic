@@ -31,6 +31,20 @@
         </div>
       </template>
 
+      <template v-else-if="sessionError">
+        <div class="dock-window-empty">
+          <v-icon icon="mdi-cellphone-off" size="28" />
+          <p>{{ sessionError }}</p>
+        </div>
+      </template>
+
+      <template v-else-if="isPhoneSession && !sessionReady">
+        <div class="dock-window-empty">
+          <v-icon icon="mdi-loading" size="28" />
+          <p>Connecting this device to the voting dock.</p>
+        </div>
+      </template>
+
       <template v-else-if="!context.roomId">
         <div class="dock-window-empty">
           <v-icon icon="mdi-cards-outline" size="28" />
@@ -76,6 +90,8 @@
 </template>
 
 <script setup lang="ts">
+  import type { ExternalDockSession } from '@/utils/externalDockSession'
+  import { ref as dbRef, onValue, remove, runTransaction, update } from 'firebase/database'
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useRoute } from 'vue-router'
   import VoteDock from '@/components/VoteDock.vue'
@@ -89,10 +105,21 @@
     readExternalDockContext,
     writeExternalDockHeartbeat,
   } from '@/utils/externalDock'
+  import {
+    EXTERNAL_DOCK_SESSION_HEARTBEAT_MS,
+    EXTERNAL_DOCK_SESSION_TTL_MS,
+    isExternalDockSessionExpired,
+  } from '@/utils/externalDockSession'
 
   const configStore = useConfigStore()
   const route = useRoute()
   const context = ref<ExternalDockRoomContext>(resolveInitialContext())
+  const dockSessionToken = ref(readStringQuery('dockSession'))
+  const dockSessionUserId = ref<string | null>(null)
+  const dockSessionUserName = ref('')
+  const sessionError = ref('')
+  const isPhoneSession = computed(() => !!dockSessionToken.value)
+  const sessionReady = computed(() => !isPhoneSession.value || !!dockSessionUserId.value)
   const {
     canCommitFinalVote,
     canVoteInCurrentRound,
@@ -111,9 +138,14 @@
     userName,
     voteActionHint,
     voteOptions,
-  } = useRoomVotingDock()
+  } = useRoomVotingDock({
+    userId: computed(() => dockSessionUserId.value),
+    userName: computed(() => dockSessionUserName.value || configStore.userName),
+  })
 
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  let sessionHeartbeatTimer: ReturnType<typeof setInterval> | null = null
+  let unsubscribeSession: (() => void) | null = null
 
   const title = computed(() => {
     if (currentRoom.value?.name) return currentRoom.value.name
@@ -122,20 +154,32 @@
     return 'No active room'
   })
 
-  onMounted(() => {
+  onMounted(async () => {
     configStore.initializeConfig()
+    applyRouteConfig()
+
     writeHeartbeat()
     heartbeatTimer = setInterval(writeHeartbeat, 1000)
     window.addEventListener('storage', onStorage)
     window.addEventListener('beforeunload', clearExternalDockHeartbeat)
-    subscribeToRoom(context.value.roomId)
+
+    if (isPhoneSession.value) {
+      await claimDockSession()
+    }
+
+    if (!isPhoneSession.value || sessionReady.value) {
+      subscribeToRoom(context.value.roomId)
+    }
   })
 
   onUnmounted(() => {
     stop()
+    closeDockSession()
+    unsubscribeSession?.()
     window.removeEventListener('storage', onStorage)
     window.removeEventListener('beforeunload', clearExternalDockHeartbeat)
     if (heartbeatTimer !== null) clearInterval(heartbeatTimer)
+    if (sessionHeartbeatTimer !== null) clearInterval(sessionHeartbeatTimer)
     clearExternalDockHeartbeat()
   })
 
@@ -144,6 +188,10 @@
   }
 
   function onStorage (event: StorageEvent) {
+    if (isPhoneSession.value) {
+      return
+    }
+
     if (event.key === EXTERNAL_DOCK_CONTEXT_KEY) {
       context.value = readExternalDockContext()
       subscribeToRoom(context.value.roomId)
@@ -157,6 +205,113 @@
 
   function closeWindow () {
     window.close()
+  }
+
+  async function claimDockSession () {
+    const roomId = context.value.roomId
+    const token = dockSessionToken.value
+    const db = configStore.getDb()
+
+    if (!roomId || !token || !db) {
+      sessionError.value = 'This voting dock link is missing required room information.'
+      return
+    }
+
+    const now = Date.now()
+    const sessionRef = dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`)
+
+    try {
+      const result = await runTransaction(sessionRef, current => {
+        if (!current) {
+          return current
+        }
+
+        const session = current as ExternalDockSession
+        if (isExternalDockSessionExpired(session, now)) {
+          return {
+            ...session,
+            status: 'expired',
+          }
+        }
+
+        return {
+          ...session,
+          claimedAt: session.claimedAt ?? now,
+          lastSeenAt: now,
+          expiresAt: now + EXTERNAL_DOCK_SESSION_TTL_MS,
+          status: 'connected',
+        } satisfies ExternalDockSession
+      })
+
+      const session = result.snapshot.val() as ExternalDockSession | null
+      if (!session || isExternalDockSessionExpired(session)) {
+        sessionError.value = 'This voting dock link has expired. Generate a new QR code from the room.'
+        return
+      }
+
+      dockSessionUserId.value = session.userId
+      dockSessionUserName.value = session.userName
+      startDockSessionHeartbeat(roomId, token)
+      watchDockSession(roomId, token)
+    } catch (error) {
+      console.error(error)
+      sessionError.value = 'This device could not connect to the voting dock session.'
+    }
+  }
+
+  function watchDockSession (roomId: string, token: string) {
+    const db = configStore.getDb()
+    if (!db) return
+
+    unsubscribeSession?.()
+    unsubscribeSession = onValue(dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`), snapshot => {
+      const session = snapshot.val() as ExternalDockSession | null
+      if (!session || isExternalDockSessionExpired(session)) {
+        sessionError.value = 'This voting dock session is no longer active.'
+        dockSessionUserId.value = null
+        stop()
+        return
+      }
+
+      dockSessionUserId.value = session.userId
+      dockSessionUserName.value = session.userName
+    })
+  }
+
+  function startDockSessionHeartbeat (roomId: string, token: string) {
+    if (sessionHeartbeatTimer !== null) clearInterval(sessionHeartbeatTimer)
+    sessionHeartbeatTimer = setInterval(() => {
+      const db = configStore.getDb()
+      if (!db) return
+      update(dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`), {
+        lastSeenAt: Date.now(),
+        expiresAt: Date.now() + EXTERNAL_DOCK_SESSION_TTL_MS,
+      }).catch(console.error)
+    }, EXTERNAL_DOCK_SESSION_HEARTBEAT_MS)
+  }
+
+  function closeDockSession () {
+    const roomId = context.value.roomId
+    const token = dockSessionToken.value
+    const db = configStore.getDb()
+    if (!roomId || !token || !db) return
+
+    remove(dbRef(db, `rooms/${roomId}/externalDockSessions/${token}`)).catch(console.error)
+  }
+
+  function applyRouteConfig () {
+    const config = readStringQuery('config')
+    if (config) {
+      configStore.applyConfigFromBase64(config)
+    }
+  }
+
+  function readStringQuery (key: string): string | null {
+    const value = route.query[key]
+    if (Array.isArray(value)) {
+      return value[0] ?? null
+    }
+    return typeof value === 'string' && value.trim() ? value.trim() : null
   }
 
   function resolveInitialContext (): ExternalDockRoomContext {
