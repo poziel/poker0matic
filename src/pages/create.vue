@@ -30,7 +30,7 @@
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
   import { useConfigStore } from '@/stores/config'
-  import { buildInitialTimerForRoom, normalizeTimerDurationSeconds } from '@/utils/roundTimers'
+  import { buildInitialTimerForRoom, normalizeTimerDurationSeconds, normalizeTimerWarningValue } from '@/utils/roundTimers'
 
   const router = useRouter()
   const configStore = useConfigStore()
@@ -48,6 +48,9 @@
     timerEnabled: false,
     timerMode: 'automatic',
     timerDurationSeconds: 300,
+    timerWarningEnabled: false,
+    timerWarningType: 'seconds',
+    timerWarningValue: 30,
   })
 
   function createRoom () {
@@ -65,6 +68,9 @@
       timerEnabled,
       timerMode,
       timerDurationSeconds,
+      timerWarningEnabled,
+      timerWarningType,
+      timerWarningValue,
     } = settings.value
     const userName = configStore.userName || 'Guest'
     const userId = configStore.userId
@@ -77,6 +83,9 @@
       timerEnabled,
       timerMode,
       timerDurationSeconds: normalizedTimerDurationSeconds,
+      timerWarningEnabled,
+      timerWarningType,
+      timerWarningValue: normalizeTimerWarningValue(timerWarningValue, timerWarningType),
     }
     set(roomRef, {
       name: name.trim(),

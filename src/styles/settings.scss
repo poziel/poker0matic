@@ -773,56 +773,72 @@ button { font-family: inherit; }
 .main-head-left  { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .main-head-right { display: flex; align-items: center; gap: 8px; }
 .main-head-right .v-btn--disabled { opacity: .45; }
-.round-timer-panel {
-  align-items: center;
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  display: flex;
-  gap: 14px;
-  justify-content: space-between;
-  padding: 12px 14px;
+.round-timer-strip {
+  display: grid;
+  gap: 6px;
+  margin-top: -14px;
 }
-.round-timer-main {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  min-width: 0;
-}
-.round-timer-icon {
-  align-items: center;
+.round-timer-strip-track {
   background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: 9px;
-  color: var(--accent);
-  display: flex;
-  height: 36px;
-  justify-content: center;
-  width: 36px;
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
 }
-.round-timer-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+.round-timer-strip-fill {
+  background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent), white 24%));
+  display: block;
+  height: 100%;
+  transition: width .25s linear, background .2s ease;
 }
-.round-timer-label {
+.round-timer-strip-meta {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  min-height: 18px;
+}
+.round-timer-strip-label {
   color: var(--text-3);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 650;
   letter-spacing: .06em;
-  line-height: 1.2;
+  line-height: 1;
   text-transform: uppercase;
 }
-.round-timer-value {
-  color: var(--text-1);
+.round-timer-strip-value {
+  color: var(--text-2);
   font-family: var(--font-mono);
-  font-size: 22px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
 }
-.round-timer-action.v-btn {
-  flex-shrink: 0;
+.round-timer-strip.warning .round-timer-strip-fill {
+  background: linear-gradient(90deg, var(--warn), color-mix(in oklab, var(--warn), white 24%));
+}
+.round-timer-strip.warning-pulse .round-timer-strip-track {
+  animation: timer-warning-pulse 1.4s ease;
+}
+.round-timer-strip.expired .round-timer-strip-track {
+  animation: timer-expired-track 1.4s ease;
+}
+.round-timer-strip.expired .round-timer-strip-fill {
+  animation: timer-expired-fill 1.4s ease;
+  background: linear-gradient(90deg, var(--danger), color-mix(in oklab, var(--danger), white 22%));
+}
+.round-timer-strip.expired .round-timer-strip-value {
+  animation: timer-expired-value 1.4s ease;
+  color: var(--danger);
+}
+.round-timer-strip.paused .round-timer-strip-fill {
+  background: linear-gradient(90deg, var(--text-3), var(--text-2));
+}
+.timer-action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: -14px;
 }
 .room-name-label {
   margin: 0;
@@ -1704,6 +1720,26 @@ button { font-family: inherit; }
   0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 0px var(--success)); }
   50% { opacity: .88; transform: scale(1.02); filter: drop-shadow(0 0 6px color-mix(in oklab, var(--success), transparent 50%)); }
 }
+@keyframes timer-warning-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--warn), transparent 72%); }
+  50% { box-shadow: 0 0 0 5px color-mix(in oklab, var(--warn), transparent 86%); }
+}
+@keyframes timer-expired-track {
+  0% { border-color: var(--border); box-shadow: 0 0 0 0 transparent; }
+  25% { border-color: var(--danger); box-shadow: 0 0 0 5px color-mix(in oklab, var(--danger), transparent 82%); }
+  55% { border-color: var(--danger); box-shadow: 0 0 0 2px color-mix(in oklab, var(--danger), transparent 88%); }
+  100% { border-color: var(--border); box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes timer-expired-fill {
+  0% { transform: translateX(0); opacity: 1; }
+  38% { transform: translateX(-8px); opacity: .9; }
+  100% { transform: translateX(-100%); opacity: 0; }
+}
+@keyframes timer-expired-value {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-1px) scale(1.08); }
+  55% { transform: translateY(0) scale(1); }
+}
 
 /* ── Panel toggle button in main header (always visible) ─────────── */
 .mobile-panel-btn {
@@ -2397,6 +2433,11 @@ button { font-family: inherit; }
 .timer-settings {
   display: grid;
   gap: 10px;
+}
+.timer-warning-settings {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(140px, 1fr);
 }
 .timer-mode-toggle.v-btn-toggle {
   align-self: flex-start;
@@ -3245,4 +3286,6 @@ button { font-family: inherit; }
   .side-panel-collapsed { width: 100vw; }
   /* Special card toggles: stack vertically instead of side by side */
   .toggles-row { flex-direction: column; }
+  .timer-warning-settings { grid-template-columns: 1fr; }
+  .round-timer-strip-meta { justify-content: flex-start; }
 }

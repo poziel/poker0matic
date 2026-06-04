@@ -25,15 +25,20 @@ export interface RoomSettings {
   timerEnabled?: boolean
   timerMode?: 'automatic' | 'manual'
   timerDurationSeconds?: number
+  timerWarningEnabled?: boolean
+  timerWarningType?: 'seconds' | 'percentage'
+  timerWarningValue?: number
 }
 
 export interface RoundTimerState {
-  status: 'idle' | 'running' | 'finished'
+  status: 'idle' | 'running' | 'paused' | 'finished'
   mode: 'automatic' | 'manual'
   durationMs: number
   roundNumber: number
   startedAt?: number | null
   endsAt?: number | null
+  remainingMs?: number | null
+  finishedBy?: 'expired' | 'revealed' | null
 }
 
 export interface RoomRecord {

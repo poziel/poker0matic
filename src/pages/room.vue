@@ -133,6 +133,26 @@
           </div>
         </div>
 
+        <div
+          v-if="timerVisible"
+          class="round-timer-strip"
+          :class="{
+            warning: timerWarningActive,
+            'warning-pulse': timerWarningAnimationActive,
+            expired: timerExpired,
+            paused: roundTimer?.status === 'paused',
+          }"
+        >
+          <div class="round-timer-strip-track">
+            <span class="round-timer-strip-fill" :style="{ width: `${timerProgressPercent}%` }" />
+          </div>
+
+          <div class="round-timer-strip-meta">
+            <span class="round-timer-strip-label">{{ timerLabel }}</span>
+            <strong class="round-timer-strip-value">{{ timerDisplay }}</strong>
+          </div>
+        </div>
+
         <RoomConfigModal
           v-if="currentRoom"
           v-model="roomConfigOpen"
@@ -148,6 +168,9 @@
             timerEnabled: currentRoom.settings?.timerEnabled === true,
             timerMode: currentRoom.settings?.timerMode === 'manual' ? 'manual' : 'automatic',
             timerDurationSeconds: currentRoom.settings?.timerDurationSeconds ?? 300,
+            timerWarningEnabled: currentRoom.settings?.timerWarningEnabled === true,
+            timerWarningType: currentRoom.settings?.timerWarningType === 'percentage' ? 'percentage' : 'seconds',
+            timerWarningValue: currentRoom.settings?.timerWarningValue ?? 30,
           }"
           @save="applyRoomConfig"
         />
@@ -160,30 +183,6 @@
           :title="taskInfoModalTitle"
           @save="saveTaskInformation"
         />
-
-        <div v-if="timerEnabled" class="round-timer-panel">
-          <div class="round-timer-main">
-            <div class="round-timer-icon">
-              <v-icon :icon="timerIcon" size="18" />
-            </div>
-
-            <div class="round-timer-copy">
-              <span class="round-timer-label">{{ timerLabel }}</span>
-              <strong class="round-timer-value">{{ timerDisplay }}</strong>
-            </div>
-          </div>
-
-          <v-btn
-            v-if="canStartManualTimer"
-            class="p0-btn p0-btn-primary round-timer-action"
-            prepend-icon="mdi-play"
-            :title="roundActionTitle"
-            variant="flat"
-            @click="startManualRoundTimer"
-          >
-            Start timer
-          </v-btn>
-        </div>
 
         <SimpleResultsGrid
           v-if="configStore.viewMode === 'grid'"
@@ -267,6 +266,63 @@
               {{ historyEnabled ? 'Next round' : 'New round' }}
             </v-btn>
           </template>
+        </div>
+
+        <div v-if="timerControlsVisible" class="timer-action-row">
+          <v-btn
+            v-if="canStartManualTimer"
+            class="p0-btn p0-btn-primary"
+            prepend-icon="mdi-play"
+            :title="roundActionTitle"
+            variant="flat"
+            @click="startManualRoundTimer"
+          >
+            Start timer
+          </v-btn>
+
+          <v-btn
+            v-if="canPauseTimer"
+            class="p0-btn p0-btn-ghost"
+            prepend-icon="mdi-pause"
+            :title="roundActionTitle"
+            variant="flat"
+            @click="pauseCurrentRoundTimer"
+          >
+            Pause timer
+          </v-btn>
+
+          <v-btn
+            v-if="canResumeTimer"
+            class="p0-btn p0-btn-ghost"
+            prepend-icon="mdi-play"
+            :title="roundActionTitle"
+            variant="flat"
+            @click="resumeCurrentRoundTimer"
+          >
+            Resume timer
+          </v-btn>
+
+          <v-btn
+            v-if="canExtendTimer"
+            class="p0-btn p0-btn-ghost"
+            prepend-icon="mdi-plus"
+            :title="roundActionTitle"
+            variant="flat"
+            @click="extendCurrentRoundTimer"
+          >
+            +30 sec
+          </v-btn>
+
+          <v-btn
+            v-if="canRestartTimer"
+            class="p0-btn p0-btn-ghost"
+            prepend-icon="mdi-restart"
+            :title="roundActionTitle"
+            variant="flat"
+            @click="restartCurrentRoundTimer"
+          >
+            Restart timer
+          </v-btn>
         </div>
 
         <div v-if="showVotes && committedVote" class="committed-vote-center">
@@ -425,8 +481,13 @@
     createRoundTimerStrategy,
     finishRoundTimer,
     getRoomTimerConfig,
+    getTimerWarningThresholdMs,
     isTimerRunningForRound,
     normalizeTimerDurationSeconds,
+    normalizeTimerWarningValue,
+    pauseRoundTimer,
+    restartRoundTimer,
+    resumeRoundTimer,
   } from '@/utils/roundTimers'
 
   const route = useRoute()
@@ -505,6 +566,8 @@
   const taskInfoModalOpen = ref(false)
   const pendingTaskFlow = ref<TaskFlowMode | null>(null)
   const nowTick = ref(Date.now())
+  const timerWarningAnimationActive = ref(false)
+  const timerExpiredAnimationActive = ref(false)
 
   const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const currentTask = computed<TaskInfo | null>(() => currentRoom.value?.currentTask ?? null)
@@ -538,6 +601,8 @@
   let unregisterShortcuts: (() => void) | null = null
   let leaveRoomPromise: Promise<void> | null = null
   let timerTickInterval: ReturnType<typeof setInterval> | null = null
+  let timerWarningAnimationTimeout: ReturnType<typeof setTimeout> | null = null
+  let timerExpiredAnimationTimeout: ReturnType<typeof setTimeout> | null = null
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
@@ -566,14 +631,22 @@
   const currentRound = computed(() => currentRoom.value?.roundNumber ?? (sessionHistory.value.length + 1))
   const currentRoundLabel = computed(() => currentTask.value?.title || `Round ${currentRound.value}`)
   const roundTimer = computed(() => currentRoom.value?.roundTimer ?? null)
+  const timerVisible = computed(() =>
+    timerEnabled.value
+    && roundTimer.value?.roundNumber === currentRound.value
+    && (!taskInformationEnabled.value || !!currentTask.value),
+  )
   const timerRemainingMs = computed(() => {
     const timer = roundTimer.value
-    if (!isTimerRunningForRound(timer, currentRound.value)) return 0
-    return Math.max(0, timer.endsAt - nowTick.value)
+    if (isTimerRunningForRound(timer, currentRound.value)) return Math.max(0, timer.endsAt - nowTick.value)
+    if (timer?.roundNumber === currentRound.value && (timer.status === 'paused' || timer.status === 'idle')) {
+      return Math.max(0, timer.remainingMs ?? timer.durationMs)
+    }
+    return 0
   })
   const timerDisplay = computed(() => {
     const durationMs = roundTimer.value?.durationMs ?? normalizeTimerDurationSeconds(currentRoom.value?.settings?.timerDurationSeconds) * 1000
-    const ms = roundTimer.value?.status === 'running' ? timerRemainingMs.value : durationMs
+    const ms = timerVisible.value ? timerRemainingMs.value : durationMs
     const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
@@ -581,23 +654,63 @@
   })
   const timerLabel = computed(() => {
     if (!timerEnabled.value) return ''
-    if (showVotes.value || roundTimer.value?.status === 'finished') return 'Timer finished'
+    if (timerExpiredAnimationActive.value) return 'Timer expired'
+    if (showVotes.value || roundTimer.value?.status === 'finished') return 'Timer ended'
+    if (roundTimer.value?.status === 'paused') return 'Timer paused'
     if (roundTimer.value?.status === 'running') return timerMode.value === 'manual' ? 'Manual timer running' : 'Automatic timer running'
     if (timerMode.value === 'manual') return 'Manual timer ready'
     return 'Automatic timer ready'
   })
-  const timerIcon = computed(() => {
-    if (roundTimer.value?.status === 'running') return 'mdi-timer-sand'
-    if (showVotes.value || roundTimer.value?.status === 'finished') return 'mdi-timer-check-outline'
-    return timerMode.value === 'manual' ? 'mdi-hand-back-left-outline' : 'mdi-play-circle-outline'
+  const timerExpired = computed(() =>
+    timerExpiredAnimationActive.value
+    || showVotes.value
+    || roundTimer.value?.status === 'finished',
+  )
+  const timerProgressPercent = computed(() => {
+    const durationMs = Math.max(1, roundTimer.value?.durationMs ?? normalizeTimerDurationSeconds(currentRoom.value?.settings?.timerDurationSeconds) * 1000)
+    return Math.max(0, Math.min(100, (timerRemainingMs.value / durationMs) * 100))
   })
+  const timerWarningThresholdMs = computed(() => getTimerWarningThresholdMs(getRoomTimerConfig(currentRoom.value)))
+  const timerWarningActive = computed(() =>
+    timerVisible.value
+    && roundTimer.value?.status === 'running'
+    && timerWarningThresholdMs.value != null
+    && timerRemainingMs.value > 0
+    && timerRemainingMs.value <= timerWarningThresholdMs.value,
+  )
   const canStartManualTimer = computed(() =>
     timerEnabled.value
     && timerMode.value === 'manual'
     && !showVotes.value
-    && roundTimer.value?.status !== 'running'
+    && (roundTimer.value?.status === 'idle' || !roundTimer.value)
     && (!taskInformationEnabled.value || !!currentTask.value)
     && canManageRound.value,
+  )
+  const timerControlsVisible = computed(() =>
+    timerEnabled.value
+    && !showVotes.value
+    && (!taskInformationEnabled.value || !!currentTask.value)
+    && canManageRound.value,
+  )
+  const canPauseTimer = computed(() =>
+    timerControlsVisible.value
+    && roundTimer.value?.status === 'running'
+    && roundTimer.value.roundNumber === currentRound.value,
+  )
+  const canResumeTimer = computed(() =>
+    timerControlsVisible.value
+    && roundTimer.value?.status === 'paused'
+    && roundTimer.value.roundNumber === currentRound.value,
+  )
+  const canExtendTimer = computed(() =>
+    timerControlsVisible.value
+    && roundTimer.value?.roundNumber === currentRound.value
+    && (roundTimer.value.status === 'running' || roundTimer.value.status === 'paused' || roundTimer.value.status === 'finished'),
+  )
+  const canRestartTimer = computed(() =>
+    timerControlsVisible.value
+    && roundTimer.value?.roundNumber === currentRound.value
+    && (roundTimer.value.status === 'running' || roundTimer.value.status === 'paused'),
   )
   const roundActionTitle = computed(() => {
     if (leaderModeEnabled.value && !isLeader.value) return 'Only the leader can control the round'
@@ -915,7 +1028,11 @@
         && timerMode.value === 'automatic'
         && !showVotes.value
         && (!taskInformationEnabled.value || !!currentTask.value)
-        && (roundTimer.value?.status !== 'running' || roundTimer.value.roundNumber !== currentRound.value)
+        && (
+          !roundTimer.value
+          || roundTimer.value.roundNumber !== currentRound.value
+          || (roundTimer.value.status !== 'running' && roundTimer.value.status !== 'paused')
+        )
       ) {
         void startAutomaticRoundTimer()
       }
@@ -925,6 +1042,16 @@
   watch([timerRemainingMs, roundTimer, showVotes], () => {
     if (!showVotes.value && isTimerRunningForRound(roundTimer.value, currentRound.value) && timerRemainingMs.value <= 0) {
       void expireRoundTimer(roundTimer.value)
+    }
+  })
+
+  watch(timerWarningActive, active => {
+    if (active) triggerTimerWarningAnimation()
+  })
+
+  watch(() => roundTimer.value?.status, (status, previousStatus) => {
+    if (status === 'finished' && previousStatus === 'running' && roundTimer.value?.finishedBy === 'expired') {
+      triggerTimerExpiredAnimation()
     }
   })
 
@@ -1106,6 +1233,8 @@
     unsubscribePhoneDockSession?.()
     void cleanupPhoneDockSession()
     if (timerTickInterval !== null) clearInterval(timerTickInterval)
+    if (timerWarningAnimationTimeout !== null) clearTimeout(timerWarningAnimationTimeout)
+    if (timerExpiredAnimationTimeout !== null) clearTimeout(timerExpiredAnimationTimeout)
     if (redirectTimeout !== null) clearTimeout(redirectTimeout)
     void releaseRoundEditLock()
   })
@@ -1522,6 +1651,7 @@
 
       const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
       if (isTimerRunningForRound(current.roundTimer, roundNumber)) return current
+      if (current.roundTimer?.status === 'paused' && current.roundTimer.roundNumber === roundNumber) return current
 
       return {
         ...current,
@@ -1554,6 +1684,99 @@
     }).catch(console.error)
   }
 
+  async function pauseCurrentRoundTimer () {
+    if (!db || !canPauseTimer.value) return
+
+    closePlayerMenu()
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const timer = current.roundTimer as RoundTimerState | null | undefined
+      if (!isTimerRunningForRound(timer, roundNumber)) return current
+
+      return {
+        ...current,
+        roundTimer: pauseRoundTimer(timer, Date.now()),
+        lastActivity: Date.now(),
+      }
+    }).catch(console.error)
+  }
+
+  async function resumeCurrentRoundTimer () {
+    if (!db || !canResumeTimer.value) return
+
+    closePlayerMenu()
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const timer = current.roundTimer as RoundTimerState | null | undefined
+      if (!timer || timer.status !== 'paused' || timer.roundNumber !== roundNumber) return current
+
+      return {
+        ...current,
+        roundTimer: resumeRoundTimer(timer, Date.now()),
+        lastActivity: Date.now(),
+      }
+    }).catch(console.error)
+  }
+
+  async function restartCurrentRoundTimer () {
+    if (!db || !canRestartTimer.value) return
+
+    closePlayerMenu()
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const timer = current.roundTimer as RoundTimerState | null | undefined
+      if (!timer || timer.roundNumber !== roundNumber || (timer.status !== 'running' && timer.status !== 'paused')) return current
+
+      return {
+        ...current,
+        roundTimer: restartRoundTimer(timer, Date.now()),
+        lastActivity: Date.now(),
+      }
+    }).catch(console.error)
+  }
+
+  async function extendCurrentRoundTimer () {
+    if (!db || !canExtendTimer.value) return
+
+    closePlayerMenu()
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const timer = current.roundTimer as RoundTimerState | null | undefined
+      if (!timer || timer.roundNumber !== roundNumber) return current
+
+      const now = Date.now()
+      const addedMs = 30_000
+      const remainingMs = isTimerRunningForRound(timer, roundNumber)
+        ? Math.max(0, timer.endsAt - now)
+        : Math.max(0, timer.remainingMs ?? 0)
+
+      return {
+        ...current,
+        roundTimer: {
+          ...timer,
+          status: 'running',
+          startedAt: now,
+          endsAt: now + remainingMs + addedMs,
+          remainingMs: remainingMs + addedMs,
+          finishedBy: null,
+        },
+        lastActivity: now,
+      }
+    }).catch(console.error)
+  }
+
   async function expireRoundTimer (timer: RoundTimerState) {
     if (!db) return
 
@@ -1571,7 +1794,7 @@
         settings: current.settings
           ? { ...current.settings, showVotes: true }
           : { showVotes: true },
-        roundTimer: finishRoundTimer(currentTimer, roundNumber),
+        roundTimer: finishRoundTimer(currentTimer, roundNumber, 'expired'),
         lastActivity: Date.now(),
       }
     }).catch(console.error)
@@ -1630,6 +1853,9 @@
     timerEnabled: boolean
     timerMode: 'automatic' | 'manual'
     timerDurationSeconds: number
+    timerWarningEnabled: boolean
+    timerWarningType: 'seconds' | 'percentage'
+    timerWarningValue: number
   }) {
     if (!db || !currentRoom.value) return
 
@@ -1638,6 +1864,8 @@
 
     const newOptions = buildNewVoteOptions(settings)
     const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(settings.timerDurationSeconds)
+    const timerWarningType = settings.timerWarningType === 'percentage' ? 'percentage' : 'seconds'
+    const normalizedTimerWarningValue = normalizeTimerWarningValue(settings.timerWarningValue, timerWarningType)
 
     const updates: Record<string, unknown> = {
       'name': settings.name,
@@ -1651,6 +1879,9 @@
       'settings/timerEnabled': settings.timerEnabled,
       'settings/timerMode': settings.timerMode,
       'settings/timerDurationSeconds': normalizedTimerDurationSeconds,
+      'settings/timerWarningEnabled': settings.timerWarningEnabled,
+      'settings/timerWarningType': timerWarningType,
+      'settings/timerWarningValue': normalizedTimerWarningValue,
       'leaderUserId': settings.leaderModeEnabled
         ? (leaderUserId.value ?? createdByUserId.value ?? null)
         : null,
@@ -1680,6 +1911,9 @@
     const timerConfigChanged = settings.timerEnabled !== timerEnabled.value
       || settings.timerMode !== timerMode.value
       || normalizedTimerDurationSeconds !== normalizeTimerDurationSeconds(currentRoom.value.settings?.timerDurationSeconds)
+      || settings.timerWarningEnabled !== (currentRoom.value.settings?.timerWarningEnabled === true)
+      || timerWarningType !== (currentRoom.value.settings?.timerWarningType === 'percentage' ? 'percentage' : 'seconds')
+      || normalizedTimerWarningValue !== normalizeTimerWarningValue(currentRoom.value.settings?.timerWarningValue, timerWarningType)
 
     if (timerConfigChanged) {
       const canStartTimer = !showVotes.value && (!settings.taskInformationEnabled || !!currentTask.value)
@@ -1690,6 +1924,9 @@
             timerEnabled: settings.timerEnabled,
             timerMode: settings.timerMode,
             timerDurationSeconds: normalizedTimerDurationSeconds,
+            timerWarningEnabled: settings.timerWarningEnabled,
+            timerWarningType,
+            timerWarningValue: normalizedTimerWarningValue,
           },
         }, currentRound.value, Date.now())
         : null
@@ -1721,7 +1958,7 @@
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': true,
-      'roundTimer': finishRoundTimer(roundTimer.value, currentRound.value),
+      'roundTimer': finishRoundTimer(roundTimer.value, currentRound.value, 'revealed'),
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
@@ -1733,7 +1970,6 @@
     update(roomRef, {
       'settings/showVotes': false,
       'committedVote': null,
-      'roundTimer': null,
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
@@ -2082,6 +2318,28 @@
     setTimeout(() => {
       showConfetti.value = false
     }, 3500)
+  }
+
+  function triggerTimerWarningAnimation () {
+    timerWarningAnimationActive.value = false
+    if (timerWarningAnimationTimeout !== null) clearTimeout(timerWarningAnimationTimeout)
+    requestAnimationFrame(() => {
+      timerWarningAnimationActive.value = true
+      timerWarningAnimationTimeout = setTimeout(() => {
+        timerWarningAnimationActive.value = false
+      }, 1400)
+    })
+  }
+
+  function triggerTimerExpiredAnimation () {
+    timerExpiredAnimationActive.value = false
+    if (timerExpiredAnimationTimeout !== null) clearTimeout(timerExpiredAnimationTimeout)
+    requestAnimationFrame(() => {
+      timerExpiredAnimationActive.value = true
+      timerExpiredAnimationTimeout = setTimeout(() => {
+        timerExpiredAnimationActive.value = false
+      }, 1800)
+    })
   }
 
   const roomCommands = {

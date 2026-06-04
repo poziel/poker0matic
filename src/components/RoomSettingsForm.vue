@@ -20,6 +20,9 @@
     timerEnabled: boolean
     timerMode: 'automatic' | 'manual'
     timerDurationSeconds: number
+    timerWarningEnabled: boolean
+    timerWarningType: 'seconds' | 'percentage'
+    timerWarningValue: number
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
@@ -46,6 +49,11 @@
   function patchTimerDuration (value: number | string) {
     const duration = typeof value === 'number' ? value : Number(value)
     patch({ timerDurationSeconds: duration })
+  }
+
+  function patchTimerWarningValue (value: number | string) {
+    const warningValue = typeof value === 'number' ? value : Number(value)
+    patch({ timerWarningValue: warningValue })
   }
 </script>
 
@@ -219,6 +227,50 @@
           variant="outlined"
           @update:model-value="patchTimerDuration"
         />
+
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-alert-circle-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Enable warning threshold</span>
+          </div>
+
+          <input
+            :checked="modelValue.timerWarningEnabled"
+            class="p0-toggle"
+            type="checkbox"
+            @change="patch({ timerWarningEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <div v-if="modelValue.timerWarningEnabled" class="timer-warning-settings">
+          <v-btn-toggle
+            class="timer-mode-toggle"
+            density="compact"
+            mandatory
+            :model-value="modelValue.timerWarningType"
+            variant="outlined"
+            @update:model-value="patch({ timerWarningType: $event as RoomFormSettings['timerWarningType'] })"
+          >
+            <v-btn value="seconds">
+              Seconds
+            </v-btn>
+
+            <v-btn value="percentage">
+              Percent
+            </v-btn>
+          </v-btn-toggle>
+
+          <v-text-field
+            class="p0-field"
+            hide-details="auto"
+            inputmode="numeric"
+            :label="modelValue.timerWarningType === 'percentage' ? 'Warning percentage' : 'Warning seconds'"
+            :model-value="modelValue.timerWarningValue"
+            type="number"
+            variant="outlined"
+            @update:model-value="patchTimerWarningValue"
+          />
+        </div>
       </div>
     </div>
 
