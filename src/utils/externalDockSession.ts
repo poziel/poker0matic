@@ -25,6 +25,9 @@ export function createExternalDockSessionToken (): string {
 
 export function encodeFirebaseConfig (config: FirebaseConfig): string {
   return btoa(JSON.stringify(config))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '')
 }
 
 export function buildExternalDockUrl (

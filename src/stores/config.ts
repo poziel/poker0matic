@@ -19,8 +19,8 @@ const USER_ID_KEY = 'poker_user_id'
 const USER_NAME_KEY = 'poker_user_name'
 const RECENT_ROOMS_KEY = 'poker_recent_rooms'
 const AVATAR_STYLE_KEY = 'poker_avatar_style'
-const AVATAR_SEED_KEY  = 'poker_avatar_seed'
-const AVATAR_BG_KEY    = 'poker_avatar_bg'
+const AVATAR_SEED_KEY = 'poker_avatar_seed'
+const AVATAR_BG_KEY = 'poker_avatar_bg'
 const VIEW_MODE_KEY = 'poker_view_mode'
 const HISTORY_PANEL_KEY = 'poker_history_panel'
 const MAX_RECENT_ROOMS = 5
@@ -47,8 +47,8 @@ export const useConfigStore = defineStore('config', () => {
   const activeRoomName = ref<string | null>(null)
   const recentRooms = ref<RecentRoom[]>([])
   const avatarStyle = ref(localStorage.getItem(AVATAR_STYLE_KEY) ?? DEFAULT_AVATAR_STYLE)
-  const avatarSeed  = ref(localStorage.getItem(AVATAR_SEED_KEY)  ?? '')
-  const avatarBg    = ref(localStorage.getItem(AVATAR_BG_KEY)    ?? DEFAULT_AVATAR_BG)
+  const avatarSeed = ref(localStorage.getItem(AVATAR_SEED_KEY) ?? '')
+  const avatarBg = ref(localStorage.getItem(AVATAR_BG_KEY) ?? DEFAULT_AVATAR_BG)
   const viewMode = ref<ViewMode>((localStorage.getItem(VIEW_MODE_KEY) as ViewMode) ?? 'table')
   const historyPanelOpen = ref(localStorage.getItem(HISTORY_PANEL_KEY) === 'true')
 
@@ -144,11 +144,21 @@ export const useConfigStore = defineStore('config', () => {
    */
   function applyConfigFromBase64 (base64: string) {
     try {
-      const parsed: FirebaseConfig = JSON.parse(atob(base64))
-      if (parsed) saveFirebaseConfig(parsed)
+      const normalizedBase64 = normalizeBase64Config(base64)
+      const parsed: FirebaseConfig = JSON.parse(atob(normalizedBase64))
+      if (parsed) {
+        saveFirebaseConfig(parsed)
+      }
     } catch {
       // malformed base64 — silently ignore
     }
+  }
+
+  function normalizeBase64Config (base64: string): string {
+    const withoutWhitespace = base64.trim().replace(/\s/g, '')
+    const standardBase64 = withoutWhitespace.replaceAll('-', '+').replaceAll('_', '/')
+    const paddingLength = (4 - (standardBase64.length % 4)) % 4
+    return `${standardBase64}${'='.repeat(paddingLength)}`
   }
 
   function setConfigValidationStatus (status: ConfigValidationStatus) {
@@ -167,8 +177,11 @@ export const useConfigStore = defineStore('config', () => {
 
   function setAvatarSeed (seed: string) {
     avatarSeed.value = seed
-    if (seed) localStorage.setItem(AVATAR_SEED_KEY, seed)
-    else localStorage.removeItem(AVATAR_SEED_KEY)
+    if (seed) {
+      localStorage.setItem(AVATAR_SEED_KEY, seed)
+    } else {
+      localStorage.removeItem(AVATAR_SEED_KEY)
+    }
   }
 
   function setAvatarBg (bg: string) {
@@ -187,8 +200,12 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   function getDb (): Database | null {
-    if (_db) return _db
-    if (!firebaseConfig.value) return null
+    if (_db) {
+      return _db
+    }
+    if (!firebaseConfig.value) {
+      return null
+    }
     const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig.value)
     _db = getDatabase(app)
     return _db

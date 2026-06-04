@@ -113,6 +113,8 @@
 
   const configStore = useConfigStore()
   const route = useRoute()
+  initializeDockConfig()
+
   const context = ref<ExternalDockRoomContext>(resolveInitialContext())
   const dockSessionToken = ref(readStringQuery('dockSession'))
   const dockSessionUserId = ref<string | null>(null)
@@ -155,9 +157,6 @@
   })
 
   onMounted(async () => {
-    configStore.initializeConfig()
-    applyRouteConfig()
-
     writeHeartbeat()
     heartbeatTimer = setInterval(writeHeartbeat, 1000)
     window.addEventListener('storage', onStorage)
@@ -304,6 +303,11 @@
     if (config) {
       configStore.applyConfigFromBase64(config)
     }
+  }
+
+  function initializeDockConfig () {
+    configStore.initializeConfig()
+    applyRouteConfig()
   }
 
   function readStringQuery (key: string): string | null {
