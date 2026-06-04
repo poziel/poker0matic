@@ -30,6 +30,7 @@
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
   import { useConfigStore } from '@/stores/config'
+  import { DEFAULT_REACTION_EMOJIS, sanitizeReactionEmojis } from '@/utils/reactions'
   import { buildInitialTimerForRoom, normalizeTimerDurationSeconds, normalizeTimerWarningValue } from '@/utils/roundTimers'
 
   const router = useRouter()
@@ -52,6 +53,8 @@
     timerWarningEnabled: false,
     timerWarningType: 'seconds',
     timerWarningValue: 30,
+    reactionsEnabled: false,
+    reactionEmojis: [...DEFAULT_REACTION_EMOJIS],
   })
 
   function createRoom () {
@@ -73,6 +76,8 @@
       timerWarningEnabled,
       timerWarningType,
       timerWarningValue,
+      reactionsEnabled,
+      reactionEmojis,
     } = settings.value
     const userName = configStore.userName || 'Guest'
     const userId = configStore.userId
@@ -116,6 +121,8 @@
         historyEnabled,
         leaderModeEnabled,
         taskInformationEnabled,
+        reactionsEnabled,
+        reactionEmojis: sanitizeReactionEmojis(reactionEmojis),
         ...timerSettings,
       },
       lastActivity: joinedAt,

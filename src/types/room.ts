@@ -29,6 +29,8 @@ export interface RoomSettings {
   timerWarningEnabled?: boolean
   timerWarningType?: 'seconds' | 'percentage'
   timerWarningValue?: number
+  reactionsEnabled?: boolean
+  reactionEmojis?: string[]
 }
 
 export interface RoundTimerState {

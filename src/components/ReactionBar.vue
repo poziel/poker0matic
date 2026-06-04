@@ -11,15 +11,15 @@
 <template>
   <div
     aria-label="Quick reactions"
-    class="reactions"
+    class="reaction-bar"
   >
-    <span class="label">React</span>
+    <span class="reaction-bar-label">React</span>
 
     <button
       v-for="emoji in reactions"
       :key="emoji"
       :aria-label="`Send ${emoji} reaction`"
-      class="react-btn"
+      class="reaction-btn"
       type="button"
       @click="$emit('react', emoji)"
     >

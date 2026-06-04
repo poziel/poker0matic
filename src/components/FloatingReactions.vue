@@ -1,10 +1,5 @@
 <script setup lang="ts">
-  interface FloatingReaction {
-    id: string
-    emoji: string
-    x: number
-    y: number
-  }
+  import type { FloatingReaction } from '@/utils/reactions'
 
   defineProps<{
     reactions: FloatingReaction[]
@@ -12,12 +7,19 @@
 </script>
 
 <template>
-  <span
-    v-for="reaction in reactions"
-    :key="reaction.id"
-    class="float-react"
-    :style="{ left: `${reaction.x}px`, top: `${reaction.y}px` }"
-  >
-    {{ reaction.emoji }}
-  </span>
+  <div aria-hidden="true" class="floating-reactions">
+    <span
+      v-for="reaction in reactions"
+      :key="reaction.id"
+      class="float-react"
+      :style="{
+        left: `${reaction.x}px`,
+        top: `${reaction.y}px`,
+        '--reaction-drift': `${reaction.drift}px`,
+        '--reaction-duration': `${reaction.durationMs}ms`,
+      }"
+    >
+      {{ reaction.emoji }}
+    </span>
+  </div>
 </template>

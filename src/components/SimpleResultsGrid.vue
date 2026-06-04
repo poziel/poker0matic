@@ -51,12 +51,14 @@
       @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
     >
       <div class="rg-name-cell">
-        <PlayerAvatar
-          :avatar-bg="player.avatarBg"
-          :avatar-seed="player.avatarSeed || player.name"
-          :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
-          :size="28"
-        />
+        <span class="rg-avatar-anchor" :data-reaction-user-id="player.userId">
+          <PlayerAvatar
+            :avatar-bg="player.avatarBg"
+            :avatar-seed="player.avatarSeed || player.name"
+            :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
+            :size="28"
+          />
+        </span>
 
         <span class="rg-name">{{ player.name }}</span>
 

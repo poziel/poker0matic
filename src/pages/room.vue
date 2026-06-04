@@ -172,6 +172,8 @@
             timerWarningEnabled: currentRoom.settings?.timerWarningEnabled === true,
             timerWarningType: currentRoom.settings?.timerWarningType === 'percentage' ? 'percentage' : 'seconds',
             timerWarningValue: currentRoom.settings?.timerWarningValue ?? 30,
+            reactionsEnabled: currentRoom.settings?.reactionsEnabled === true,
+            reactionEmojis: getReactionEmojis(currentRoom.settings?.reactionEmojis),
           }"
           @save="applyRoomConfig"
         />
@@ -203,6 +205,8 @@
           :show-votes="showVotes"
           @open-player-menu="openPlayerMenu"
         />
+
+        <FloatingReactions :reactions="floatingReactions" />
 
         <div class="action-row room-action-row">
           <template v-if="taskInformationEnabled && !currentTask">
@@ -333,6 +337,12 @@
           </div>
         </div>
 
+        <ReactionBar
+          v-if="reactionsEnabled"
+          :reactions="reactionEmojis"
+          @react="sendReaction"
+        />
+
         <VoteDock
           v-if="!externalVotingDockActive"
           v-model:collapsed="dockCollapsed"
@@ -460,7 +470,9 @@
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
+  import FloatingReactions from '@/components/FloatingReactions.vue'
   import PokerTable from '@/components/PokerTable.vue'
+  import ReactionBar from '@/components/ReactionBar.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
   import RoomSidePanel from '@/components/RoomSidePanel.vue'
   import SimpleResultsGrid from '@/components/SimpleResultsGrid.vue'
@@ -477,6 +489,7 @@
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
+  import { type FloatingReaction, getReactionEmojis, type RoomReactionEvent, sanitizeReactionEmojis } from '@/utils/reactions'
   import {
     buildTimerForRound,
     createRoundTimerStrategy,
@@ -575,6 +588,7 @@
   const showConfetti = ref(false)
   const shakingUserIds = ref<string[]>([])
   const previousVotes = ref<Record<string, VoteValue | null>>({})
+  const floatingReactions = ref<FloatingReaction[]>([])
   const confettiPieces = ref<Array<{
     id: string
     left: number
@@ -598,12 +612,15 @@
   let unsubscribeRoom: (() => void) | null = null
   let unsubscribeUsers: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
+  let unsubscribeReactions: (() => void) | null = null
   let unsubscribePhoneDockSession: (() => void) | null = null
   let unregisterShortcuts: (() => void) | null = null
   let leaveRoomPromise: Promise<void> | null = null
   let timerTickInterval: ReturnType<typeof setInterval> | null = null
   let timerWarningAnimationTimeout: ReturnType<typeof setTimeout> | null = null
   let timerExpiredAnimationTimeout: ReturnType<typeof setTimeout> | null = null
+  let hasInitializedReactions = false
+  const seenReactionIds = new Set<string>()
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
@@ -611,6 +628,8 @@
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
   const timerEnabled = computed(() => currentRoom.value?.settings?.timerEnabled === true)
   const timerMode = computed(() => currentRoom.value?.settings?.timerMode === 'manual' ? 'manual' : 'automatic')
+  const reactionsEnabled = computed(() => currentRoom.value?.settings?.reactionsEnabled === true)
+  const reactionEmojis = computed(() => getReactionEmojis(currentRoom.value?.settings?.reactionEmojis))
   const taskInfoVisible = computed(() => taskInformationEnabled.value || !!currentTask.value)
   const sidePanelEnabled = computed(() => historyEnabled.value || taskInfoVisible.value)
   const leaderUserId = computed(() => currentRoom.value?.leaderUserId ?? null)
@@ -976,6 +995,10 @@
     if (!enabled) historyPanelOpen.value = false
   })
 
+  watch(reactionsEnabled, enabled => {
+    if (!enabled) floatingReactions.value = []
+  })
+
   watch([currentRoom, roomUsers], () => {
     if (!currentRoom.value) return
     syncRoomSummary()
@@ -1222,6 +1245,38 @@
         .map(([historyId, entry]) => normalizeHistoryEntry(historyId, entry))
         .toSorted((a, b) => a.round - b.round)
     })
+
+    const reactionsRef = dbRef(db, `rooms/${roomId}/reactions`)
+    unsubscribeReactions = onValue(reactionsRef, snapshot => {
+      const data = snapshot.val() as Record<string, RoomReactionEvent> | null
+      if (!data) {
+        hasInitializedReactions = true
+        return
+      }
+
+      if (!hasInitializedReactions) {
+        for (const reactionId of Object.keys(data)) {
+          seenReactionIds.add(reactionId)
+        }
+        hasInitializedReactions = true
+        return
+      }
+
+      if (!reactionsEnabled.value) {
+        for (const reactionId of Object.keys(data)) {
+          seenReactionIds.add(reactionId)
+        }
+        return
+      }
+
+      for (const [reactionId, event] of Object.entries(data)) {
+        if (seenReactionIds.has(reactionId)) continue
+        seenReactionIds.add(reactionId)
+        if (!isValidReactionEvent(event)) continue
+        if (!reactionEmojis.value.includes(event.emoji)) continue
+        addFloatingReaction(reactionId, event)
+      }
+    })
   })
 
   onUnmounted(() => {
@@ -1231,6 +1286,7 @@
     unsubscribeRoom?.()
     unsubscribeUsers?.()
     unsubscribeHistory?.()
+    unsubscribeReactions?.()
     unsubscribePhoneDockSession?.()
     void cleanupPhoneDockSession()
     if (timerTickInterval !== null) clearInterval(timerTickInterval)
@@ -1825,6 +1881,64 @@
     }
   }
 
+  function isValidReactionEvent (event: unknown): event is RoomReactionEvent {
+    return !!event
+      && typeof event === 'object'
+      && typeof (event as Partial<RoomReactionEvent>).emoji === 'string'
+      && typeof (event as Partial<RoomReactionEvent>).userId === 'string'
+      && typeof (event as Partial<RoomReactionEvent>).createdAt === 'number'
+  }
+
+  function sendReaction (emoji: string) {
+    if (!db || !configStore.userId || !reactionsEnabled.value) return
+    if (!reactionEmojis.value.includes(emoji)) return
+
+    const createdAt = Date.now()
+    const reactionId = `${createdAt}-${configStore.userId}-${Math.random().toString(36).slice(2, 8)}`
+    const event: RoomReactionEvent = {
+      emoji,
+      userId: configStore.userId,
+      createdAt,
+    }
+
+    seenReactionIds.add(reactionId)
+    addFloatingReaction(reactionId, event)
+
+    const reactionRef = dbRef(db, `rooms/${roomId}/reactions/${reactionId}`)
+    set(reactionRef, event)
+      .then(() => {
+        setTimeout(() => {
+          remove(reactionRef).catch(console.error)
+        }, 5000)
+      })
+      .catch(console.error)
+  }
+
+  function addFloatingReaction (reactionId: string, event: RoomReactionEvent) {
+    const anchor = document.querySelector<HTMLElement>(`[data-reaction-user-id="${CSS.escape(event.userId)}"]`)
+    const rect = anchor?.getBoundingClientRect()
+    const fallbackRect = document.querySelector<HTMLElement>('.main')?.getBoundingClientRect()
+    const baseX = rect ? rect.left + rect.width / 2 : (fallbackRect ? fallbackRect.left + fallbackRect.width / 2 : window.innerWidth / 2)
+    const baseY = rect ? rect.top + rect.height / 2 : (fallbackRect ? fallbackRect.top + fallbackRect.height / 2 : window.innerHeight / 2)
+    const reaction: FloatingReaction = {
+      id: `${reactionId}-${Math.random().toString(36).slice(2, 6)}`,
+      emoji: event.emoji,
+      x: baseX + randomBetween(-14, 14),
+      y: baseY + randomBetween(-10, 10),
+      drift: randomBetween(-26, 26),
+      durationMs: Math.round(randomBetween(1300, 1900)),
+    }
+
+    floatingReactions.value = [...floatingReactions.value, reaction].slice(-80)
+    setTimeout(() => {
+      floatingReactions.value = floatingReactions.value.filter(item => item.id !== reaction.id)
+    }, reaction.durationMs + 120)
+  }
+
+  function randomBetween (min: number, max: number) {
+    return min + Math.random() * (max - min)
+  }
+
   function buildNewVoteOptions (settings: {
     deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
     customDeck: string
@@ -1859,6 +1973,8 @@
     timerWarningEnabled: boolean
     timerWarningType: 'seconds' | 'percentage'
     timerWarningValue: number
+    reactionsEnabled: boolean
+    reactionEmojis: string[]
   }) {
     if (!db || !currentRoom.value) return
 
@@ -1869,6 +1985,7 @@
     const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(settings.timerDurationSeconds)
     const timerWarningType = settings.timerWarningType === 'percentage' ? 'percentage' : 'seconds'
     const normalizedTimerWarningValue = normalizeTimerWarningValue(settings.timerWarningValue, timerWarningType)
+    const nextReactionEmojis = sanitizeReactionEmojis(settings.reactionEmojis)
 
     const updates: Record<string, unknown> = {
       'name': settings.name,
@@ -1886,11 +2003,17 @@
       'settings/timerWarningEnabled': settings.timerWarningEnabled,
       'settings/timerWarningType': timerWarningType,
       'settings/timerWarningValue': normalizedTimerWarningValue,
+      'settings/reactionsEnabled': settings.reactionsEnabled,
+      'settings/reactionEmojis': nextReactionEmojis,
       'leaderUserId': settings.leaderModeEnabled
         ? (leaderUserId.value ?? createdByUserId.value ?? null)
         : null,
       'createdByUserId': createdByUserId.value,
       'lastActivity': Date.now(),
+    }
+
+    if (!settings.reactionsEnabled) {
+      updates.reactions = null
     }
 
     // Only reset votes that are no longer in the new deck
