@@ -1496,41 +1496,6 @@ button { font-family: inherit; }
   line-height: 1.55;
 }
 
-.phone-dock-url-field {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-
-.phone-dock-url-field input {
-  min-width: 0;
-  height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--bg-2);
-  color: var(--text-1);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  letter-spacing: 0;
-  padding: 0 10px;
-  text-transform: none;
-  outline: none;
-}
-
-.phone-dock-url-field input:focus {
-  border-color: color-mix(in oklab, var(--accent), transparent 40%);
-}
-
-.phone-dock-url-field input:disabled {
-  color: var(--text-4);
-  cursor: not-allowed;
-}
-
 .phone-dock-qr-shell {
   position: relative;
   display: grid;

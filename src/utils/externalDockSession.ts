@@ -35,37 +35,12 @@ export function buildExternalDockUrl (
   roomId: string,
   config: FirebaseConfig,
   dockSession?: string | null,
-  appBaseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`,
 ): string {
-  const url = new URL(`app/dock/${encodeURIComponent(roomId)}`, normalizeExternalDockAppBaseUrl(appBaseUrl))
+  const url = new URL(`${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`, window.location.origin)
   url.searchParams.set('config', encodeFirebaseConfig(config))
   if (dockSession) {
     url.searchParams.set('dockSession', dockSession)
   }
-  return url.toString()
-}
-
-export function normalizeExternalDockAppBaseUrl (rawUrl: string): string {
-  const trimmedUrl = rawUrl.trim()
-  const valueWithProtocol = /^[a-z]+:\/\//i.test(trimmedUrl)
-    ? trimmedUrl
-    : `http://${trimmedUrl}`
-  const url = new URL(valueWithProtocol)
-
-  if (!url.port && window.location.port) {
-    url.port = window.location.port
-  }
-
-  const basePath = import.meta.env.BASE_URL
-  const normalizedBasePath = basePath.endsWith('/') ? basePath : `${basePath}/`
-  const currentPath = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`
-
-  url.pathname = currentPath.endsWith(normalizedBasePath)
-    ? currentPath
-    : normalizedBasePath
-
-  url.search = ''
-  url.hash = ''
   return url.toString()
 }
 
