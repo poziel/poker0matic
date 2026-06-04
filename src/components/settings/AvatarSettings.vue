@@ -83,6 +83,16 @@
         >
 
         <button class="avatar-preview-btn" type="button" @click="applyPreview">Preview</button>
+
+        <button
+          aria-label="Randomize avatar seed"
+          class="avatar-randomize-btn"
+          title="Randomize avatar seed"
+          type="button"
+          @click="randomizeAvatarSeed"
+        >
+          <v-icon icon="mdi-dice-multiple" size="18" />
+        </button>
       </div>
 
       <label v-show="model.avatarSource === 'dicebear'" class="toggle-item">
@@ -218,6 +228,13 @@
     model.value.avatarSeed = localAvatarSeed.value
   }
 
+  function randomizeAvatarSeed () {
+    const seed = createRandomAvatarSeed()
+    localAvatarSeed.value = seed
+    previewSeed.value = seed
+    model.value.avatarSeed = seed
+  }
+
   watch(localAvatarSeed, seed => {
     model.value.avatarSeed = seed
   })
@@ -300,6 +317,18 @@
       width: result.coordinates.width / result.image.width,
       height: result.coordinates.height / result.image.height,
     }
+  }
+
+  function createRandomAvatarSeed (): string {
+    if (globalThis.crypto?.getRandomValues) {
+      const values = new Uint32Array(2)
+      globalThis.crypto.getRandomValues(values)
+      return `avatar-${values[0].toString(36)}-${values[1].toString(36)}`
+    }
+
+    const first = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
+    const second = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
+    return `avatar-${first}-${second}`
   }
 
   function scheduleModeration (url: string) {

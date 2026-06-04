@@ -3335,7 +3335,7 @@ button { font-family: inherit; }
 .avatar-style-card {
   appearance: none; border: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 10px 8px;
+  padding: 24px 8px 10px;
   border-radius: 10px;
   background: var(--bg-2);
   border: 1.5px solid var(--border);
@@ -3355,6 +3355,7 @@ button { font-family: inherit; }
 }
 .avatar-style-rec {
   position: absolute; top: 4px; right: 4px;
+  z-index: 1;
   font-size: 8px; font-weight: 700;
   text-transform: uppercase; letter-spacing: .04em;
   color: var(--accent);
@@ -3511,9 +3512,9 @@ button { font-family: inherit; }
   &::placeholder { color: var(--text-3); }
 }
 
-.avatar-preview-btn {
+.avatar-preview-btn,
+.avatar-randomize-btn {
   flex-shrink: 0;
-  padding: 0 16px;
   border: none;
   border-left: 1.5px solid var(--border-strong);
   border-radius: 0;
@@ -3526,6 +3527,17 @@ button { font-family: inherit; }
   transition: background 0.15s, color 0.15s;
 
   &:hover { background: var(--bg-3); color: var(--text-1); }
+}
+
+.avatar-preview-btn {
+  padding: 0 16px;
+}
+
+.avatar-randomize-btn {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0 12px;
 }
 
 // Background color picker row — same height as the seed input group
