@@ -20,6 +20,7 @@
     timerEnabled: boolean
     timerMode: 'automatic' | 'manual'
     timerDurationSeconds: number
+    timerAutoRevealEnabled: boolean
     timerWarningEnabled: boolean
     timerWarningType: 'seconds' | 'percentage'
     timerWarningValue: number
@@ -198,78 +199,112 @@
       </label>
 
       <div v-if="modelValue.timerEnabled" class="timer-settings">
-        <v-btn-toggle
-          class="timer-mode-toggle"
-          density="compact"
-          mandatory
-          :model-value="modelValue.timerMode"
-          variant="outlined"
-          @update:model-value="patch({ timerMode: $event as RoomFormSettings['timerMode'] })"
-        >
-          <v-btn value="automatic">
-            <v-icon icon="mdi-play-circle-outline" size="15" />
-            Automatic
-          </v-btn>
-
-          <v-btn value="manual">
-            <v-icon icon="mdi-hand-back-left-outline" size="15" />
-            Manual
-          </v-btn>
-        </v-btn-toggle>
-
-        <v-text-field
-          class="p0-field"
-          hide-details="auto"
-          inputmode="numeric"
-          label="Duration in seconds"
-          :model-value="modelValue.timerDurationSeconds"
-          type="number"
-          variant="outlined"
-          @update:model-value="patchTimerDuration"
-        />
-
         <label class="toggle-item">
           <div class="toggle-info">
-            <v-icon icon="mdi-alert-circle-outline" size="15" style="color: var(--text-2)" />
-            <span class="toggle-name">Enable warning threshold</span>
+            <v-icon icon="mdi-eye-check-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Reveal votes when timer ends</span>
           </div>
 
           <input
-            :checked="modelValue.timerWarningEnabled"
+            :checked="modelValue.timerAutoRevealEnabled"
             class="p0-toggle"
             type="checkbox"
-            @change="patch({ timerWarningEnabled: ($event.target as HTMLInputElement).checked })"
+            @change="patch({ timerAutoRevealEnabled: ($event.target as HTMLInputElement).checked })"
           >
         </label>
 
-        <div v-if="modelValue.timerWarningEnabled" class="timer-warning-settings">
-          <v-btn-toggle
-            class="timer-mode-toggle"
-            density="compact"
-            mandatory
-            :model-value="modelValue.timerWarningType"
-            variant="outlined"
-            @update:model-value="patch({ timerWarningType: $event as RoomFormSettings['timerWarningType'] })"
-          >
-            <v-btn value="seconds">
-              Seconds
-            </v-btn>
+        <div class="timer-config-group">
+          <span class="timer-config-label">Mode</span>
 
-            <v-btn value="percentage">
-              Percent
-            </v-btn>
-          </v-btn-toggle>
+          <div class="timer-config-controls timer-mode-controls">
+            <v-btn-toggle
+              class="timer-mode-toggle"
+              density="compact"
+              mandatory
+              :model-value="modelValue.timerMode"
+              variant="outlined"
+              @update:model-value="patch({ timerMode: $event as RoomFormSettings['timerMode'] })"
+            >
+              <v-btn value="automatic">
+                <v-icon icon="mdi-play-circle-outline" size="15" />
+                Automatic
+              </v-btn>
 
-          <v-text-field
-            class="p0-field"
-            hide-details="auto"
-            inputmode="numeric"
-            :label="modelValue.timerWarningType === 'percentage' ? 'Warning percentage' : 'Warning seconds'"
-            :model-value="modelValue.timerWarningValue"
-            type="number"
-            variant="outlined"
-            @update:model-value="patchTimerWarningValue"
-          />
+              <v-btn value="manual">
+                <v-icon icon="mdi-hand-back-left-outline" size="15" />
+                Manual
+              </v-btn>
+            </v-btn-toggle>
+
+            <div class="timer-value-control">
+              <v-text-field
+                class="p0-field timer-number-field"
+                hide-details="auto"
+                inputmode="numeric"
+                label="Duration"
+                :model-value="modelValue.timerDurationSeconds"
+                type="number"
+                variant="outlined"
+                @update:model-value="patchTimerDuration"
+              />
+
+              <span class="timer-unit-label">sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="timer-config-group">
+          <span class="timer-config-label">Warning</span>
+
+          <div class="timer-config-controls timer-warning-controls">
+            <label class="toggle-item timer-warning-toggle">
+              <div class="toggle-info">
+                <v-icon icon="mdi-alert-circle-outline" size="15" style="color: var(--text-2)" />
+                <span class="toggle-name">Enable warning threshold</span>
+              </div>
+
+              <input
+                :checked="modelValue.timerWarningEnabled"
+                class="p0-toggle"
+                type="checkbox"
+                @change="patch({ timerWarningEnabled: ($event.target as HTMLInputElement).checked })"
+              >
+            </label>
+
+            <template v-if="modelValue.timerWarningEnabled">
+              <v-btn-toggle
+                class="timer-mode-toggle"
+                density="compact"
+                mandatory
+                :model-value="modelValue.timerWarningType"
+                variant="outlined"
+                @update:model-value="patch({ timerWarningType: $event as RoomFormSettings['timerWarningType'] })"
+              >
+                <v-btn value="seconds">
+                  Seconds
+                </v-btn>
+
+                <v-btn value="percentage">
+                  Percent
+                </v-btn>
+              </v-btn-toggle>
+
+              <div class="timer-value-control">
+                <v-text-field
+                  class="p0-field timer-number-field"
+                  hide-details="auto"
+                  inputmode="numeric"
+                  label="Value"
+                  :model-value="modelValue.timerWarningValue"
+                  type="number"
+                  variant="outlined"
+                  @update:model-value="patchTimerWarningValue"
+                />
+
+                <span class="timer-unit-label">{{ modelValue.timerWarningType === 'percentage' ? '%' : 'sec' }}</span>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
     </div>

@@ -168,6 +168,7 @@
             timerEnabled: currentRoom.settings?.timerEnabled === true,
             timerMode: currentRoom.settings?.timerMode === 'manual' ? 'manual' : 'automatic',
             timerDurationSeconds: currentRoom.settings?.timerDurationSeconds ?? 300,
+            timerAutoRevealEnabled: currentRoom.settings?.timerAutoRevealEnabled !== false,
             timerWarningEnabled: currentRoom.settings?.timerWarningEnabled === true,
             timerWarningType: currentRoom.settings?.timerWarningType === 'percentage' ? 'percentage' : 'seconds',
             timerWarningValue: currentRoom.settings?.timerWarningValue ?? 30,
@@ -305,12 +306,12 @@
           <v-btn
             v-if="canExtendTimer"
             class="p0-btn p0-btn-ghost"
-            prepend-icon="mdi-plus"
+            prepend-icon="mdi-timer-plus-outline"
             :title="roundActionTitle"
             variant="flat"
             @click="extendCurrentRoundTimer"
           >
-            +30 sec
+            +10 sec
           </v-btn>
 
           <v-btn
@@ -710,7 +711,7 @@
   const canRestartTimer = computed(() =>
     timerControlsVisible.value
     && roundTimer.value?.roundNumber === currentRound.value
-    && (roundTimer.value.status === 'running' || roundTimer.value.status === 'paused'),
+    && (roundTimer.value.status === 'running' || roundTimer.value.status === 'paused' || roundTimer.value.status === 'finished'),
   )
   const roundActionTitle = computed(() => {
     if (leaderModeEnabled.value && !isLeader.value) return 'Only the leader can control the round'
@@ -1031,7 +1032,7 @@
         && (
           !roundTimer.value
           || roundTimer.value.roundNumber !== currentRound.value
-          || (roundTimer.value.status !== 'running' && roundTimer.value.status !== 'paused')
+          || roundTimer.value.status === 'idle'
         )
       ) {
         void startAutomaticRoundTimer()
@@ -1734,7 +1735,7 @@
       if (!current) return current
       const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
       const timer = current.roundTimer as RoundTimerState | null | undefined
-      if (!timer || timer.roundNumber !== roundNumber || (timer.status !== 'running' && timer.status !== 'paused')) return current
+      if (!timer || timer.roundNumber !== roundNumber || (timer.status !== 'running' && timer.status !== 'paused' && timer.status !== 'finished')) return current
 
       return {
         ...current,
@@ -1757,7 +1758,7 @@
       if (!timer || timer.roundNumber !== roundNumber) return current
 
       const now = Date.now()
-      const addedMs = 30_000
+      const addedMs = 10_000
       const remainingMs = isTimerRunningForRound(timer, roundNumber)
         ? Math.max(0, timer.endsAt - now)
         : Math.max(0, timer.remainingMs ?? 0)
@@ -1785,6 +1786,7 @@
       if (!current) return current
       const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
       const currentTimer = current.roundTimer as RoundTimerState | null | undefined
+      const config = getRoomTimerConfig(current)
       if (!isTimerRunningForRound(currentTimer, roundNumber)) return current
       if (currentTimer.endsAt !== timer.endsAt || currentTimer.endsAt > Date.now()) return current
       if (current.settings?.showVotes === true) return current
@@ -1792,8 +1794,8 @@
       return {
         ...current,
         settings: current.settings
-          ? { ...current.settings, showVotes: true }
-          : { showVotes: true },
+          ? { ...current.settings, showVotes: config.autoRevealEnabled }
+          : { showVotes: config.autoRevealEnabled },
         roundTimer: finishRoundTimer(currentTimer, roundNumber, 'expired'),
         lastActivity: Date.now(),
       }
@@ -1853,6 +1855,7 @@
     timerEnabled: boolean
     timerMode: 'automatic' | 'manual'
     timerDurationSeconds: number
+    timerAutoRevealEnabled: boolean
     timerWarningEnabled: boolean
     timerWarningType: 'seconds' | 'percentage'
     timerWarningValue: number
@@ -1879,6 +1882,7 @@
       'settings/timerEnabled': settings.timerEnabled,
       'settings/timerMode': settings.timerMode,
       'settings/timerDurationSeconds': normalizedTimerDurationSeconds,
+      'settings/timerAutoRevealEnabled': settings.timerAutoRevealEnabled,
       'settings/timerWarningEnabled': settings.timerWarningEnabled,
       'settings/timerWarningType': timerWarningType,
       'settings/timerWarningValue': normalizedTimerWarningValue,
@@ -1911,6 +1915,7 @@
     const timerConfigChanged = settings.timerEnabled !== timerEnabled.value
       || settings.timerMode !== timerMode.value
       || normalizedTimerDurationSeconds !== normalizeTimerDurationSeconds(currentRoom.value.settings?.timerDurationSeconds)
+      || settings.timerAutoRevealEnabled !== (currentRoom.value.settings?.timerAutoRevealEnabled !== false)
       || settings.timerWarningEnabled !== (currentRoom.value.settings?.timerWarningEnabled === true)
       || timerWarningType !== (currentRoom.value.settings?.timerWarningType === 'percentage' ? 'percentage' : 'seconds')
       || normalizedTimerWarningValue !== normalizeTimerWarningValue(currentRoom.value.settings?.timerWarningValue, timerWarningType)
@@ -1924,6 +1929,7 @@
             timerEnabled: settings.timerEnabled,
             timerMode: settings.timerMode,
             timerDurationSeconds: normalizedTimerDurationSeconds,
+            timerAutoRevealEnabled: settings.timerAutoRevealEnabled,
             timerWarningEnabled: settings.timerWarningEnabled,
             timerWarningType,
             timerWarningValue: normalizedTimerWarningValue,

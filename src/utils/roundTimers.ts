@@ -6,6 +6,7 @@ export interface RoundTimerConfig {
   enabled: boolean
   mode: RoundTimerMode
   durationSeconds: number
+  autoRevealEnabled: boolean
   warningEnabled: boolean
   warningType: 'seconds' | 'percentage'
   warningValue: number
@@ -36,6 +37,7 @@ export function getRoomTimerConfig (room: Pick<RoomRecord, 'settings'> | null | 
     enabled: settings?.timerEnabled === true,
     mode: settings?.timerMode === 'manual' ? 'manual' : 'automatic',
     durationSeconds: normalizeTimerDurationSeconds(settings?.timerDurationSeconds),
+    autoRevealEnabled: settings?.timerAutoRevealEnabled !== false,
     warningEnabled: settings?.timerWarningEnabled === true,
     warningType,
     warningValue: normalizeTimerWarningValue(settings?.timerWarningValue, warningType),

@@ -25,6 +25,7 @@ export interface RoomSettings {
   timerEnabled?: boolean
   timerMode?: 'automatic' | 'manual'
   timerDurationSeconds?: number
+  timerAutoRevealEnabled?: boolean
   timerWarningEnabled?: boolean
   timerWarningType?: 'seconds' | 'percentage'
   timerWarningValue?: number
