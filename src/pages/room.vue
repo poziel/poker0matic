@@ -145,6 +145,9 @@
             historyEnabled: currentRoom.settings?.historyEnabled !== false,
             leaderModeEnabled: currentRoom.settings?.leaderModeEnabled === true,
             taskInformationEnabled: currentRoom.settings?.taskInformationEnabled === true,
+            timerEnabled: currentRoom.settings?.timerEnabled === true,
+            timerMode: currentRoom.settings?.timerMode === 'manual' ? 'manual' : 'automatic',
+            timerDurationSeconds: currentRoom.settings?.timerDurationSeconds ?? 300,
           }"
           @save="applyRoomConfig"
         />
@@ -157,6 +160,30 @@
           :title="taskInfoModalTitle"
           @save="saveTaskInformation"
         />
+
+        <div v-if="timerEnabled" class="round-timer-panel">
+          <div class="round-timer-main">
+            <div class="round-timer-icon">
+              <v-icon :icon="timerIcon" size="18" />
+            </div>
+
+            <div class="round-timer-copy">
+              <span class="round-timer-label">{{ timerLabel }}</span>
+              <strong class="round-timer-value">{{ timerDisplay }}</strong>
+            </div>
+          </div>
+
+          <v-btn
+            v-if="canStartManualTimer"
+            class="p0-btn p0-btn-primary round-timer-action"
+            prepend-icon="mdi-play"
+            :title="roundActionTitle"
+            variant="flat"
+            @click="startManualRoundTimer"
+          >
+            Start timer
+          </v-btn>
+        </div>
 
         <SimpleResultsGrid
           v-if="configStore.viewMode === 'grid'"
@@ -368,7 +395,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, TaskInfo, VoteValue } from '@/types/room'
+  import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
   import type { ExternalDockSession } from '@/utils/externalDockSession'
   import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
@@ -393,6 +420,14 @@
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
+  import {
+    buildTimerForRound,
+    createRoundTimerStrategy,
+    finishRoundTimer,
+    getRoomTimerConfig,
+    isTimerRunningForRound,
+    normalizeTimerDurationSeconds,
+  } from '@/utils/roundTimers'
 
   const route = useRoute()
   const router = useRouter()
@@ -469,6 +504,7 @@
   const playerMenu = ref<{ userId: string, name: string, x: number, y: number } | null>(null)
   const taskInfoModalOpen = ref(false)
   const pendingTaskFlow = ref<TaskFlowMode | null>(null)
+  const nowTick = ref(Date.now())
 
   const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const currentTask = computed<TaskInfo | null>(() => currentRoom.value?.currentTask ?? null)
@@ -501,11 +537,14 @@
   let unsubscribePhoneDockSession: (() => void) | null = null
   let unregisterShortcuts: (() => void) | null = null
   let leaveRoomPromise: Promise<void> | null = null
+  let timerTickInterval: ReturnType<typeof setInterval> | null = null
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
+  const timerEnabled = computed(() => currentRoom.value?.settings?.timerEnabled === true)
+  const timerMode = computed(() => currentRoom.value?.settings?.timerMode === 'manual' ? 'manual' : 'automatic')
   const taskInfoVisible = computed(() => taskInformationEnabled.value || !!currentTask.value)
   const sidePanelEnabled = computed(() => historyEnabled.value || taskInfoVisible.value)
   const leaderUserId = computed(() => currentRoom.value?.leaderUserId ?? null)
@@ -526,6 +565,40 @@
   const canRestoreHistoryEntry = computed(() => canManageRound.value)
   const currentRound = computed(() => currentRoom.value?.roundNumber ?? (sessionHistory.value.length + 1))
   const currentRoundLabel = computed(() => currentTask.value?.title || `Round ${currentRound.value}`)
+  const roundTimer = computed(() => currentRoom.value?.roundTimer ?? null)
+  const timerRemainingMs = computed(() => {
+    const timer = roundTimer.value
+    if (!isTimerRunningForRound(timer, currentRound.value)) return 0
+    return Math.max(0, timer.endsAt - nowTick.value)
+  })
+  const timerDisplay = computed(() => {
+    const durationMs = roundTimer.value?.durationMs ?? normalizeTimerDurationSeconds(currentRoom.value?.settings?.timerDurationSeconds) * 1000
+    const ms = roundTimer.value?.status === 'running' ? timerRemainingMs.value : durationMs
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${String(seconds).padStart(2, '0')}`
+  })
+  const timerLabel = computed(() => {
+    if (!timerEnabled.value) return ''
+    if (showVotes.value || roundTimer.value?.status === 'finished') return 'Timer finished'
+    if (roundTimer.value?.status === 'running') return timerMode.value === 'manual' ? 'Manual timer running' : 'Automatic timer running'
+    if (timerMode.value === 'manual') return 'Manual timer ready'
+    return 'Automatic timer ready'
+  })
+  const timerIcon = computed(() => {
+    if (roundTimer.value?.status === 'running') return 'mdi-timer-sand'
+    if (showVotes.value || roundTimer.value?.status === 'finished') return 'mdi-timer-check-outline'
+    return timerMode.value === 'manual' ? 'mdi-hand-back-left-outline' : 'mdi-play-circle-outline'
+  })
+  const canStartManualTimer = computed(() =>
+    timerEnabled.value
+    && timerMode.value === 'manual'
+    && !showVotes.value
+    && roundTimer.value?.status !== 'running'
+    && (!taskInformationEnabled.value || !!currentTask.value)
+    && canManageRound.value,
+  )
   const roundActionTitle = computed(() => {
     if (leaderModeEnabled.value && !isLeader.value) return 'Only the leader can control the round'
     if (isRoundLockedByOther.value) return `${roundEditLock.value?.userName ?? 'Another participant'} is entering task information`
@@ -826,8 +899,41 @@
     previousVotes.value = snapshot
   }, { deep: true })
 
+  watch(
+    [
+      timerEnabled,
+      timerMode,
+      showVotes,
+      currentRound,
+      currentTask,
+      () => roundTimer.value?.status,
+      () => roundTimer.value?.roundNumber,
+    ],
+    () => {
+      if (
+        timerEnabled.value
+        && timerMode.value === 'automatic'
+        && !showVotes.value
+        && (!taskInformationEnabled.value || !!currentTask.value)
+        && (roundTimer.value?.status !== 'running' || roundTimer.value.roundNumber !== currentRound.value)
+      ) {
+        void startAutomaticRoundTimer()
+      }
+    },
+  )
+
+  watch([timerRemainingMs, roundTimer, showVotes], () => {
+    if (!showVotes.value && isTimerRunningForRound(roundTimer.value, currentRound.value) && timerRemainingMs.value <= 0) {
+      void expireRoundTimer(roundTimer.value)
+    }
+  })
+
   onMounted(() => {
     if (!db) return
+
+    timerTickInterval = setInterval(() => {
+      nowTick.value = Date.now()
+    }, 250)
 
     window.addEventListener('click', closePlayerMenu)
     window.addEventListener('keydown', onWindowKeydown)
@@ -999,6 +1105,7 @@
     unsubscribeHistory?.()
     unsubscribePhoneDockSession?.()
     void cleanupPhoneDockSession()
+    if (timerTickInterval !== null) clearInterval(timerTickInterval)
     if (redirectTimeout !== null) clearTimeout(redirectTimeout)
     void releaseRoundEditLock()
   })
@@ -1402,6 +1509,78 @@
     })
   }
 
+  async function startAutomaticRoundTimer () {
+    if (!db || !currentRoom.value) return
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const config = getRoomTimerConfig(current)
+      if (!config.enabled || config.mode !== 'automatic') return current
+      if (current.settings?.showVotes === true) return current
+      if (current.settings?.taskInformationEnabled === true && !current.currentTask) return current
+
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      if (isTimerRunningForRound(current.roundTimer, roundNumber)) return current
+
+      return {
+        ...current,
+        roundTimer: createRoundTimerStrategy(config).beginRound(roundNumber, Date.now()),
+        lastActivity: Date.now(),
+      }
+    }).catch(console.error)
+  }
+
+  async function startManualRoundTimer () {
+    if (!db || !currentRoom.value || !canStartManualTimer.value) return
+
+    closePlayerMenu()
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const config = getRoomTimerConfig(current)
+      if (!config.enabled || config.mode !== 'manual') return current
+      if (current.settings?.showVotes === true) return current
+      if (current.settings?.taskInformationEnabled === true && !current.currentTask) return current
+
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const strategy = createRoundTimerStrategy(config)
+      return {
+        ...current,
+        roundTimer: strategy.startManual?.(roundNumber, Date.now()) ?? current.roundTimer ?? null,
+        lastActivity: Date.now(),
+      }
+    }).catch(console.error)
+  }
+
+  async function expireRoundTimer (timer: RoundTimerState) {
+    if (!db) return
+
+    const roomRef = dbRef(db, `rooms/${roomId}`)
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const currentTimer = current.roundTimer as RoundTimerState | null | undefined
+      if (!isTimerRunningForRound(currentTimer, roundNumber)) return current
+      if (currentTimer.endsAt !== timer.endsAt || currentTimer.endsAt > Date.now()) return current
+      if (current.settings?.showVotes === true) return current
+
+      return {
+        ...current,
+        settings: current.settings
+          ? { ...current.settings, showVotes: true }
+          : { showVotes: true },
+        roundTimer: finishRoundTimer(currentTimer, roundNumber),
+        lastActivity: Date.now(),
+      }
+    }).catch(console.error)
+  }
+
+  function buildCurrentRoomTimerForRound (roundNumber: number, now: number): RoundTimerState | null {
+    return buildTimerForRound(currentRoom.value, roundNumber, now)
+  }
+
   function castVote (value: VoteValue) {
     if (!db || !configStore.userId || !canVoteInCurrentRound.value) return
 
@@ -1448,6 +1627,9 @@
     historyEnabled: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
+    timerEnabled: boolean
+    timerMode: 'automatic' | 'manual'
+    timerDurationSeconds: number
   }) {
     if (!db || !currentRoom.value) return
 
@@ -1455,6 +1637,7 @@
     const taskInfoWasEnabled = taskInformationEnabled.value
 
     const newOptions = buildNewVoteOptions(settings)
+    const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(settings.timerDurationSeconds)
 
     const updates: Record<string, unknown> = {
       'name': settings.name,
@@ -1465,6 +1648,9 @@
       'settings/historyEnabled': settings.historyEnabled,
       'settings/leaderModeEnabled': settings.leaderModeEnabled,
       'settings/taskInformationEnabled': settings.taskInformationEnabled,
+      'settings/timerEnabled': settings.timerEnabled,
+      'settings/timerMode': settings.timerMode,
+      'settings/timerDurationSeconds': normalizedTimerDurationSeconds,
       'leaderUserId': settings.leaderModeEnabled
         ? (leaderUserId.value ?? createdByUserId.value ?? null)
         : null,
@@ -1489,6 +1675,24 @@
     if (!settings.taskInformationEnabled) {
       updates.currentTask = null
       updates.roundEditLock = null
+    }
+
+    const timerConfigChanged = settings.timerEnabled !== timerEnabled.value
+      || settings.timerMode !== timerMode.value
+      || normalizedTimerDurationSeconds !== normalizeTimerDurationSeconds(currentRoom.value.settings?.timerDurationSeconds)
+
+    if (timerConfigChanged) {
+      const canStartTimer = !showVotes.value && (!settings.taskInformationEnabled || !!currentTask.value)
+      updates.roundTimer = settings.timerEnabled && canStartTimer
+        ? buildTimerForRound({
+          settings: {
+            ...currentRoom.value.settings,
+            timerEnabled: settings.timerEnabled,
+            timerMode: settings.timerMode,
+            timerDurationSeconds: normalizedTimerDurationSeconds,
+          },
+        }, currentRound.value, Date.now())
+        : null
     }
 
     update(dbRef(db, `rooms/${roomId}`), updates)
@@ -1517,6 +1721,7 @@
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': true,
+      'roundTimer': finishRoundTimer(roundTimer.value, currentRound.value),
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
@@ -1528,6 +1733,7 @@
     update(roomRef, {
       'settings/showVotes': false,
       'committedVote': null,
+      'roundTimer': null,
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
@@ -1544,10 +1750,12 @@
       if (!current) return current
 
       const currentUsers = normalizeRoomUsers(current.users)
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
       return {
         ...current,
         committedVote: null,
         roundParticipants: buildRoundParticipants(currentUsers),
+        roundTimer: buildTimerForRound(current, roundNumber, lastActivity),
         lastActivity,
         settings: current.settings
           ? { ...current.settings, showVotes: false }
@@ -1591,11 +1799,14 @@
 
         const currentUsers = normalizeRoomUsers(current.users)
         const roundParticipants = buildRoundParticipants(currentUsers)
+        const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
 
         return {
           ...current,
           committedVote: null,
+          roundNumber: nextRoundNumber,
           roundParticipants,
+          roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
           lastActivity,
           settings: current.settings
             ? { ...current.settings, showVotes: false }
@@ -1613,10 +1824,13 @@
       if (!current) return current
 
       const currentUsers = normalizeRoomUsers(current.users)
+      const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
       return {
         ...current,
         committedVote: null,
+        roundNumber: nextRoundNumber,
         roundParticipants: buildRoundParticipants(currentUsers),
+        roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
         lastActivity,
         settings: current.settings
           ? { ...current.settings, showVotes: false }
@@ -1695,6 +1909,10 @@
       lastActivity,
     }
 
+    if (!showVotes.value) {
+      updates.roundTimer = buildCurrentRoomTimerForRound(currentRound.value, lastActivity)
+    }
+
     if (pendingTaskFlow.value === 'next') {
       if (showVotes.value && historyEnabled.value) {
         const { id, durationMs, completedAt, voteSnapshots } = buildHistoryEntryBase()
@@ -1720,13 +1938,15 @@
           if (!current) return current
 
           const currentUsers = normalizeRoomUsers(current.users)
+          const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
           return {
             ...current,
             currentTask: task,
             roundEditLock: null,
             committedVote: null,
-            roundNumber: (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1,
+            roundNumber: nextRoundNumber,
             roundParticipants: buildRoundParticipants(currentUsers),
+            roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
             lastActivity,
             settings: current.settings
               ? { ...current.settings, showVotes: false }
@@ -1749,13 +1969,15 @@
         if (!current) return current
 
         const currentUsers = normalizeRoomUsers(current.users)
+        const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
         return {
           ...current,
           currentTask: task,
           roundEditLock: null,
           committedVote: null,
-          roundNumber: (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1,
+          roundNumber: nextRoundNumber,
           roundParticipants: buildRoundParticipants(currentUsers),
+          roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
           lastActivity,
           settings: current.settings
             ? { ...current.settings, showVotes: false }
@@ -1802,6 +2024,7 @@
         roomUsers.value,
         entry.votes && Object.keys(entry.votes).length > 0 ? entry.votes : undefined,
       ),
+      'roundTimer': buildCurrentRoomTimerForRound(currentRound.value, Date.now()),
       'currentTask': entry.title
         ? {
           title: entry.title,

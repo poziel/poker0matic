@@ -17,6 +17,9 @@
     historyEnabled: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
+    timerEnabled: boolean
+    timerMode: 'automatic' | 'manual'
+    timerDurationSeconds: number
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
@@ -38,6 +41,11 @@
 
   function patch (changes: Partial<RoomFormSettings>) {
     emit('update:modelValue', { ...props.modelValue, ...changes })
+  }
+
+  function patchTimerDuration (value: number | string) {
+    const duration = typeof value === 'number' ? value : Number(value)
+    patch({ timerDurationSeconds: duration })
   }
 </script>
 
@@ -162,6 +170,56 @@
           @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
         >
       </label>
+    </div>
+
+    <div class="room-settings-section">
+      <span class="settings-label">Round timer</span>
+
+      <label class="toggle-item">
+        <div class="toggle-info">
+          <v-icon icon="mdi-timer-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Enable round timer</span>
+        </div>
+
+        <input
+          :checked="modelValue.timerEnabled"
+          class="p0-toggle"
+          type="checkbox"
+          @change="patch({ timerEnabled: ($event.target as HTMLInputElement).checked })"
+        >
+      </label>
+
+      <div v-if="modelValue.timerEnabled" class="timer-settings">
+        <v-btn-toggle
+          class="timer-mode-toggle"
+          density="compact"
+          mandatory
+          :model-value="modelValue.timerMode"
+          variant="outlined"
+          @update:model-value="patch({ timerMode: $event as RoomFormSettings['timerMode'] })"
+        >
+          <v-btn value="automatic">
+            <v-icon icon="mdi-play-circle-outline" size="15" />
+            Automatic
+          </v-btn>
+
+          <v-btn value="manual">
+            <v-icon icon="mdi-hand-back-left-outline" size="15" />
+            Manual
+          </v-btn>
+        </v-btn-toggle>
+
+        <v-text-field
+          class="p0-field"
+          hide-details="auto"
+          inputmode="numeric"
+          label="Duration in seconds"
+          :model-value="modelValue.timerDurationSeconds"
+          type="number"
+          variant="outlined"
+          @update:model-value="patchTimerDuration"
+        />
+      </div>
     </div>
 
     <div class="room-settings-section">

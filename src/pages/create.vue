@@ -30,6 +30,7 @@
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
   import { useConfigStore } from '@/stores/config'
+  import { buildInitialTimerForRoom, normalizeTimerDurationSeconds } from '@/utils/roundTimers'
 
   const router = useRouter()
   const configStore = useConfigStore()
@@ -44,18 +45,39 @@
     historyEnabled: true,
     leaderModeEnabled: false,
     taskInformationEnabled: false,
+    timerEnabled: false,
+    timerMode: 'automatic',
+    timerDurationSeconds: 300,
   })
 
   function createRoom () {
     if (!settings.value.name.trim() || !db || !configStore.userId) return
 
-    const { name, deck, customDeck, specialQuestion, specialCoffee, historyEnabled, leaderModeEnabled, taskInformationEnabled } = settings.value
+    const {
+      name,
+      deck,
+      customDeck,
+      specialQuestion,
+      specialCoffee,
+      historyEnabled,
+      leaderModeEnabled,
+      taskInformationEnabled,
+      timerEnabled,
+      timerMode,
+      timerDurationSeconds,
+    } = settings.value
     const userName = configStore.userName || 'Guest'
     const userId = configStore.userId
     const newRoomId = Math.random().toString(36).slice(2, 10)
 
     const roomRef = dbRef(db, `rooms/${newRoomId}`)
     const joinedAt = Date.now()
+    const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(timerDurationSeconds)
+    const timerSettings = {
+      timerEnabled,
+      timerMode,
+      timerDurationSeconds: normalizedTimerDurationSeconds,
+    }
     set(roomRef, {
       name: name.trim(),
       createdAt: joinedAt,
@@ -71,6 +93,7 @@
       },
       roundEditLock: null,
       roundNumber: 1,
+      roundTimer: taskInformationEnabled ? null : buildInitialTimerForRoom(timerSettings, 1, joinedAt),
       settings: {
         showVotes: false,
         v: 0,
@@ -81,6 +104,7 @@
         historyEnabled,
         leaderModeEnabled,
         taskInformationEnabled,
+        ...timerSettings,
       },
       lastActivity: joinedAt,
     }).catch(console.error)
