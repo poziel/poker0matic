@@ -101,6 +101,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/app/dock/:roomId?',
+      component: () => import('@/pages/dock.vue'),
+      meta: {
+        dockOnly: true,
+        title: 'Voting Dock | Poker0matic',
+        description: 'Dedicated Poker0matic voting dock for the current planning room.',
+      },
+    },
+    {
       path: '/app/create',
       component: () => import('@/pages/create.vue'),
       beforeEnter: requireConfig,

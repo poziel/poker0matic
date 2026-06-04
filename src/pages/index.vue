@@ -553,6 +553,23 @@
               }
             }
           }
+        },
+
+        "externalDockSessions": {
+          "$session_id": {
+            ".validate": "newData.val() === null || newData.hasChildren(['token', 'userId', 'userName', 'createdAt', 'expiresAt'])",
+            "token": { ".validate": "newData.isString()" },
+            "userId": { ".validate": "newData.isString()" },
+            "userName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },
+            "avatarStyle": { ".validate": "newData.val() === null || newData.isString()" },
+            "avatarSeed": { ".validate": "newData.val() === null || newData.isString()" },
+            "avatarBg": { ".validate": "newData.val() === null || newData.isString()" },
+            "createdAt": { ".validate": "newData.isNumber()" },
+            "expiresAt": { ".validate": "newData.isNumber()" },
+            "claimedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
+            "lastSeenAt": { ".validate": "newData.val() === null || newData.isNumber()" },
+            "status": { ".validate": "newData.val() === null || (newData.isString() && (newData.val() === 'waiting' || newData.val() === 'connected' || newData.val() === 'expired' || newData.val() === 'closed'))" }
+          }
         }
       }
     }
