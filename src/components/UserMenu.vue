@@ -15,16 +15,7 @@
     </template>
 
     <v-list class="p0-menu-list" density="compact" min-width="200">
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-pencil" title="Change name" @click="nameDialog = true" />
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-palette" title="Theme" @click="themeDialog = true" />
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-account-circle" title="Avatar style" @click="avatarDialog = true" />
-
-      <v-list-item
-        class="p0-menu-item"
-        :prepend-icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'"
-        :title="configStore.viewMode === 'table' ? 'Results: table view' : 'Results: grid view'"
-        @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
-      />
+      <v-list-item class="p0-menu-item" prepend-icon="mdi-account-cog" title="Profile" @click="profileDialog = true" />
 
       <v-divider class="p0-menu-divider" />
 
@@ -33,251 +24,25 @@
     </v-list>
   </v-menu>
 
-  <!-- ── Change name ─────────────────────────────────────────────────── -->
-  <v-dialog v-model="nameDialog" max-width="400">
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
-        <h2>Change name</h2>
-        <p>This is how you appear in planning rooms.</p>
-      </div>
-
-      <div class="p0-modal-body">
-        <v-form @submit.prevent="saveName">
-          <v-text-field
-            v-model="localName"
-            autofocus
-            class="p0-field"
-            :counter="MAX_NAME_LENGTH"
-            hide-details="auto"
-            label="Your name"
-            :maxlength="MAX_NAME_LENGTH"
-            variant="outlined"
-          />
-        </v-form>
-      </div>
-
-      <div class="p0-modal-foot">
-        <v-btn class="p0-btn p0-btn-ghost" variant="flat" @click="nameDialog = false">Cancel</v-btn>
-        <v-btn class="p0-btn p0-btn-primary" :disabled="!localName.trim()" variant="flat" @click="saveName">Save</v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
-
-  <!-- ── Theme picker ────────────────────────────────────────────────── -->
-  <v-dialog v-model="themeDialog" max-width="420">
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
-        <h2>Theme</h2>
-        <p>Choose the colour scheme for your interface.</p>
-      </div>
-
-      <div class="p0-modal-body">
-        <v-tabs
-          v-model="themeMode"
-          class="theme-tabs"
-          color="primary"
-          density="comfortable"
-          fixed-tabs
-        >
-          <v-tab value="dark">Dark Themes</v-tab>
-          <v-tab value="light">Light Themes</v-tab>
-        </v-tabs>
-
-        <div class="theme-grid">
-          <button
-            v-for="theme in visibleThemes"
-            :key="theme.id"
-            class="theme-card"
-            :class="{ active: localTheme === theme.id }"
-            type="button"
-            @click="localTheme = theme.id"
-          >
-            <span class="theme-swatch" :style="{ background: theme.preview.bg }">
-              <span class="theme-dot" :style="{ background: theme.preview.accent }" />
-            </span>
-
-            <span class="theme-label">{{ theme.label }}</span>
-            <v-icon v-if="localTheme === theme.id" class="theme-check" icon="mdi-check-circle" size="14" />
-          </button>
-        </div>
-      </div>
-
-      <div class="p0-modal-foot">
-        <v-btn class="p0-btn p0-btn-ghost" variant="flat" @click="themeDialog = false">Cancel</v-btn>
-        <v-btn class="p0-btn p0-btn-primary" variant="flat" @click="saveThemeDialog">Done</v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
-
-  <!-- ── Avatar style picker ─────────────────────────────────────────── -->
-  <v-dialog v-model="avatarDialog" max-width="560">
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
-        <h2>Avatar style</h2>
-        <p>Choose how your avatar looks for everyone in the room.</p>
-      </div>
-
-      <div class="p0-modal-body">
-        <!-- Controls: seed + background -->
-        <div class="avatar-controls">
-          <!-- Fused seed input + Preview button -->
-          <div class="avatar-seed-input-row">
-            <input
-              v-model="localAvatarSeed"
-              class="avatar-seed-native"
-              :placeholder="`${displayName} (default seed)`"
-              type="text"
-              @keydown.enter="applyPreview"
-            >
-
-            <button class="avatar-preview-btn" type="button" @click="applyPreview">Preview</button>
-          </div>
-
-          <!-- Follow-theme toggle -->
-          <label class="toggle-item">
-            <div class="toggle-info">
-              <span class="toggle-name">Follow theme accent</span>
-            </div>
-
-            <input v-model="avatarBgFollowTheme" class="p0-toggle" type="checkbox">
-          </label>
-
-          <!-- Custom background color picker (hidden when following theme) -->
-          <label v-if="!avatarBgFollowTheme" class="avatar-bg-picker">
-            <input
-              v-model="localAvatarBg"
-              class="avatar-color-input"
-              type="color"
-            >
-
-            <span class="avatar-bg-label">Custom background</span>
-
-            <code class="avatar-color-hex">{{ localAvatarBg }}</code>
-          </label>
-
-          <p class="avatar-seed-hint">
-            Your username is the default seed. The background shows through transparent avatar styles.
-          </p>
-        </div>
-
-        <div class="avatar-style-grid">
-          <button
-            v-for="style in AVATAR_STYLES"
-            :key="style.id"
-            class="avatar-style-card"
-            :class="{ active: localAvatarStyle === style.id }"
-            type="button"
-            @click="localAvatarStyle = style.id"
-          >
-            <span v-if="style.recommended" class="avatar-style-rec">Recommended</span>
-
-            <PlayerAvatar
-              :avatar-bg="effectiveBg"
-              :avatar-seed="effectiveSeed"
-              :avatar-style="style.id"
-              :size="56"
-            />
-
-            <span class="avatar-style-label">{{ style.label }}</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="p0-modal-foot">
-        <v-btn class="p0-btn p0-btn-ghost" variant="flat" @click="avatarDialog = false">Cancel</v-btn>
-        <v-btn class="p0-btn p0-btn-primary" variant="flat" @click="saveAvatarDialog">Done</v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
-
+  <UserSettingsModal v-model="profileDialog" />
   <AboutModal v-model="aboutModalOpen" />
 </template>
 
 <script lang="ts" setup>
   import { storeToRefs } from 'pinia'
-  import { computed, ref, watch } from 'vue'
+  import { computed, ref } from 'vue'
   import AboutModal from '@/components/AboutModal.vue'
   import PlayerAvatar from '@/components/PlayerAvatar.vue'
+  import UserSettingsModal from '@/components/settings/UserSettingsModal.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
-  import { AVATAR_STYLES, DEFAULT_AVATAR_BG, THEME_BG_VALUE } from '@/utils/avatarStyles'
-  import { THEME_LOOKUP, type ThemeId, type ThemeMode, THEMES_BY_MODE } from '@/utils/themes'
 
   const appStore = useAppStore()
   const configStore = useConfigStore()
   const { userName } = storeToRefs(configStore)
 
-  const MAX_NAME_LENGTH = 20
-  const nameDialog = ref(false)
-  const themeDialog = ref(false)
-  const themeMode = ref<ThemeMode>(THEME_LOOKUP[appStore.currentTheme].mode)
-  const localTheme = ref<ThemeId>(appStore.currentTheme)
-  const avatarDialog = ref(false)
+  const profileDialog = ref(false)
   const aboutModalOpen = ref(false)
-  const localName = ref(userName.value)
-  // localAvatarStyle: buffered choice — only committed on Done
-  const localAvatarStyle = ref(configStore.avatarStyle)
-  // localAvatarSeed: typed by user but not applied until Preview is clicked
-  const localAvatarSeed = ref(configStore.avatarSeed)
-  // previewSeed: what's actually used for the preview images (updated by Preview button)
-  const previewSeed = ref(configStore.avatarSeed)
-  // Whether "follow theme" is active — stored as 'theme' sentinel in the config
-  const avatarBgFollowTheme = ref(configStore.avatarBg === THEME_BG_VALUE)
-  // localAvatarBg: the hex for the custom picker (never holds the sentinel)
-  const localAvatarBg = ref(
-    configStore.avatarBg === THEME_BG_VALUE ? DEFAULT_AVATAR_BG : configStore.avatarBg,
-  )
-  // What PlayerAvatar actually receives — sentinel when themed, hex otherwise
-  const effectiveBg = computed(() => avatarBgFollowTheme.value ? THEME_BG_VALUE : localAvatarBg.value)
 
   const displayName = computed(() => userName.value || 'Guest')
-  const visibleThemes = computed(() => THEMES_BY_MODE[themeMode.value])
-  // Seed used for avatar previews: applied preview seed if set, otherwise username
-  const effectiveSeed = computed(() => previewSeed.value.trim() || displayName.value)
-
-  watch(nameDialog, open => {
-    if (open) localName.value = userName.value
-  })
-
-  watch(themeDialog, open => {
-    if (open) {
-      localTheme.value = appStore.currentTheme
-      themeMode.value = THEME_LOOKUP[appStore.currentTheme].mode
-    }
-  })
-
-  watch(avatarDialog, open => {
-    if (open) {
-      localAvatarStyle.value = configStore.avatarStyle
-      localAvatarSeed.value = configStore.avatarSeed
-      previewSeed.value = configStore.avatarSeed
-      avatarBgFollowTheme.value = configStore.avatarBg === THEME_BG_VALUE
-      localAvatarBg.value = configStore.avatarBg === THEME_BG_VALUE
-        ? DEFAULT_AVATAR_BG
-        : configStore.avatarBg
-    }
-  })
-
-  function applyPreview () {
-    previewSeed.value = localAvatarSeed.value
-  }
-
-  function saveAvatarDialog () {
-    configStore.setAvatarStyle(localAvatarStyle.value)
-    configStore.setAvatarSeed(localAvatarSeed.value)
-    configStore.setAvatarBg(avatarBgFollowTheme.value ? THEME_BG_VALUE : localAvatarBg.value)
-    avatarDialog.value = false
-  }
-
-  function saveThemeDialog () {
-    appStore.setTheme(localTheme.value)
-    themeDialog.value = false
-  }
-
-  function saveName () {
-    const trimmed = localName.value.trim().slice(0, MAX_NAME_LENGTH)
-    if (!trimmed) return
-    configStore.setUserName(trimmed)
-    nameDialog.value = false
-  }
 </script>
