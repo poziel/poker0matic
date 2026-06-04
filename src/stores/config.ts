@@ -3,6 +3,7 @@ import { type Database, getDatabase } from 'firebase/database'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { DEFAULT_AVATAR_BG, DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
+import { createClientId } from '@/utils/id'
 
 export interface FirebaseConfig {
   apiKey: string
@@ -91,7 +92,7 @@ export const useConfigStore = defineStore('config', () => {
 
     let potentialUserId = localStorage.getItem(USER_ID_KEY)
     if (!potentialUserId) {
-      potentialUserId = crypto.randomUUID()
+      potentialUserId = createClientId()
       localStorage.setItem(USER_ID_KEY, potentialUserId)
     }
     userId.value = potentialUserId

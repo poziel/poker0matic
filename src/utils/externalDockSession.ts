@@ -1,4 +1,5 @@
 import type { FirebaseConfig } from '@/stores/config'
+import { createClientId } from '@/utils/id'
 
 export const EXTERNAL_DOCK_SESSION_TTL_MS = 5 * 60 * 1000
 export const EXTERNAL_DOCK_SESSION_HEARTBEAT_MS = 5000
@@ -20,7 +21,7 @@ export interface ExternalDockSession {
 }
 
 export function createExternalDockSessionToken (): string {
-  return crypto.randomUUID().replace(/-/g, '')
+  return createClientId().replace(/-/g, '')
 }
 
 export function encodeFirebaseConfig (config: FirebaseConfig): string {
