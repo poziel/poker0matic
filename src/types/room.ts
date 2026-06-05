@@ -71,23 +71,15 @@ export interface RoomUser {
   name: string
   joinedAt: number
   vote?: VoteValue
-  avatarStyle?: string
-  avatarSeed?: string
-  avatarBg?: string
-  avatarSource?: 'dicebear' | 'custom'
-  customAvatarUrl?: string | null
-  customAvatarCrop?: AvatarCrop | null
+  avatarUrl?: string | null
+  avatarCrop?: AvatarCrop | null
 }
 
 export interface RoomHistoryVoteSnapshot {
   name: string
   vote: VoteValue
-  avatarStyle?: string
-  avatarSeed?: string
-  avatarBg?: string
-  avatarSource?: 'dicebear' | 'custom'
-  customAvatarUrl?: string | null
-  customAvatarCrop?: AvatarCrop | null
+  avatarUrl?: string | null
+  avatarCrop?: AvatarCrop | null
 }
 
 export interface RoomHistoryEntry {

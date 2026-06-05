@@ -4,7 +4,7 @@
     :style="frameStyle"
   >
     <img
-      :alt="avatarSeed"
+      :alt="avatarSeed || 'Player avatar'"
       :src="src"
       :style="imageStyle"
       @error="onImageError"
@@ -15,15 +15,19 @@
 <script lang="ts" setup>
   import type { CSSProperties } from 'vue'
   import { computed, ref, watch } from 'vue'
-  import { type AvatarCrop, type AvatarSource, buildAvatarUrl, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_CROP, DEFAULT_AVATAR_SOURCE, isValidCustomAvatarUrl, normalizeAvatarCrop, THEME_BG_VALUE } from '@/utils/avatarStyles'
+  import { type AvatarCrop, type AvatarSource, buildAvatarUrl, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_CROP, DEFAULT_AVATAR_SOURCE, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, THEME_BG_VALUE } from '@/utils/avatarStyles'
 
   const props = defineProps<{
     /** DiceBear style ID (e.g. 'notionists-neutral') */
-    avatarStyle: string
+    avatarStyle?: string
     /** Seed string used to generate the avatar */
-    avatarSeed: string
+    avatarSeed?: string
     /** Optional custom background hex color. Falls back to DEFAULT_AVATAR_BG. */
     avatarBg?: string
+    /** Render-ready avatar URL stored in room state. */
+    avatarUrl?: string | null
+    /** Optional crop for render-ready avatar URL. */
+    avatarCrop?: AvatarCrop | null
     avatarSource?: AvatarSource
     customAvatarUrl?: string | null
     customAvatarCrop?: AvatarCrop | null
@@ -33,23 +37,28 @@
 
   const customLoadFailed = ref(false)
   const size = computed(() => props.size ?? 64)
-  const fallbackSrc = computed(() => buildAvatarUrl(props.avatarStyle, props.avatarSeed))
+  const fallbackSrc = computed(() => buildAvatarUrl(props.avatarStyle ?? DEFAULT_AVATAR_STYLE, props.avatarSeed || 'Guest'))
+  const avatarSrc = computed(() => props.avatarUrl?.trim() ?? '')
   const customSrc = computed(() => props.customAvatarUrl?.trim() ?? '')
+  const hasAvatarUrl = computed(() => (
+    isValidCustomAvatarUrl(avatarSrc.value)
+    && !customLoadFailed.value
+  ))
   const isCustomAvatar = computed(() => (
     (props.avatarSource ?? DEFAULT_AVATAR_SOURCE) === 'custom'
     && isValidCustomAvatarUrl(customSrc.value)
     && !customLoadFailed.value
   ))
-  const src = computed(() => (
-    isCustomAvatar.value
-      ? customSrc.value
-      : fallbackSrc.value
-  ))
-  const crop = computed(() => (
-    isCustomAvatar.value
-      ? normalizeAvatarCrop(props.customAvatarCrop) ?? DEFAULT_AVATAR_CROP
-      : DEFAULT_AVATAR_CROP
-  ))
+  const src = computed(() => {
+    if (hasAvatarUrl.value) return avatarSrc.value
+    if (isCustomAvatar.value) return customSrc.value
+    return fallbackSrc.value
+  })
+  const crop = computed(() => {
+    if (hasAvatarUrl.value) return normalizeAvatarCrop(props.avatarCrop) ?? DEFAULT_AVATAR_CROP
+    if (isCustomAvatar.value) return normalizeAvatarCrop(props.customAvatarCrop) ?? DEFAULT_AVATAR_CROP
+    return DEFAULT_AVATAR_CROP
+  })
   const frameStyle = computed<CSSProperties>(() => ({
     width: `${size.value}px`,
     height: `${size.value}px`,
@@ -77,14 +86,14 @@
   })
 
   watch(
-    [() => props.avatarSource, customSrc],
+    [avatarSrc, () => props.avatarSource, customSrc],
     () => {
       customLoadFailed.value = false
     },
   )
 
   function onImageError () {
-    if ((props.avatarSource ?? DEFAULT_AVATAR_SOURCE) === 'custom' && src.value === customSrc.value) {
+    if (src.value === avatarSrc.value || src.value === customSrc.value) {
       customLoadFailed.value = true
     }
   }

@@ -30,6 +30,7 @@
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
   import { useConfigStore } from '@/stores/config'
+  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl } from '@/utils/avatarStyles'
   import { DEFAULT_REACTION_EMOJIS, sanitizeReactionEmojis } from '@/utils/reactions'
   import { buildInitialTimerForRoom, normalizeTimerDurationSeconds, normalizeTimerWarningValue } from '@/utils/roundTimers'
 
@@ -88,12 +89,14 @@
     const creatorProfile = {
       name: userName,
       joinedAt,
-      avatarStyle: configStore.avatarStyle,
-      avatarSeed: configStore.avatarSeed || userName,
-      avatarBg: configStore.avatarBg,
-      avatarSource: configStore.avatarSource,
-      customAvatarUrl: configStore.customAvatarUrl || null,
-      customAvatarCrop: configStore.customAvatarCrop,
+      avatarUrl: buildSelectedAvatarUrl({
+        avatarSource: configStore.avatarSource,
+        customAvatarUrl: configStore.customAvatarUrl,
+        avatarStyle: configStore.avatarStyle,
+        avatarSeed: configStore.avatarSeed,
+        fallbackSeed: userName,
+      }),
+      avatarCrop: buildSelectedAvatarCrop(configStore.avatarSource, configStore.customAvatarCrop),
     }
     const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(timerDurationSeconds)
     const timerSettings = {

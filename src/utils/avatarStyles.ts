@@ -79,6 +79,35 @@ export function buildAvatarUrl (style: string, seed: string): string {
   return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`
 }
 
+export function buildSelectedAvatarUrl ({
+  avatarSource,
+  customAvatarUrl,
+  avatarStyle,
+  avatarSeed,
+  fallbackSeed,
+}: {
+  avatarSource: AvatarSource
+  customAvatarUrl?: string | null
+  avatarStyle: string
+  avatarSeed: string
+  fallbackSeed: string
+}): string {
+  if (avatarSource === 'custom' && isValidCustomAvatarUrl(customAvatarUrl)) {
+    return customAvatarUrl.trim()
+  }
+
+  return buildAvatarUrl(avatarStyle || DEFAULT_AVATAR_STYLE, avatarSeed || fallbackSeed || 'Guest')
+}
+
+export function buildSelectedAvatarCrop (
+  avatarSource: AvatarSource,
+  customAvatarCrop: AvatarCrop | null | undefined,
+): AvatarCrop | null {
+  return avatarSource === 'custom'
+    ? normalizeAvatarCrop(customAvatarCrop)
+    : null
+}
+
 export function isValidCustomAvatarUrl (url: string | null | undefined): url is string {
   if (!url?.trim()) {
     return false

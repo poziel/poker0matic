@@ -10,12 +10,8 @@ export interface ExternalDockSession {
   token: string
   userId: string
   userName: string
-  avatarStyle?: string
-  avatarSeed?: string
-  avatarBg?: string
-  avatarSource?: 'dicebear' | 'custom'
-  customAvatarUrl?: string | null
-  customAvatarCrop?: {
+  avatarUrl?: string | null
+  avatarCrop?: {
     left: number
     top: number
     width: number
