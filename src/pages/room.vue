@@ -462,7 +462,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
+  import type { AvatarCrop, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
   import type { ExternalDockSession } from '@/utils/externalDockSession'
   import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
@@ -480,6 +480,7 @@
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop } from '@/utils/avatarStyles'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
   import {
@@ -534,6 +535,18 @@
   type LegacyRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
     votes?: unknown
     voteSnapshots?: unknown
+  }
+  type LegacyAvatarFields = {
+    avatarStyle?: string
+    avatarSeed?: string
+    avatarBg?: string
+    avatarSource?: 'dicebear' | 'custom'
+    customAvatarUrl?: string | null
+    customAvatarCrop?: AvatarCrop | null
+  }
+  type LegacyAvatarRecord = LegacyAvatarFields & {
+    name?: string
+    avatarUrl?: string | null
   }
 
   const PRESET_DECKS: Record<string, VoteValue[]> = {
@@ -794,7 +807,9 @@
   )
 
   const activeRoundParticipants = computed<Record<string, RoomUser>>(() =>
-    currentRoom.value?.roundParticipants ?? roomUsers.value,
+    currentRoom.value?.roundParticipants
+      ? normalizeRoomUsers(currentRoom.value.roundParticipants)
+      : roomUsers.value,
   )
 
   const revealedVotes = computed(() =>
@@ -948,13 +963,16 @@
 
   watch(userName, newName => {
     if (!currentRoom.value || !db || !configStore.userId) return
+    const avatar = buildCurrentUserAvatarPayload(newName || 'Guest')
     const updates: Record<string, unknown> = {
       [`users/${configStore.userId}/name`]: newName || 'Anonymous',
-      [`users/${configStore.userId}/avatarSeed`]: configStore.avatarSeed || newName || 'Guest',
+      [`users/${configStore.userId}/avatarUrl`]: avatar.avatarUrl,
+      [`users/${configStore.userId}/avatarCrop`]: avatar.avatarCrop,
     }
     if (activeRoundParticipants.value[configStore.userId]) {
       updates[`roundParticipants/${configStore.userId}/name`] = newName || 'Anonymous'
-      updates[`roundParticipants/${configStore.userId}/avatarSeed`] = configStore.avatarSeed || newName || 'Guest'
+      updates[`roundParticipants/${configStore.userId}/avatarUrl`] = avatar.avatarUrl
+      updates[`roundParticipants/${configStore.userId}/avatarCrop`] = avatar.avatarCrop
     }
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
   })
@@ -968,20 +986,25 @@
     }
   })
 
-  // Sync avatar style/seed/bg to Firebase whenever the user changes them
+  // Sync the selected render-ready avatar to Firebase whenever local avatar settings change.
   watch(
-    [() => configStore.avatarStyle, () => configStore.avatarSeed, () => configStore.avatarBg],
+    [
+      () => configStore.avatarStyle,
+      () => configStore.avatarSeed,
+      () => configStore.avatarSource,
+      () => configStore.customAvatarUrl,
+      () => configStore.customAvatarCrop,
+    ],
     () => {
       if (!db || !configStore.userId || !currentRoom.value) return
+      const avatar = buildCurrentUserAvatarPayload()
       const updates: Record<string, unknown> = {
-        [`users/${configStore.userId}/avatarStyle`]: configStore.avatarStyle,
-        [`users/${configStore.userId}/avatarSeed`]: configStore.avatarSeed || userName.value || 'Guest',
-        [`users/${configStore.userId}/avatarBg`]: configStore.avatarBg,
+        [`users/${configStore.userId}/avatarUrl`]: avatar.avatarUrl,
+        [`users/${configStore.userId}/avatarCrop`]: avatar.avatarCrop,
       }
       if (activeRoundParticipants.value[configStore.userId]) {
-        updates[`roundParticipants/${configStore.userId}/avatarStyle`] = configStore.avatarStyle
-        updates[`roundParticipants/${configStore.userId}/avatarSeed`] = configStore.avatarSeed || userName.value || 'Guest'
-        updates[`roundParticipants/${configStore.userId}/avatarBg`] = configStore.avatarBg
+        updates[`roundParticipants/${configStore.userId}/avatarUrl`] = avatar.avatarUrl
+        updates[`roundParticipants/${configStore.userId}/avatarCrop`] = avatar.avatarCrop
       }
       update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     },
@@ -1231,7 +1254,7 @@
 
     const usersRef = dbRef(db, `rooms/${roomId}/users`)
     unsubscribeUsers = onValue(usersRef, snapshot => {
-      roomUsers.value = snapshot.val() || {}
+      roomUsers.value = normalizeRoomUsers(snapshot.val())
     })
 
     const historyRef = dbRef(db, `rooms/${roomId}/history`)
@@ -1318,6 +1341,19 @@
     return Number.isNaN(parsed) ? vote : parsed
   }
 
+  function buildCurrentUserAvatarPayload (fallbackSeed = userName.value || 'Guest') {
+    return {
+      avatarUrl: buildSelectedAvatarUrl({
+        avatarSource: configStore.avatarSource,
+        customAvatarUrl: configStore.customAvatarUrl,
+        avatarStyle: configStore.avatarStyle,
+        avatarSeed: configStore.avatarSeed,
+        fallbackSeed,
+      }),
+      avatarCrop: buildSelectedAvatarCrop(configStore.avatarSource, configStore.customAvatarCrop),
+    }
+  }
+
   function buildHistoryVotes (): Record<string, RoomHistoryVoteSnapshot> {
     const snapshots: Record<string, RoomHistoryVoteSnapshot> = {}
     for (const [userId, user] of Object.entries(activeRoundParticipants.value)) {
@@ -1325,6 +1361,8 @@
       snapshots[userId] = {
         name: user.name,
         vote: user.vote,
+        avatarUrl: user.avatarUrl,
+        avatarCrop: user.avatarCrop,
       }
     }
     return snapshots
@@ -1425,9 +1463,8 @@
       participants[userId] = {
         name: user.name,
         joinedAt: user.joinedAt,
-        avatarStyle: user.avatarStyle,
-        avatarSeed: user.avatarSeed,
-        avatarBg: user.avatarBg,
+        avatarUrl: user.avatarUrl,
+        avatarCrop: user.avatarCrop,
       }
     }
     return participants
@@ -1435,7 +1472,50 @@
 
   function normalizeRoomUsers (value: unknown): Record<string, RoomUser> {
     if (!value || typeof value !== 'object') return {}
-    return value as Record<string, RoomUser>
+    return Object.fromEntries(
+      Object.entries(value as Record<string, RoomUser & LegacyAvatarFields>)
+        .map(([userId, user]) => [userId, normalizeRoomUser(user)]),
+    )
+  }
+
+  function normalizeRoomUser (user: RoomUser & LegacyAvatarFields): RoomUser {
+    const avatarUrl = user.avatarUrl ?? buildLegacyAvatarUrl(user)
+    const avatarCrop = user.avatarCrop ?? (
+      user.avatarSource === 'custom'
+        ? normalizeAvatarCrop(user.customAvatarCrop)
+        : null
+    )
+
+    const normalizedUser: RoomUser = {
+      name: user.name,
+      joinedAt: user.joinedAt,
+      avatarUrl,
+      avatarCrop,
+    }
+
+    if (user.vote == null) return normalizedUser
+    return {
+      ...normalizedUser,
+      vote: user.vote,
+    }
+  }
+
+  function buildLegacyAvatarUrl (user: LegacyAvatarRecord): string | null {
+    if (user.avatarSource === 'custom' && isValidCustomAvatarUrl(user.customAvatarUrl)) {
+      return user.customAvatarUrl.trim()
+    }
+
+    if (user.avatarStyle || user.avatarSeed) {
+      return buildSelectedAvatarUrl({
+        avatarSource: 'dicebear',
+        customAvatarUrl: null,
+        avatarStyle: user.avatarStyle ?? DEFAULT_AVATAR_STYLE,
+        avatarSeed: user.avatarSeed ?? '',
+        fallbackSeed: user.name || 'Guest',
+      })
+    }
+
+    return user.avatarUrl ?? null
   }
 
   function buildRoundParticipantsWithVotes (
@@ -1446,8 +1526,18 @@
     if (!votes) return participants
 
     for (const [userId, snapshot] of Object.entries(votes)) {
-      if (!participants[userId]) continue
-      participants[userId].vote = snapshot.vote
+      const legacySnapshot = snapshot as RoomHistoryVoteSnapshot & LegacyAvatarFields
+      participants[userId] = {
+        ...(participants[userId] ?? { name: snapshot.name, joinedAt: 0 }),
+        name: snapshot.name,
+        vote: snapshot.vote,
+        avatarUrl: snapshot.avatarUrl ?? buildLegacyAvatarUrl(legacySnapshot) ?? participants[userId]?.avatarUrl,
+        avatarCrop: snapshot.avatarCrop ?? (
+          legacySnapshot.avatarSource === 'custom'
+            ? normalizeAvatarCrop(legacySnapshot.customAvatarCrop)
+            : participants[userId]?.avatarCrop
+        ),
+      }
     }
 
     return participants
@@ -1500,24 +1590,25 @@
   function joinRoom () {
     if (!db || !configStore.userId) return
     const existingParticipant = activeRoundParticipants.value[configStore.userId]
+    const avatar = buildCurrentUserAvatarPayload()
     const userRecord = {
       name: userName.value || 'Anonymous',
       joinedAt: Date.now(),
-      avatarStyle: configStore.avatarStyle,
-      avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
-      avatarBg: configStore.avatarBg,
+      ...avatar,
     }
+    const roundParticipant = existingParticipant
+      ? {
+        name: userRecord.name,
+        joinedAt: existingParticipant.joinedAt,
+        avatarUrl: userRecord.avatarUrl,
+        avatarCrop: userRecord.avatarCrop,
+        ...(existingParticipant.vote == null ? {} : { vote: existingParticipant.vote }),
+      }
+      : userRecord
+
     const updates: Record<string, unknown> = {
       [`users/${configStore.userId}`]: userRecord,
-      [`roundParticipants/${configStore.userId}`]: existingParticipant
-        ? {
-          ...existingParticipant,
-          name: userRecord.name,
-          avatarStyle: userRecord.avatarStyle,
-          avatarSeed: userRecord.avatarSeed,
-          avatarBg: userRecord.avatarBg,
-        }
-        : userRecord,
+      [`roundParticipants/${configStore.userId}`]: roundParticipant,
     }
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
@@ -1574,13 +1665,13 @@
 
     const now = Date.now()
     const token = createExternalDockSessionToken()
+    const avatar = buildCurrentUserAvatarPayload()
     const session: ExternalDockSession = {
       token,
       userId: configStore.userId,
       userName: userName.value || 'Anonymous',
-      avatarStyle: configStore.avatarStyle,
-      avatarSeed: configStore.avatarSeed || userName.value || 'Guest',
-      avatarBg: configStore.avatarBg,
+      avatarUrl: avatar.avatarUrl,
+      avatarCrop: avatar.avatarCrop,
       createdAt: now,
       expiresAt: now + EXTERNAL_DOCK_SESSION_TTL_MS,
       claimedAt: null,

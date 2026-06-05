@@ -2,7 +2,7 @@ import { deleteApp, getApp, getApps, initializeApp } from 'firebase/app'
 import { type Database, getDatabase } from 'firebase/database'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { DEFAULT_AVATAR_BG, DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
+import { type AvatarCrop, type AvatarSource, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_SOURCE, DEFAULT_AVATAR_STYLE, normalizeAvatarCrop } from '@/utils/avatarStyles'
 import { createClientId } from '@/utils/id'
 
 export interface FirebaseConfig {
@@ -22,6 +22,9 @@ const RECENT_ROOMS_KEY = 'poker_recent_rooms'
 const AVATAR_STYLE_KEY = 'poker_avatar_style'
 const AVATAR_SEED_KEY = 'poker_avatar_seed'
 const AVATAR_BG_KEY = 'poker_avatar_bg'
+const AVATAR_SOURCE_KEY = 'poker_avatar_source'
+const CUSTOM_AVATAR_URL_KEY = 'poker_custom_avatar_url'
+const CUSTOM_AVATAR_CROP_KEY = 'poker_custom_avatar_crop'
 const VIEW_MODE_KEY = 'poker_view_mode'
 const HISTORY_PANEL_KEY = 'poker_history_panel'
 const MAX_RECENT_ROOMS = 5
@@ -50,6 +53,9 @@ export const useConfigStore = defineStore('config', () => {
   const avatarStyle = ref(localStorage.getItem(AVATAR_STYLE_KEY) ?? DEFAULT_AVATAR_STYLE)
   const avatarSeed = ref(localStorage.getItem(AVATAR_SEED_KEY) ?? '')
   const avatarBg = ref(localStorage.getItem(AVATAR_BG_KEY) ?? DEFAULT_AVATAR_BG)
+  const avatarSource = ref<AvatarSource>(normalizeAvatarSource(localStorage.getItem(AVATAR_SOURCE_KEY)))
+  const customAvatarUrl = ref(localStorage.getItem(CUSTOM_AVATAR_URL_KEY) ?? '')
+  const customAvatarCrop = ref<AvatarCrop | null>(readStoredAvatarCrop())
   const viewMode = ref<ViewMode>((localStorage.getItem(VIEW_MODE_KEY) as ViewMode) ?? 'table')
   const historyPanelOpen = ref(localStorage.getItem(HISTORY_PANEL_KEY) === 'true')
 
@@ -190,6 +196,42 @@ export const useConfigStore = defineStore('config', () => {
     localStorage.setItem(AVATAR_BG_KEY, avatarBg.value)
   }
 
+  function setAvatarSource (source: AvatarSource) {
+    avatarSource.value = normalizeAvatarSource(source)
+    localStorage.setItem(AVATAR_SOURCE_KEY, avatarSource.value)
+  }
+
+  function setCustomAvatarUrl (url: string) {
+    customAvatarUrl.value = url.trim()
+    if (customAvatarUrl.value) {
+      localStorage.setItem(CUSTOM_AVATAR_URL_KEY, customAvatarUrl.value)
+    } else {
+      localStorage.removeItem(CUSTOM_AVATAR_URL_KEY)
+    }
+  }
+
+  function setCustomAvatarCrop (crop: AvatarCrop | null) {
+    customAvatarCrop.value = normalizeAvatarCrop(crop)
+    if (customAvatarCrop.value) {
+      localStorage.setItem(CUSTOM_AVATAR_CROP_KEY, JSON.stringify(customAvatarCrop.value))
+    } else {
+      localStorage.removeItem(CUSTOM_AVATAR_CROP_KEY)
+    }
+  }
+
+  function normalizeAvatarSource (source: string | null | undefined): AvatarSource {
+    return source === 'custom' ? 'custom' : DEFAULT_AVATAR_SOURCE
+  }
+
+  function readStoredAvatarCrop (): AvatarCrop | null {
+    try {
+      const raw = localStorage.getItem(CUSTOM_AVATAR_CROP_KEY)
+      return raw ? normalizeAvatarCrop(JSON.parse(raw) as AvatarCrop) : null
+    } catch {
+      return null
+    }
+  }
+
   function setViewMode (mode: ViewMode) {
     viewMode.value = mode
     localStorage.setItem(VIEW_MODE_KEY, mode)
@@ -237,6 +279,12 @@ export const useConfigStore = defineStore('config', () => {
     setAvatarSeed,
     avatarBg,
     setAvatarBg,
+    avatarSource,
+    setAvatarSource,
+    customAvatarUrl,
+    setCustomAvatarUrl,
+    customAvatarCrop,
+    setCustomAvatarCrop,
     viewMode,
     setViewMode,
     historyPanelOpen,

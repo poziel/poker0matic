@@ -1,6 +1,6 @@
 <script setup lang="ts">
+  import type { AvatarCrop } from '@/utils/avatarStyles'
   import { computed } from 'vue'
-  import { DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
   import PlayerAvatar from './PlayerAvatar.vue'
 
   type VoteValue = number | string
@@ -10,9 +10,8 @@
     name: string
     joinedAt: number
     vote?: VoteValue
-    avatarStyle?: string
-    avatarSeed?: string
-    avatarBg?: string
+    avatarUrl?: string | null
+    avatarCrop?: AvatarCrop | null
     isConnected?: boolean
   }
 
@@ -53,9 +52,9 @@
       <div class="rg-name-cell">
         <span class="rg-avatar-anchor" :data-reaction-user-id="player.userId">
           <PlayerAvatar
-            :avatar-bg="player.avatarBg"
-            :avatar-seed="player.avatarSeed || player.name"
-            :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
+            :avatar-crop="player.avatarCrop"
+            :avatar-seed="player.name"
+            :avatar-url="player.avatarUrl"
             :size="28"
           />
         </span>

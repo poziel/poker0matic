@@ -30,6 +30,7 @@
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
   import { useConfigStore } from '@/stores/config'
+  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl } from '@/utils/avatarStyles'
   import { DEFAULT_REACTION_EMOJIS, sanitizeReactionEmojis } from '@/utils/reactions'
   import { buildInitialTimerForRoom, normalizeTimerDurationSeconds, normalizeTimerWarningValue } from '@/utils/roundTimers'
 
@@ -85,6 +86,18 @@
 
     const roomRef = dbRef(db, `rooms/${newRoomId}`)
     const joinedAt = Date.now()
+    const creatorProfile = {
+      name: userName,
+      joinedAt,
+      avatarUrl: buildSelectedAvatarUrl({
+        avatarSource: configStore.avatarSource,
+        customAvatarUrl: configStore.customAvatarUrl,
+        avatarStyle: configStore.avatarStyle,
+        avatarSeed: configStore.avatarSeed,
+        fallbackSeed: userName,
+      }),
+      avatarCrop: buildSelectedAvatarCrop(configStore.avatarSource, configStore.customAvatarCrop),
+    }
     const normalizedTimerDurationSeconds = normalizeTimerDurationSeconds(timerDurationSeconds)
     const timerSettings = {
       timerEnabled,
@@ -103,10 +116,7 @@
       leaderUserId: leaderModeEnabled ? userId : null,
       currentTask: null,
       roundParticipants: {
-        [userId]: {
-          name: userName,
-          joinedAt,
-        },
+        [userId]: creatorProfile,
       },
       roundEditLock: null,
       roundNumber: 1,
@@ -129,10 +139,7 @@
     }).catch(console.error)
 
     const userRef = dbRef(db, `rooms/${newRoomId}/users/${userId}`)
-    set(userRef, {
-      name: userName,
-      joinedAt,
-    }).catch(console.error)
+    set(userRef, creatorProfile).catch(console.error)
 
     onDisconnect(userRef).remove()
 

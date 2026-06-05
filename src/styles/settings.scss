@@ -1004,7 +1004,7 @@ button { font-family: inherit; }
   max-height: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: break-spaces;
+  white-space: normal;
   text-align: center;
 }
 .player .pname.voted {
@@ -1038,6 +1038,18 @@ button { font-family: inherit; }
   position: relative;
 }
 .avatar > svg { display: block; }
+
+.player-avatar-frame {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.player-avatar-frame > img {
+  object-fit: fill;
+  max-width: none;
+}
 [data-reaction-user-id] {
   scroll-margin: 80px;
 }
@@ -3088,12 +3100,9 @@ button { font-family: inherit; }
   color: var(--text-1);
   letter-spacing: 0;
 }
-.user-menu-btn.v-btn img {
+.user-menu-btn.v-btn .player-avatar-frame {
   /* Bleed the image past the button's border on three sides.
      overflow:hidden + border-radius on the button clips it to the pill shape. */
-  width: 34px !important;
-  height: 34px !important;
-  object-fit: cover;
   border-radius: 0 !important;
   flex-shrink: 0;
   margin: -1px 0 -1px -1px; /* overlap: top / right / bottom / left */
@@ -3326,7 +3335,7 @@ button { font-family: inherit; }
 .avatar-style-card {
   appearance: none; border: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 10px 8px;
+  padding: 24px 8px 10px;
   border-radius: 10px;
   background: var(--bg-2);
   border: 1.5px solid var(--border);
@@ -3346,6 +3355,7 @@ button { font-family: inherit; }
 }
 .avatar-style-rec {
   position: absolute; top: 4px; right: 4px;
+  z-index: 1;
   font-size: 8px; font-weight: 700;
   text-transform: uppercase; letter-spacing: .04em;
   color: var(--accent);
@@ -3357,11 +3367,122 @@ button { font-family: inherit; }
   pointer-events: none;
 }
 // ── Avatar dialog controls ────────────────────────────────────────────────
+.avatar-source-selector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+
+.avatar-source-option {
+  appearance: none;
+  border: 0;
+  min-height: 36px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover { color: var(--text-1); background: var(--bg-3); }
+
+  &.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
 .avatar-controls {
   margin-bottom: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.custom-avatar-controls {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.custom-avatar-controls .avatar-seed-hint {
+  grid-column: 1 / -1;
+}
+
+.avatar-moderation-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.avatar-moderation-status-approved {
+  border-color: color-mix(in oklab, var(--success), transparent 55%);
+  color: var(--success);
+}
+
+.avatar-moderation-status-blocked {
+  border-color: color-mix(in oklab, var(--danger), transparent 45%);
+  color: var(--danger);
+}
+
+.avatar-moderation-status-unavailable {
+  border-color: color-mix(in oklab, var(--warn), transparent 45%);
+  color: var(--warn);
+}
+
+.custom-avatar-cropper-wrap {
+  grid-column: 1 / -1;
+  min-height: 220px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  overflow: visible;
+  background: var(--bg-1);
+}
+
+.custom-avatar-cropper {
+  height: 260px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.custom-avatar-url-field {
+  min-width: 0;
+}
+
+.custom-avatar-cropper .vue-simple-handler {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: 2px solid var(--bg-1);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent), transparent 60%);
+}
+
+.custom-avatar-cropper .vue-handler-wrapper__draggable {
+  width: 30px;
+  height: 30px;
+}
+
+.custom-avatar-cropper .vue-simple-line {
+  background: var(--accent);
+  opacity: 0.95;
+}
+
+.custom-avatar-cropper .vue-line-wrapper {
+  opacity: 1;
 }
 
 // Fused input-group: native seed input + Preview button share one border
@@ -3391,9 +3512,9 @@ button { font-family: inherit; }
   &::placeholder { color: var(--text-3); }
 }
 
-.avatar-preview-btn {
+.avatar-preview-btn,
+.avatar-randomize-btn {
   flex-shrink: 0;
-  padding: 0 16px;
   border: none;
   border-left: 1.5px solid var(--border-strong);
   border-radius: 0;
@@ -3406,6 +3527,17 @@ button { font-family: inherit; }
   transition: background 0.15s, color 0.15s;
 
   &:hover { background: var(--bg-3); color: var(--text-1); }
+}
+
+.avatar-preview-btn {
+  padding: 0 16px;
+}
+
+.avatar-randomize-btn {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0 12px;
 }
 
 // Background color picker row — same height as the seed input group

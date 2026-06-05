@@ -10,9 +10,13 @@ export interface ExternalDockSession {
   token: string
   userId: string
   userName: string
-  avatarStyle?: string
-  avatarSeed?: string
-  avatarBg?: string
+  avatarUrl?: string | null
+  avatarCrop?: {
+    left: number
+    top: number
+    width: number
+    height: number
+  } | null
   createdAt: number
   expiresAt: number
   claimedAt?: number | null
