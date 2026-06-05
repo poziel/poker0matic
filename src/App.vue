@@ -67,6 +67,7 @@
               autofocus
               class="p0-field"
               :counter="20"
+              data-test-id="initial-name-input"
               hide-details="auto"
               label="Your name"
               maxlength="20"
@@ -78,6 +79,7 @@
           <div class="p0-modal-foot">
             <v-btn
               class="p0-btn p0-btn-primary"
+              data-test-id="initial-name-continue"
               :disabled="!setupName.trim()"
               type="submit"
               variant="flat"

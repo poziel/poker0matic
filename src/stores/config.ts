@@ -27,6 +27,7 @@ const CUSTOM_AVATAR_URL_KEY = 'poker_custom_avatar_url'
 const CUSTOM_AVATAR_CROP_KEY = 'poker_custom_avatar_crop'
 const VIEW_MODE_KEY = 'poker_view_mode'
 const HISTORY_PANEL_KEY = 'poker_history_panel'
+const ENABLE_ADS_KEY = 'poker_enable_ads'
 const MAX_RECENT_ROOMS = 5
 
 export type ViewMode = 'table' | 'grid'
@@ -58,6 +59,7 @@ export const useConfigStore = defineStore('config', () => {
   const customAvatarCrop = ref<AvatarCrop | null>(readStoredAvatarCrop())
   const viewMode = ref<ViewMode>((localStorage.getItem(VIEW_MODE_KEY) as ViewMode) ?? 'table')
   const historyPanelOpen = ref(localStorage.getItem(HISTORY_PANEL_KEY) === 'true')
+  const enableAds = ref(localStorage.getItem(ENABLE_ADS_KEY) === 'true')
 
   // Cached validation result — reset to 'unknown' when config changes so the
   // lobby re-checks; stays valid across page navigations for the same config.
@@ -242,6 +244,11 @@ export const useConfigStore = defineStore('config', () => {
     localStorage.setItem(HISTORY_PANEL_KEY, open ? 'true' : 'false')
   }
 
+  function setEnableAds (enabled: boolean) {
+    enableAds.value = enabled
+    localStorage.setItem(ENABLE_ADS_KEY, enabled ? 'true' : 'false')
+  }
+
   function getDb (): Database | null {
     if (_db) {
       return _db
@@ -289,5 +296,7 @@ export const useConfigStore = defineStore('config', () => {
     setViewMode,
     historyPanelOpen,
     setHistoryPanelOpen,
+    enableAds,
+    setEnableAds,
   }
 })

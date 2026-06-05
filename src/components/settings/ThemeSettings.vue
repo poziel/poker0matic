@@ -18,6 +18,7 @@
             :key="theme.id"
             class="theme-card"
             :class="{ active: model.theme === theme.id }"
+            :data-test-id="`profile-theme-${theme.id}`"
             type="button"
             @click="model.theme = theme.id"
           >
@@ -43,6 +44,7 @@
             :key="theme.id"
             class="theme-card"
             :class="{ active: model.theme === theme.id }"
+            :data-test-id="`profile-theme-${theme.id}`"
             type="button"
             @click="model.theme = theme.id"
           >

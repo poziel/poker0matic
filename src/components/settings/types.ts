@@ -14,4 +14,5 @@ export interface SettingsDraft {
   customAvatarModerationStatus: AvatarModerationStatus
   userName: string
   viewMode: ViewMode
+  enableAds: boolean
 }

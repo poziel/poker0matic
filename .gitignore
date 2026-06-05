@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 dist-ssr/
+coverage/
+playwright-report/
+test-results/
 
 # Vite / TypeScript caches
 .vite/

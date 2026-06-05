@@ -330,6 +330,11 @@
           </v-btn>
         </div>
 
+        <AdvertisementSlot
+          v-if="configStore.enableAds"
+          placement="room-support"
+        />
+
         <div v-if="showVotes && committedVote" class="committed-vote-center">
           <div class="committed-vote-badge">
             <v-icon icon="mdi-check-circle" size="14" />
@@ -469,6 +474,7 @@
   import QRCode from 'qrcode'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+  import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
   import FloatingReactions from '@/components/FloatingReactions.vue'
   import PokerTable from '@/components/PokerTable.vue'

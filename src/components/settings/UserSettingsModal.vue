@@ -9,9 +9,15 @@
     <component :is="activeComponent" v-model="settingsDraft" />
 
     <template #footer>
-      <v-btn class="p0-btn p0-btn-ghost" variant="flat" @click="model = false">Cancel</v-btn>
+      <v-btn class="p0-btn p0-btn-ghost" data-test-id="profile-cancel" variant="flat" @click="model = false">Cancel</v-btn>
 
-      <v-btn class="p0-btn p0-btn-primary" :disabled="saveDisabled" variant="flat" @click="saveSettings">
+      <v-btn
+        class="p0-btn p0-btn-primary"
+        data-test-id="profile-save"
+        :disabled="saveDisabled"
+        variant="flat"
+        @click="saveSettings"
+      >
         Save profile
       </v-btn>
     </template>
@@ -21,6 +27,7 @@
 <script lang="ts" setup>
   import type { SettingsDraft } from '@/components/settings/types'
   import { computed, ref, watch } from 'vue'
+  import AdvertisingSettings from '@/components/settings/AdvertisingSettings.vue'
   import AvatarSettings from '@/components/settings/AvatarSettings.vue'
   import DisplayNameSettings from '@/components/settings/DisplayNameSettings.vue'
   import RoomDisplaySettings from '@/components/settings/RoomDisplaySettings.vue'
@@ -29,7 +36,7 @@
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
 
-  type SettingsSectionId = 'display-name' | 'avatar' | 'theme' | 'room-display'
+  type SettingsSectionId = 'display-name' | 'avatar' | 'theme' | 'room-display' | 'advertising'
 
   const model = defineModel<boolean>({ required: true })
   const appStore = useAppStore()
@@ -40,6 +47,7 @@
     { id: 'avatar', label: 'Avatar', icon: 'mdi-account-circle', component: AvatarSettings },
     { id: 'theme', label: 'Theme', icon: 'mdi-palette', component: ThemeSettings },
     { id: 'room-display', label: 'Room display', icon: 'mdi-view-dashboard-outline', component: RoomDisplaySettings },
+    { id: 'advertising', label: 'Advertising', icon: 'mdi-bullhorn-outline', component: AdvertisingSettings },
   ] as const
 
   const activeSection = ref<SettingsSectionId>('display-name')
@@ -76,6 +84,7 @@
       customAvatarModerationStatus: 'idle',
       userName: configStore.userName,
       viewMode: configStore.viewMode,
+      enableAds: configStore.enableAds,
     }
   }
 
@@ -92,6 +101,7 @@
     configStore.setCustomAvatarCrop(settingsDraft.value.customAvatarCrop)
     configStore.setUserName(trimmedName)
     configStore.setViewMode(settingsDraft.value.viewMode)
+    configStore.setEnableAds(settingsDraft.value.enableAds)
     model.value = false
   }
 </script>

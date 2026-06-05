@@ -15,6 +15,7 @@
           :key="tab.id"
           class="landing-nav-tab"
           :class="{ 'landing-nav-tab-active': currentTab === tab.id }"
+          :data-test-id="`landing-tab-${tab.id}`"
           type="button"
           @click="currentTab = tab.id"
         >
@@ -65,6 +66,7 @@
 
       <v-btn
         class="p0-btn p0-btn-primary landing-topbar-cta"
+        data-test-id="landing-primary-action"
         prepend-icon="mdi-arrow-right"
         to="/app"
         variant="flat"
@@ -328,7 +330,7 @@
           <div class="landing-rules-head">
             <h3>Realtime Database rules</h3>
 
-            <button class="landing-rules-toggle" type="button" @click="rulesExpanded = !rulesExpanded">
+            <button class="landing-rules-toggle" data-test-id="landing-toggle-rules" type="button" @click="rulesExpanded = !rulesExpanded">
               <span>{{ rulesExpanded ? 'Hide rules' : 'Show rules' }}</span>
               <v-icon :icon="rulesExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
             </button>
@@ -342,6 +344,7 @@
           <div v-if="rulesExpanded" class="landing-code-shell">
             <v-btn
               class="p0-btn p0-btn-ghost landing-copy-icon"
+              data-test-id="landing-copy-rules"
               :icon="rulesCopied ? 'mdi-check' : 'mdi-content-copy'"
               size="small"
               variant="flat"

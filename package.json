@@ -11,6 +11,11 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "test": "run-s test:unit test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:e2e": "node --disable-warning=DEP0205 ./node_modules/@playwright/test/cli.js test",
+    "test:e2e:ui": "node --disable-warning=DEP0205 ./node_modules/@playwright/test/cli.js test --ui",
     "mcp": "npm run ruler:apply",
     "mcp:dry": "npm run ruler:apply:dry",
     "mcp:revert": "ruler revert",
@@ -33,6 +38,7 @@
   },
   "devDependencies": {
     "@intellectronica/ruler": "^0.3.37",
+    "@playwright/test": "^1.60.0",
     "@tsconfig/node22": "^22.0.5",
     "@types/node": "^24.12.0",
     "@types/qrcode": "^1.5.6",
@@ -46,6 +52,7 @@
     "unplugin-fonts": "^1.4.0",
     "vite": "^8.0.0",
     "vite-plugin-vuetify": "^2.1.3",
+    "vitest": "^4.1.8",
     "vue-tsc": "^3.2.5"
   },
   "overrides": {

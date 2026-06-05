@@ -100,11 +100,12 @@
         <p>Connect the app to your own Firebase Realtime Database project.</p>
       </div>
 
-      <div class="config-fields">
+      <div class="config-fields" data-test-id="firebase-config-modal-form">
         <v-text-field
           v-model="config.apiKey"
           autocomplete="off"
           class="p0-field"
+          data-test-id="firebase-api-key-input"
           hide-details="auto"
           label="apiKey"
           type="password"
@@ -114,6 +115,7 @@
         <v-text-field
           v-model="config.authDomain"
           class="p0-field"
+          data-test-id="firebase-auth-domain-input"
           hide-details="auto"
           label="authDomain"
           variant="outlined"
@@ -122,6 +124,7 @@
         <v-text-field
           v-model="config.databaseUrl"
           class="p0-field"
+          data-test-id="firebase-database-url-input"
           hide-details="auto"
           label="databaseUrl"
           variant="outlined"
@@ -130,6 +133,7 @@
         <v-text-field
           v-model="config.projectId"
           class="p0-field"
+          data-test-id="firebase-project-id-input"
           hide-details="auto"
           label="projectId"
           variant="outlined"
@@ -138,6 +142,7 @@
         <v-text-field
           v-model="config.storageBucket"
           class="p0-field"
+          data-test-id="firebase-storage-bucket-input"
           hide-details="auto"
           label="storageBucket"
           variant="outlined"
@@ -146,6 +151,7 @@
         <v-text-field
           v-model="config.messagingSenderId"
           class="p0-field"
+          data-test-id="firebase-messaging-sender-id-input"
           hide-details="auto"
           label="messagingSenderId"
           variant="outlined"
@@ -154,6 +160,7 @@
         <v-text-field
           v-model="config.appId"
           class="p0-field"
+          data-test-id="firebase-app-id-input"
           hide-details="auto"
           label="appId"
           variant="outlined"
@@ -164,6 +171,7 @@
     <template #footer>
       <v-btn
         class="p0-btn p0-btn-ghost"
+        data-test-id="firebase-share-config"
         prepend-icon="mdi-share-variant"
         variant="flat"
         @click="shareConfig"
@@ -173,6 +181,7 @@
 
       <v-btn
         class="p0-btn p0-btn-primary"
+        data-test-id="firebase-save-config"
         prepend-icon="mdi-content-save"
         variant="flat"
         @click="saveConfig"
