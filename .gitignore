@@ -6,6 +6,7 @@ dist/
 dist-ssr/
 coverage/
 playwright-report/
+.playwright-mcp/
 test-results/
 
 # Vite / TypeScript caches
@@ -43,8 +44,10 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Claude Code local settings (user-specific, not project config)
-.claude/settings.local.json
+# Agents and LLMs
+.agents/
+.claude/
+.codex/
 
 # START Ruler Generated Files
 /.claude/agents

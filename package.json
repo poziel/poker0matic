@@ -16,8 +16,8 @@
     "test:unit:watch": "vitest",
     "test:e2e": "node --disable-warning=DEP0205 ./node_modules/@playwright/test/cli.js test",
     "test:e2e:ui": "node --disable-warning=DEP0205 ./node_modules/@playwright/test/cli.js test --ui",
-    "mcp": "npm run ruler:apply",
-    "mcp:dry": "npm run ruler:apply:dry",
+    "mcp": "npm run ruler",
+    "mcp:dry": "npm run ruler:dry",
     "mcp:revert": "ruler revert",
     "ruler": "node scripts/ruler-apply.mjs",
     "ruler:dry": "node scripts/ruler-apply.mjs --dry-run"

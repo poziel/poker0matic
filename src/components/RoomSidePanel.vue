@@ -49,7 +49,7 @@
 </script>
 
 <template>
-  <aside class="side-panel" :class="{ 'side-panel-collapsed': !open }">
+  <aside class="side-panel" :class="{ 'side-panel-collapsed': !open }" data-test-id="room-side-panel">
     <div class="side-panel-head">
       <span v-if="open" class="side-panel-title">Room panel</span>
 
@@ -68,7 +68,7 @@
 
     <div v-if="open" class="side-panel-scroll">
       <div v-if="taskInformationEnabled" class="sp-section">
-        <button class="sp-section-head" type="button" @click="taskExpanded = !taskExpanded">
+        <button class="sp-section-head" data-test-id="room-panel-task-toggle" type="button" @click="taskExpanded = !taskExpanded">
           <v-icon icon="mdi-text-box-search-outline" size="14" />
           <span>Task information</span>
           <v-icon class="sp-chevron" :icon="taskExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="14" />
@@ -110,7 +110,7 @@
       </div>
 
       <div v-if="historyEnabled" class="sp-section">
-        <button class="sp-section-head" type="button" @click="historyExpanded = !historyExpanded">
+        <button class="sp-section-head" data-test-id="room-panel-history-toggle" type="button" @click="historyExpanded = !historyExpanded">
           <v-icon icon="mdi-history" size="14" />
           <span>History</span>
           <span class="sp-badge">{{ history.length }}</span>
@@ -123,6 +123,7 @@
             :key="entry.id"
             class="hist-item"
             :class="{ 'hist-item-action': canRestoreHistory }"
+            data-test-id="room-history-entry"
             :title="canRestoreHistory ? restoreHistoryTitle : ''"
             @click="canRestoreHistory ? $emit('restore-history', entry.id) : undefined"
           >

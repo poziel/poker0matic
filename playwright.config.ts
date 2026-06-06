@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 const port = Number(process.env.PORT ?? 3000)
 const baseURL = `http://127.0.0.1:${port}`
 const basePath = '/poker0matic/'
+const reuseExistingServer = process.env.POKER0MATIC_REUSE_E2E_SERVER === '1'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -24,9 +25,10 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: `npm run dev -- --host 127.0.0.1 --port ${port}`,
+    command: `node ./scripts/playwright-dev-server.mjs ${port}`,
+    gracefulShutdown: { signal: 'SIGINT', timeout: 500 },
     url: `${baseURL}${basePath}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer,
     timeout: 120_000,
   },
   projects: [

@@ -53,7 +53,7 @@
     <ConfigModal v-model="appStore.configModalOpen" />
 
     <!-- ── Global username setup (shown once on first visit) ───────────── -->
-    <v-dialog v-model="nameSetupOpen" max-width="400" persistent>
+    <v-dialog v-model="nameSetupOpen" max-width="480" persistent>
       <v-card class="p0-modal" flat>
         <div class="p0-modal-head">
           <h2>What's your name?</h2>
