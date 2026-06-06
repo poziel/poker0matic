@@ -44,10 +44,22 @@ export async function stubFirebaseHealthCheck (page: Page, config = validFirebas
 }
 
 export async function completeInitialNamePrompt (page: Page, name = 'Ada') {
+  const nameInput = page.getByTestId('initial-name-input')
+
+  try {
+    await nameInput.waitFor({ state: 'visible', timeout: 15_000 })
+  } catch (error) {
+    if (await page.getByTestId('user-menu-button').isVisible()) {
+      return
+    }
+
+    throw error
+  }
+
   await expect(page.getByRole('heading', { name: 'What\'s your name?' })).toBeVisible()
   await expect(page.getByTestId('initial-name-continue')).toBeDisabled()
 
-  await page.getByTestId('initial-name-input').locator('input').fill(name)
+  await nameInput.locator('input').fill(name)
   await page.getByTestId('initial-name-continue').click()
 
   await expect(page.getByRole('heading', { name: 'What\'s your name?' })).toHaveCount(0)

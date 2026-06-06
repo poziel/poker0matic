@@ -1,6 +1,5 @@
 import { type Browser, expect, type Locator, type Page } from '@playwright/test'
 import {
-  completeInitialNamePrompt,
   encodeFirebaseConfig,
   stubFirebaseHealthCheck,
   validFirebaseConfig,
@@ -84,9 +83,11 @@ export async function joinRoomAs (
   const context = await browser.newContext()
   const page = await context.newPage()
 
+  await page.addInitScript(({ participantName }) => {
+    localStorage.setItem('poker_user_id', `e2e-${participantName.toLowerCase()}-${crypto.randomUUID()}`)
+    localStorage.setItem('poker_user_name', participantName)
+  }, { participantName: name })
   await stubFirebaseHealthCheck(page)
-  await page.goto('/poker0matic/app')
-  await completeInitialNamePrompt(page, name)
   await page.goto(`/poker0matic/app/room/${room.id}?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
 
   await expect(page.getByTestId('room-shell')).toBeVisible()
