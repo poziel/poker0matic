@@ -13,9 +13,9 @@ npm run test:e2e:ui  # Open the Playwright UI runner
 npm run type-check   # Vue TSC type validation only
 npm run lint         # ESLint check
 npm run lint:fix     # ESLint auto-fix
-npm run mcp          # Apply Ruler-generated agent files
-npm run mcp:dry      # Preview Ruler-generated agent file changes
-npm run mcp:revert   # Revert Ruler-generated agent file changes
+npm run ruler        # Apply Ruler-generated agent files
+npm run ruler:dry    # Preview Ruler-generated agent file changes
+npm run ruler:revert # Revert Ruler-generated agent file changes
 ```
 
 Use `npm run test`, `npm run type-check`, `npm run lint`, and `npm run build` as

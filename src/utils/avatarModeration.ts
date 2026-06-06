@@ -45,6 +45,10 @@ export async function moderateCustomAvatarUrl (url: string): Promise<AvatarModer
     }
   }
 
+  if (import.meta.env.VITE_POKER0MATIC_E2E === '1') {
+    return { status: 'approved', predictions: [], score: 0 }
+  }
+
   try {
     const [model, image] = await Promise.all([loadModel(), loadImageForModeration(url)])
     const predictions = await model.classify(image, 5)

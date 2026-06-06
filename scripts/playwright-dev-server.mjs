@@ -6,6 +6,7 @@ const port = process.argv[2] ?? process.env.PORT ?? '3000'
 const viteCliPath = path.resolve('node_modules', 'vite', 'bin', 'vite.js')
 
 process.env.VITE_POKER0MATIC_FIREBASE_MOCK = '1'
+process.env.VITE_POKER0MATIC_E2E = '1'
 process.once('SIGTERM', () => {
   process.exit(0)
 })

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const port = Number(process.env.PORT ?? 3000)
+const port = Number(process.env.PORT ?? 3010)
 const baseURL = `http://127.0.0.1:${port}`
 const basePath = '/poker0matic/'
 const reuseExistingServer = process.env.POKER0MATIC_REUSE_E2E_SERVER === '1'

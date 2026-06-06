@@ -24,9 +24,14 @@ protects the behavior being changed.
 
 - `npm run test` runs unit tests and end-to-end tests.
 - `npm run test:unit` runs Vitest unit tests.
-- `npm run test:e2e` runs Playwright browser tests.
+- `npm run test:e2e` runs Playwright browser tests on port 3010 by default.
 - `npm run test:e2e:ui` opens the Playwright UI runner for interactive browser
   debugging.
+
+The normal Vite dev server uses port 3000. Playwright uses port 3010 by default
+so E2E runs can start their own mocked app server without conflicting with a
+developer's existing `npm run dev` process. Override it with
+`PORT=<port> npm run test:e2e` when needed.
 
 Run the most relevant targeted test while iterating, then run the broader
 validation set before finishing meaningful changes.
