@@ -12,6 +12,7 @@
 
         <v-btn
           class="p0-btn p0-btn-primary"
+          data-test-id="create-room-submit"
           :disabled="!settings.name.trim()"
           prepend-icon="mdi-plus"
           type="submit"

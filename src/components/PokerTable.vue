@@ -30,7 +30,7 @@
 </script>
 
 <template>
-  <div class="table" data-cstyle="real">
+  <div class="table" data-cstyle="real" data-test-id="room-table">
     <div class="players">
       <div
         v-for="player in players"
@@ -41,6 +41,8 @@
           'is-leader': player.userId === leaderUserId,
           'is-connected': player.isConnected,
         }"
+        :data-player-name="player.name"
+        data-test-id="room-player"
         @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
       >
         <div v-if="player.userId === leaderUserId" class="leader-crown-avatar">
@@ -68,6 +70,7 @@
             'no-vote': player.vote == null,
             shaking: shakingUserIds?.includes(player.userId),
           }"
+          data-test-id="room-player-card"
           :style="{ '--flip-delay': showVotes && player.vote != null ? `${getPlayerIndex(player.userId) * 90}ms` : '0ms' }"
         >
           <div class="pcard-back p0-card p0-card-back">

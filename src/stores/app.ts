@@ -61,7 +61,7 @@ export const useAppStore = defineStore('app', () => {
   // -- theme --------------------------------------------------------------
   function applyTheme (theme: ThemeId) {
     applyDocumentTheme(theme)
-    vuetify.theme.global.name.value = theme
+    vuetify.theme.change(theme)
   }
 
   function setTheme (theme: ThemeId) {

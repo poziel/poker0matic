@@ -25,6 +25,7 @@
             :key="section.id"
             class="settings-sidebar-item"
             :class="{ active: activeSection === section.id }"
+            :data-test-id="`settings-section-${section.id}`"
             type="button"
             @click="activeSection = section.id"
           >

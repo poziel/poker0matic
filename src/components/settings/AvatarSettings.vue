@@ -9,6 +9,7 @@
       <button
         class="avatar-source-option"
         :class="{ active: model.avatarSource === 'dicebear' }"
+        data-test-id="avatar-source-dicebear"
         type="button"
         @click="model.avatarSource = 'dicebear'"
       >
@@ -18,6 +19,7 @@
       <button
         class="avatar-source-option"
         :class="{ active: model.avatarSource === 'custom' }"
+        data-test-id="avatar-source-custom"
         type="button"
         @click="model.avatarSource = 'custom'"
       >
@@ -40,6 +42,7 @@
         <v-text-field
           v-model="localCustomAvatarUrl"
           class="p0-field custom-avatar-url-field"
+          data-test-id="avatar-custom-url-input"
           hide-details="auto"
           label="Externally hosted image URL"
           placeholder="https://example.com/avatar.png"
@@ -63,6 +66,7 @@
           <Cropper
             :canvas="false"
             class="custom-avatar-cropper"
+            data-test-id="avatar-custom-cropper"
             :debounce="60"
             :default-position="defaultCropPosition"
             :default-size="defaultCropSize"
@@ -77,16 +81,18 @@
         <input
           v-model="localAvatarSeed"
           class="avatar-seed-native"
+          data-test-id="avatar-seed-input"
           :placeholder="`${displayName} (default seed)`"
           type="text"
           @keydown.enter="applyPreview"
         >
 
-        <button class="avatar-preview-btn" type="button" @click="applyPreview">Preview</button>
+        <button class="avatar-preview-btn" data-test-id="avatar-preview" type="button" @click="applyPreview">Preview</button>
 
         <button
           aria-label="Randomize avatar seed"
           class="avatar-randomize-btn"
+          data-test-id="avatar-randomize-seed"
           title="Randomize avatar seed"
           type="button"
           @click="randomizeAvatarSeed"
@@ -120,7 +126,7 @@
       </p>
     </div>
 
-    <div v-show="model.avatarSource === 'dicebear'" class="avatar-style-grid">
+    <div v-show="model.avatarSource === 'dicebear'" class="avatar-style-grid" data-test-id="avatar-style-grid">
       <button
         v-for="style in AVATAR_STYLES"
         :key="style.id"

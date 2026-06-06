@@ -1,7 +1,7 @@
 <template>
   <v-menu content-class="p0-user-menu" location="bottom end" origin="top end">
     <template #activator="{ props }">
-      <v-btn v-bind="props" class="user-menu-btn" variant="text">
+      <v-btn v-bind="props" class="user-menu-btn" data-test-id="user-menu-button" variant="text">
         <PlayerAvatar
           :avatar-bg="configStore.avatarBg"
           :avatar-seed="configStore.avatarSeed || displayName"
@@ -18,12 +18,31 @@
     </template>
 
     <v-list class="p0-menu-list" density="compact" min-width="200">
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-account-cog" title="Profile" @click="profileDialog = true" />
+      <v-list-item
+        class="p0-menu-item"
+        data-test-id="user-menu-profile"
+        prepend-icon="mdi-account-cog"
+        title="Profile"
+        @click="profileDialog = true"
+      />
 
       <v-divider class="p0-menu-divider" />
 
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-cog" title="Configuration" @click="appStore.setConfigModalOpen(true)" />
-      <v-list-item class="p0-menu-item" prepend-icon="mdi-information-outline" title="About" @click="aboutModalOpen = true" />
+      <v-list-item
+        class="p0-menu-item"
+        data-test-id="user-menu-configuration"
+        prepend-icon="mdi-cog"
+        title="Configuration"
+        @click="appStore.setConfigModalOpen(true)"
+      />
+
+      <v-list-item
+        class="p0-menu-item"
+        data-test-id="user-menu-about"
+        prepend-icon="mdi-information-outline"
+        title="About"
+        @click="aboutModalOpen = true"
+      />
     </v-list>
   </v-menu>
 

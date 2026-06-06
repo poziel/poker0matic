@@ -15,6 +15,7 @@
 
       <v-btn
         class="p0-btn p0-btn-primary"
+        data-test-id="app-open-configuration"
         prepend-icon="mdi-cog"
         variant="flat"
         @click="appStore.setConfigModalOpen(true)"
@@ -40,6 +41,7 @@
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <v-btn
           class="p0-btn p0-btn-ghost"
+          data-test-id="app-retry-config-check"
           prepend-icon="mdi-refresh"
           variant="flat"
           @click="runChecks"
@@ -49,6 +51,7 @@
 
         <v-btn
           class="p0-btn p0-btn-primary"
+          data-test-id="app-review-configuration"
           prepend-icon="mdi-cog"
           variant="flat"
           @click="appStore.setConfigModalOpen(true)"
@@ -71,6 +74,7 @@
 
       <v-btn
         class="p0-btn p0-btn-primary"
+        data-test-id="app-create-room"
         prepend-icon="mdi-arrow-right"
         to="/app/create"
         variant="flat"
@@ -89,6 +93,7 @@
           v-model="roomCode"
           autofocus
           class="p0-field"
+          data-test-id="app-room-code-input"
           hide-details="auto"
           label="Room code"
           placeholder="e.g. ab12cd34"
@@ -98,6 +103,7 @@
 
         <v-btn
           class="p0-btn p0-btn-ghost"
+          data-test-id="app-join-room"
           :disabled="!roomCode.trim() || joiningRoom"
           :loading="joiningRoom"
           type="submit"
@@ -142,6 +148,11 @@
         </div>
       </div>
     </v-card>
+
+    <AdvertisementSlot
+      v-if="configStore.enableAds"
+      placement="app-banner"
+    />
   </v-container>
 
   <FullScreenLoader message="Checking…" :model-value="configStatus === 'checking'" />
@@ -151,6 +162,7 @@
   import { ref as dbRef, get } from 'firebase/database'
   import { onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
+  import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
   import FullScreenLoader from '@/components/FullScreenLoader.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'

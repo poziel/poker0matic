@@ -53,7 +53,7 @@
     <ConfigModal v-model="appStore.configModalOpen" />
 
     <!-- ── Global username setup (shown once on first visit) ───────────── -->
-    <v-dialog v-model="nameSetupOpen" max-width="400" persistent>
+    <v-dialog v-model="nameSetupOpen" max-width="480" persistent>
       <v-card class="p0-modal" flat>
         <div class="p0-modal-head">
           <h2>What's your name?</h2>
@@ -67,6 +67,7 @@
               autofocus
               class="p0-field"
               :counter="20"
+              data-test-id="initial-name-input"
               hide-details="auto"
               label="Your name"
               maxlength="20"
@@ -78,6 +79,7 @@
           <div class="p0-modal-foot">
             <v-btn
               class="p0-btn p0-btn-primary"
+              data-test-id="initial-name-continue"
               :disabled="!setupName.trim()"
               type="submit"
               variant="flat"

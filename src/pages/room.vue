@@ -1,6 +1,6 @@
 <template>
   <template v-if="currentRoom && !!userName">
-    <div class="shell">
+    <div class="shell" data-test-id="room-shell">
       <!-- Backdrop for mobile sidebar overlay -->
       <div v-if="sidePanelEnabled && historyPanelOpen" class="panel-backdrop" @click="historyPanelOpen = false" />
 
@@ -23,6 +23,7 @@
               v-if="sidePanelEnabled"
               :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
               class="icon-btn mobile-panel-btn"
+              data-test-id="room-toggle-panel"
               density="compact"
               icon
               :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
@@ -35,6 +36,7 @@
             <v-btn
               aria-label="Back to lobby"
               class="icon-btn"
+              data-test-id="room-back-to-lobby"
               density="compact"
               icon
               title="Back to lobby"
@@ -44,7 +46,7 @@
               <v-icon icon="mdi-home-outline" size="16" />
             </v-btn>
 
-            <p class="room-name-label">{{ currentRoom.name }}</p>
+            <p class="room-name-label" data-test-id="room-name">{{ currentRoom.name }}</p>
 
             <span aria-hidden="true" class="room-title-separator">•</span>
 
@@ -59,7 +61,7 @@
               {{ currentTask.title }}
             </a>
 
-            <span v-else class="round-counter" :class="{ 'round-title-text': !!currentTask?.title }">
+            <span v-else class="round-counter" :class="{ 'round-title-text': !!currentTask?.title }" data-test-id="room-round-label">
               {{ currentRoundLabel }}
             </span>
           </div>
@@ -76,12 +78,13 @@
                 />
               </span>
 
-              <span class="vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
+              <span class="vote-count" data-test-id="room-vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
             </div>
 
             <v-btn
               :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
               class="icon-btn"
+              data-test-id="room-toggle-view"
               density="compact"
               icon
               :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
@@ -95,6 +98,7 @@
               v-if="taskInformationEnabled && currentTask"
               aria-label="Edit task information"
               class="icon-btn"
+              data-test-id="room-edit-task"
               density="compact"
               :disabled="!canEditCurrentTask"
               icon
@@ -108,6 +112,7 @@
             <v-btn
               aria-label="Room settings"
               class="icon-btn"
+              data-test-id="room-open-settings"
               density="compact"
               :disabled="leaderModeEnabled && !isLeader"
               icon
@@ -121,6 +126,7 @@
             <v-btn
               :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
               class="icon-btn"
+              data-test-id="room-share-link"
               density="compact"
               :disabled="!firebaseConfig"
               icon
@@ -212,6 +218,7 @@
           <template v-if="taskInformationEnabled && !currentTask">
             <v-btn
               class="p0-btn p0-btn-primary"
+              data-test-id="room-start-round"
               :disabled="!canStartTaskInfoFlow"
               prepend-icon="mdi-text-box-plus-outline"
               :title="roundActionTitle"
@@ -225,6 +232,7 @@
           <template v-else-if="!showVotes">
             <v-btn
               class="p0-btn p0-btn-primary"
+              data-test-id="room-reveal-votes"
               :disabled="votedCount === 0 || !canManageRound"
               prepend-icon="mdi-eye"
               :title="roundActionTitle"
@@ -239,6 +247,7 @@
 
             <v-btn
               class="p0-btn p0-btn-ghost"
+              data-test-id="room-reset-round"
               :disabled="!canManageRound"
               :title="roundActionTitle"
               variant="flat"
@@ -251,6 +260,7 @@
           <template v-else-if="showVotes">
             <v-btn
               class="p0-btn p0-btn-ghost"
+              data-test-id="room-hide-votes"
               :disabled="!canManageRound"
               prepend-icon="mdi-eye-off"
               :title="roundActionTitle"
@@ -262,6 +272,7 @@
 
             <v-btn
               class="p0-btn p0-btn-primary"
+              data-test-id="room-next-round"
               :disabled="!canManageRound"
               :prepend-icon="historyEnabled ? 'mdi-arrow-right' : 'mdi-refresh'"
               :title="roundActionTitle"
@@ -277,6 +288,7 @@
           <v-btn
             v-if="canStartManualTimer"
             class="p0-btn p0-btn-primary"
+            data-test-id="room-start-timer"
             prepend-icon="mdi-play"
             :title="roundActionTitle"
             variant="flat"
@@ -288,6 +300,7 @@
           <v-btn
             v-if="canPauseTimer"
             class="p0-btn p0-btn-ghost"
+            data-test-id="room-pause-timer"
             prepend-icon="mdi-pause"
             :title="roundActionTitle"
             variant="flat"
@@ -299,6 +312,7 @@
           <v-btn
             v-if="canResumeTimer"
             class="p0-btn p0-btn-ghost"
+            data-test-id="room-resume-timer"
             prepend-icon="mdi-play"
             :title="roundActionTitle"
             variant="flat"
@@ -310,6 +324,7 @@
           <v-btn
             v-if="canExtendTimer"
             class="p0-btn p0-btn-ghost"
+            data-test-id="room-extend-timer"
             prepend-icon="mdi-timer-plus-outline"
             :title="roundActionTitle"
             variant="flat"
@@ -321,6 +336,7 @@
           <v-btn
             v-if="canRestartTimer"
             class="p0-btn p0-btn-ghost"
+            data-test-id="room-restart-timer"
             prepend-icon="mdi-restart"
             :title="roundActionTitle"
             variant="flat"
@@ -329,6 +345,11 @@
             Restart timer
           </v-btn>
         </div>
+
+        <AdvertisementSlot
+          v-if="configStore.enableAds"
+          placement="room-support"
+        />
 
         <div v-if="showVotes && committedVote" class="committed-vote-center">
           <div class="committed-vote-badge">
@@ -469,6 +490,7 @@
   import QRCode from 'qrcode'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+  import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
   import FloatingReactions from '@/components/FloatingReactions.vue'
   import PokerTable from '@/components/PokerTable.vue'

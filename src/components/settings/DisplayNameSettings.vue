@@ -11,6 +11,7 @@
         autofocus
         class="p0-field"
         :counter="MAX_NAME_LENGTH"
+        data-test-id="profile-display-name-input"
         hide-details="auto"
         label="Your name"
         :maxlength="MAX_NAME_LENGTH"

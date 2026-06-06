@@ -127,6 +127,7 @@
             'p0-card-selected': selectedVote === option,
           }"
           :data-card-value="option"
+          data-test-id="vote-card"
           :disabled="!canVote"
           :title="!canVote ? disabledHint : ''"
           type="button"
@@ -186,6 +187,7 @@
                 'p0-card-selected': String(value) === committedVote || String(value) === autoSelectedValue,
               }"
               :data-card-value="value"
+              data-test-id="vote-result-card"
               :disabled="!historyEnabled || !canCommitVote"
               type="button"
               @click="commitValue(String(value))"
@@ -221,6 +223,7 @@
                   ref="customCardInput"
                   v-model="customVoteInput"
                   class="custom-card-input"
+                  data-test-id="vote-custom-final-input"
                   maxlength="5"
                   placeholder="···"
                   type="text"
@@ -233,6 +236,7 @@
               <button
                 v-if="customVoteValue"
                 class="dist-count dock-custom-set"
+                data-test-id="vote-custom-final-submit"
                 :disabled="!canCommitCustom"
                 type="button"
                 @click="commitCustom"
@@ -302,6 +306,7 @@
     <div v-if="!externalWindow" class="dock-toggle">
       <button
         class="dock-toggle-main"
+        data-test-id="vote-dock-toggle"
         type="button"
         @click="$emit('update:collapsed', !collapsed)"
       >
@@ -327,6 +332,7 @@
       <button
         aria-label="Open voting dock on phone"
         class="dock-phone-btn"
+        data-test-id="vote-dock-phone"
         title="Open voting dock on phone"
         type="button"
         @click.stop="$emit('open-phone-dock')"
@@ -337,6 +343,7 @@
       <button
         :aria-label="externalDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
         class="dock-external-btn"
+        data-test-id="vote-dock-external"
         :title="externalDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
         type="button"
         @click.stop="$emit('toggle-external-dock')"

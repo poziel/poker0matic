@@ -32,7 +32,7 @@
 </script>
 
 <template>
-  <div class="results-grid">
+  <div class="results-grid" data-test-id="room-results-grid">
     <div class="rg-header">
       <span>Player</span>
       <span>{{ showVotes ? 'Vote' : 'Status' }}</span>
@@ -47,6 +47,8 @@
         'rg-row-leader': player.userId === leaderUserId,
         'rg-row-connected': player.isConnected,
       }"
+      :data-player-name="player.name"
+      data-test-id="room-grid-player"
       @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
     >
       <div class="rg-name-cell">
@@ -72,6 +74,7 @@
       <span
         v-if="showVotes && player.vote != null"
         class="rg-vote-value"
+        data-test-id="room-grid-vote"
       >
         {{ player.vote }}
       </span>

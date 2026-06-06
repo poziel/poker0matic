@@ -41,7 +41,7 @@
         <p>Changes apply to all participants. Modifying the deck will reset current votes.</p>
       </div>
 
-      <v-form @submit.prevent="save">
+      <v-form data-test-id="room-settings-form" @submit.prevent="save">
         <div class="p0-modal-body">
           <RoomSettingsForm v-model="settings" />
         </div>
@@ -49,6 +49,7 @@
         <div class="p0-modal-foot">
           <v-btn
             class="p0-btn p0-btn-ghost"
+            data-test-id="room-settings-cancel"
             variant="flat"
             @click="$emit('update:modelValue', false)"
           >
@@ -57,6 +58,7 @@
 
           <v-btn
             class="p0-btn p0-btn-primary"
+            data-test-id="room-settings-save"
             :disabled="!settings.name.trim()"
             prepend-icon="mdi-content-save"
             type="submit"

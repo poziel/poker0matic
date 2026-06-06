@@ -38,6 +38,21 @@ npm run build     # type-check + production build → dist/
 npm run preview   # serve dist/ locally
 npm run lint      # ESLint check
 npm run lint:fix  # ESLint auto-fix
+npm run test      # unit tests, then browser E2E tests
+npm run test:unit # Vitest unit tests
+npm run test:e2e  # Playwright browser tests on port 3010
+```
+
+The test setup uses Vitest for isolated TypeScript logic and Playwright for real browser flows.
+E2E specs live in `tests/e2e`, unit specs live in `tests/unit`, and test names follow a
+Gherkin-inspired `Feature` / `Scenario` style for readability. Playwright starts its own
+mocked E2E dev server on port 3010 by default so it does not conflict with `npm run dev`
+on port 3000. Override that with `PORT=<port> npm run test:e2e` when needed.
+
+Before running Playwright locally for the first time, install the browser binary with:
+
+```bash
+npx playwright install chromium
 ```
 
 Deployment is automatic via GitHub Actions on push to `main`, publishing to GitHub Pages at `/poker0matic/`.
