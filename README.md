@@ -1,4 +1,4 @@
-# Poker0matic
+# Refinimo
 
 A real-time collaborative planning poker app for agile teams. Team members join a shared room, cast story point votes anonymously, then reveal all votes simultaneously to spark estimation discussions.
 
@@ -55,4 +55,14 @@ Before running Playwright locally for the first time, install the browser binary
 npx playwright install chromium
 ```
 
-Deployment is automatic via GitHub Actions on push to `main`, publishing to GitHub Pages at `/poker0matic/`.
+## Deployment and domain
+
+Deployment is automatic via GitHub Actions on push to `main`, publishing to GitHub Pages. The default build base path is `/` for the custom-domain deployment at `https://refinimo.app`.
+
+When the dedicated Refinimo domain is chosen:
+
+1. Add `refinimo.app` as the GitHub Pages custom domain.
+2. Configure the domain DNS records required by GitHub Pages.
+3. Keep the repository variable `REFINIMO_BASE_PATH` unset or set to `/` so Vite builds assets for the custom-domain root.
+
+Firebase configuration does not need to change for the current Realtime Database-only implementation. Each team still pastes its own Firebase web app config into Refinimo. If Firebase Auth, App Check, or Firebase Hosting are added later, the chosen Refinimo domain must also be added to the relevant Firebase authorized-domain or allowed-origin settings.

@@ -20,7 +20,7 @@
     <v-card class="p0-modal" flat>
       <div class="p0-modal-head">
         <h2>About</h2>
-        <p>poker<strong>0</strong>matic — real-time collaborative planning poker.</p>
+        <p>Refinimo — real-time collaborative planning poker.</p>
       </div>
 
       <div class="p0-modal-body">
@@ -60,7 +60,7 @@
           </div>
         </div>
 
-        <p class="about-line">Thanks to the services and projects that help power poker0matic.</p>
+        <p class="about-line">Thanks to the services and projects that help power Refinimo.</p>
 
         <ul class="about-credit-list">
           <li>

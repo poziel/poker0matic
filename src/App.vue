@@ -8,10 +8,10 @@
         variant="text"
       >
         <div class="brand-mark">
-          <img alt="Poker0matic logo" src="/images/logo.png">
+          <img alt="Refinimo logo" src="/images/logo.png">
         </div>
 
-        <div class="brand-name">poker<span>0</span>matic</div>
+        <div class="brand-name">Refinimo</div>
       </v-btn>
 
       <v-spacer />

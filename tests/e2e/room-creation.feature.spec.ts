@@ -67,6 +67,6 @@ test.describe('Feature: room creation', () => {
     await page.getByTestId('room-deck-linear').click()
     await page.getByTestId('create-room-submit').click()
 
-    await expect(page).toHaveURL(/\/poker0matic\/app\/room\/[a-z0-9]+$/)
+    await expect(page).toHaveURL(/\/app\/room\/[a-z0-9]+$/)
   })
 })

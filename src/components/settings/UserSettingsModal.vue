@@ -2,7 +2,7 @@
   <SettingsModalShell
     v-model="model"
     v-model:active-section="activeSection"
-    description="Manage your personal Poker0matic profile."
+    description="Manage your personal Refinimo profile."
     :sections="profileSections"
     title="Profile"
   >

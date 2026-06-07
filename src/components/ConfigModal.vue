@@ -87,7 +87,7 @@
 <template>
   <SettingsModalShell
     :active-section="activeSection"
-    description="Manage shared app configuration for Poker0matic."
+    description="Manage shared app configuration for Refinimo."
     :model-value="modelValue"
     :sections="configSections"
     title="Configuration"

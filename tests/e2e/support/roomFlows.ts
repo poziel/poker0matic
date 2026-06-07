@@ -26,7 +26,7 @@ export async function createRoomForTest (
   const roomName = options.name ?? `Workflow room ${Date.now()}`
 
   await visitConfiguredApp(page)
-  await page.goto('/poker0matic/app/create')
+  await page.goto('/app/create')
   await expect(page.getByRole('heading', { name: 'Create a room' })).toBeVisible()
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -84,11 +84,11 @@ export async function joinRoomAs (
   const page = await context.newPage()
 
   await page.addInitScript(({ participantName }) => {
-    localStorage.setItem('poker_user_id', `e2e-${participantName.toLowerCase()}-${crypto.randomUUID()}`)
-    localStorage.setItem('poker_user_name', participantName)
+    localStorage.setItem('refinimo_user_id', `e2e-${participantName.toLowerCase()}-${crypto.randomUUID()}`)
+    localStorage.setItem('refinimo_user_name', participantName)
   }, { participantName: name })
   await stubFirebaseHealthCheck(page)
-  await page.goto(`/poker0matic/app/room/${room.id}?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
+  await page.goto(`/app/room/${room.id}?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
 
   await expect(page.getByTestId('room-shell')).toBeVisible()
   await expect(page.getByTestId('room-name')).toHaveText(room.name)

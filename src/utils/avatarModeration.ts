@@ -45,7 +45,7 @@ export async function moderateCustomAvatarUrl (url: string): Promise<AvatarModer
     }
   }
 
-  if (import.meta.env.VITE_POKER0MATIC_E2E === '1') {
+  if (import.meta.env.VITE_REFINIMO_E2E === '1') {
     return { status: 'approved', predictions: [], score: 0 }
   }
 

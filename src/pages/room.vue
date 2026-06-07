@@ -1664,7 +1664,7 @@
 
     writeExternalDockContext(roomId, currentRoom.value?.name ?? configStore.activeRoomName)
     const url = `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`
-    const dockWindow = window.open(url, 'poker0matic-voting-dock', 'popup,width=520,height=720')
+    const dockWindow = window.open(url, 'Refinimo-voting-dock', 'popup,width=520,height=720')
     dockWindow?.focus()
   }
 

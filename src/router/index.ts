@@ -76,8 +76,8 @@ const router = createRouter({
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
         public: true,
-        title: 'Poker0matic | Planning poker for scrum teams',
-        description: 'Poker0matic is a collaborative planning poker app for scrum teams to create rooms, join estimation sessions, vote on story points, and reveal results together.',
+        title: 'Refinimo | Planning poker for scrum teams',
+        description: 'Refinimo is a collaborative planning poker app for scrum teams to create rooms, join estimation sessions, vote on story points, and reveal results together.',
       },
     },
     {
@@ -86,8 +86,8 @@ const router = createRouter({
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
         requiresUserName: true,
-        title: 'Poker0matic App | Create or join a planning room',
-        description: 'Create a new planning poker room, join an existing session, or connect your Firebase project to start estimating with Poker0matic.',
+        title: 'Refinimo App | Create or join a planning room',
+        description: 'Create a new planning poker room, join an existing session, or connect your Firebase project to start estimating with Refinimo.',
       },
     },
     {
@@ -96,7 +96,7 @@ const router = createRouter({
       beforeEnter: requireConfig,
       meta: {
         requiresUserName: true,
-        title: 'Poker0matic Room',
+        title: 'Refinimo Room',
         description: 'Collaborative planning poker room for live scrum estimation, anonymous voting, and shared reveal.',
       },
     },
@@ -105,8 +105,8 @@ const router = createRouter({
       component: () => import('@/pages/dock.vue'),
       meta: {
         dockOnly: true,
-        title: 'Voting Dock | Poker0matic',
-        description: 'Dedicated Poker0matic voting dock for the current planning room.',
+        title: 'Voting Dock | Refinimo',
+        description: 'Dedicated Refinimo voting dock for the current planning room.',
       },
     },
     {
@@ -115,8 +115,8 @@ const router = createRouter({
       beforeEnter: requireConfig,
       meta: {
         requiresUserName: true,
-        title: 'Create a Room | Poker0matic',
-        description: 'Set up a new Poker0matic planning poker room and configure the estimation deck for your team.',
+        title: 'Create a Room | Refinimo',
+        description: 'Set up a new Refinimo planning poker room and configure the estimation deck for your team.',
       },
     },
     {
@@ -126,23 +126,23 @@ const router = createRouter({
         showError: 'e' in route.query,
       }),
       meta: {
-        title: 'Configuration | Poker0matic',
-        description: 'Connect Poker0matic to your Firebase Realtime Database project to enable room creation, joining, and collaboration.',
+        title: 'Configuration | Refinimo',
+        description: 'Connect Refinimo to your Firebase Realtime Database project to enable room creation, joining, and collaboration.',
       },
     },
     {
       path: '/app/attributions',
       component: () => import('@/pages/attributions.vue'),
       meta: {
-        title: 'Attributions | Poker0matic',
-        description: 'Third-party credits and attribution information for Poker0matic.',
+        title: 'Attributions | Refinimo',
+        description: 'Third-party credits and attribution information for Refinimo.',
       },
     },
   ],
 })
 
 router.afterEach(to => {
-  const title = typeof to.meta.title === 'string' ? to.meta.title : 'Poker0matic'
+  const title = typeof to.meta.title === 'string' ? to.meta.title : 'Refinimo'
   const description = typeof to.meta.description === 'string'
     ? to.meta.description
     : 'Collaborative planning poker for agile teams.'

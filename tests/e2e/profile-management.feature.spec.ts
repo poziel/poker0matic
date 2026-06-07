@@ -28,7 +28,7 @@ test.describe('Feature: profile and configuration management', () => {
       })
     })
 
-    await page.goto('/poker0matic/app')
+    await page.goto('/app')
     await completeInitialNamePrompt(page)
   })
 
@@ -40,7 +40,7 @@ test.describe('Feature: profile and configuration management', () => {
 
     await expect(page.getByRole('heading', { name: 'Profile' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Grace/ })).toBeVisible()
-    await expect(page.evaluate(() => localStorage.getItem('poker_user_name'))).resolves.toBe('Grace')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_user_name'))).resolves.toBe('Grace')
   })
 
   test('Scenario: a visitor can update their theme from the profile modal', async ({ page }) => {
@@ -52,7 +52,7 @@ test.describe('Feature: profile and configuration management', () => {
 
     await expect(page.getByRole('heading', { name: 'Profile' })).toHaveCount(0)
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'ocean')
-    await expect(page.evaluate(() => localStorage.getItem('poker_theme'))).resolves.toBe('ocean')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_theme'))).resolves.toBe('ocean')
   })
 
   test('Scenario: a visitor can preview, randomize, and save a DiceBear avatar seed', async ({ page }) => {
@@ -71,7 +71,7 @@ test.describe('Feature: profile and configuration management', () => {
 
     await page.getByTestId('profile-save').click()
 
-    await expect(page.evaluate(() => localStorage.getItem('poker_avatar_seed'))).resolves.toBe(randomizedSeed)
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_avatar_seed'))).resolves.toBe(randomizedSeed)
   })
 
   test('Scenario: a visitor can switch to a custom avatar URL, crop it, and save it', async ({ page }) => {
@@ -94,9 +94,9 @@ test.describe('Feature: profile and configuration management', () => {
     await page.mouse.up()
     await page.getByTestId('profile-save').click()
 
-    await expect(page.evaluate(() => localStorage.getItem('poker_avatar_source'))).resolves.toBe('custom')
-    await expect(page.evaluate(() => localStorage.getItem('poker_custom_avatar_url'))).resolves.toBe(customAvatarUrl)
-    await expect(page.evaluate(() => localStorage.getItem('poker_custom_avatar_crop'))).resolves.not.toBeNull()
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_avatar_source'))).resolves.toBe('custom')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_custom_avatar_url'))).resolves.toBe(customAvatarUrl)
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_custom_avatar_crop'))).resolves.not.toBeNull()
   })
 
   test('Scenario: a visitor can update Firebase configuration from the configuration modal', async ({ page }) => {
@@ -108,8 +108,24 @@ test.describe('Feature: profile and configuration management', () => {
 
     await expect(page.getByRole('heading', { name: 'Configuration' })).toHaveCount(0)
     await expect(page.evaluate(() => {
-      const raw = localStorage.getItem('poker_config')
+      const raw = localStorage.getItem('refinimo_config')
       return raw ? JSON.parse(atob(raw)).projectId : null
     })).resolves.toBe('updated-project')
+  })
+
+  test('Scenario: legacy Poker0Matic local settings migrate to Refinimo storage keys', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.removeItem('refinimo_user_name')
+      localStorage.removeItem('refinimo_theme')
+      localStorage.setItem('poker_user_name', 'Legacy Grace')
+      localStorage.setItem('poker_theme', 'ocean')
+    })
+
+    await page.goto('/app')
+
+    await expect(page.getByRole('button', { name: /Legacy Grace/ })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'ocean')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_user_name'))).resolves.toBe('Legacy Grace')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_theme'))).resolves.toBe('ocean')
   })
 })

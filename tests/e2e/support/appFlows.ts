@@ -67,9 +67,9 @@ export async function completeInitialNamePrompt (page: Page, name = 'Ada') {
 
 export async function visitConfiguredApp (page: Page, name = 'Ada') {
   await stubFirebaseHealthCheck(page)
-  await page.goto('/poker0matic/app')
+  await page.goto('/app')
   await completeInitialNamePrompt(page, name)
-  await page.goto(`/poker0matic/?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
+  await page.goto(`/?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
   await expect(page.getByRole('heading', { name: 'Start or join a room' })).toBeVisible()
 }
 
@@ -89,7 +89,7 @@ export async function fillFirebaseConfigForm (
     await expect(page.getByRole('heading', { name: 'Configuration' })).toBeVisible()
     form = page.getByTestId('firebase-config-modal-form')
   } else {
-    await page.goto(workflow.url ?? '/poker0matic/app/config')
+    await page.goto(workflow.url ?? '/app/config')
     await expect(page.getByRole('heading', { name: 'Firebase Config' })).toBeVisible()
   }
 

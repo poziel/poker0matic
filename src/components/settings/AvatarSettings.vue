@@ -51,7 +51,7 @@
         />
 
         <p class="avatar-seed-hint">
-          Poker0matic stores this URL and crop only. If the image is missing, invalid, or cannot load, your generated avatar is shown.
+          Refinimo stores this URL and crop only. If the image is missing, invalid, or cannot load, your generated avatar is shown.
         </p>
 
         <p

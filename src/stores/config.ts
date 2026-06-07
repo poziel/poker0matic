@@ -15,19 +15,20 @@ export interface FirebaseConfig {
   appId: string
 }
 
-const CONFIG_KEY = 'poker_config'
-const USER_ID_KEY = 'poker_user_id'
-const USER_NAME_KEY = 'poker_user_name'
-const RECENT_ROOMS_KEY = 'poker_recent_rooms'
-const AVATAR_STYLE_KEY = 'poker_avatar_style'
-const AVATAR_SEED_KEY = 'poker_avatar_seed'
-const AVATAR_BG_KEY = 'poker_avatar_bg'
-const AVATAR_SOURCE_KEY = 'poker_avatar_source'
-const CUSTOM_AVATAR_URL_KEY = 'poker_custom_avatar_url'
-const CUSTOM_AVATAR_CROP_KEY = 'poker_custom_avatar_crop'
-const VIEW_MODE_KEY = 'poker_view_mode'
-const HISTORY_PANEL_KEY = 'poker_history_panel'
-const ENABLE_ADS_KEY = 'poker_enable_ads'
+const CONFIG_KEY = 'refinimo_config'
+const USER_ID_KEY = 'refinimo_user_id'
+const USER_NAME_KEY = 'refinimo_user_name'
+const RECENT_ROOMS_KEY = 'refinimo_recent_rooms'
+const AVATAR_STYLE_KEY = 'refinimo_avatar_style'
+const AVATAR_SEED_KEY = 'refinimo_avatar_seed'
+const AVATAR_BG_KEY = 'refinimo_avatar_bg'
+const AVATAR_SOURCE_KEY = 'refinimo_avatar_source'
+const CUSTOM_AVATAR_URL_KEY = 'refinimo_custom_avatar_url'
+const CUSTOM_AVATAR_CROP_KEY = 'refinimo_custom_avatar_crop'
+const VIEW_MODE_KEY = 'refinimo_view_mode'
+const HISTORY_PANEL_KEY = 'refinimo_history_panel'
+const ENABLE_ADS_KEY = 'refinimo_enable_ads'
+const LEGACY_STORAGE_PREFIX = 'poker_'
 const MAX_RECENT_ROOMS = 5
 
 export type ViewMode = 'table' | 'grid'
@@ -43,6 +44,20 @@ export interface RecentRoom {
 
 let _db: Database | null = null
 
+function readStoredValue (key: string): string | null {
+  const current = localStorage.getItem(key)
+  if (current !== null) {
+    return current
+  }
+
+  const legacyKey = key.replace(/^refinimo_/, LEGACY_STORAGE_PREFIX)
+  const legacy = localStorage.getItem(legacyKey)
+  if (legacy !== null) {
+    localStorage.setItem(key, legacy)
+  }
+  return legacy
+}
+
 export const useConfigStore = defineStore('config', () => {
   const configFound = ref(false)
   const firebaseConfig = ref<FirebaseConfig | null>(null)
@@ -51,15 +66,15 @@ export const useConfigStore = defineStore('config', () => {
   const activeRoomId = ref<string | null>(null)
   const activeRoomName = ref<string | null>(null)
   const recentRooms = ref<RecentRoom[]>([])
-  const avatarStyle = ref(localStorage.getItem(AVATAR_STYLE_KEY) ?? DEFAULT_AVATAR_STYLE)
-  const avatarSeed = ref(localStorage.getItem(AVATAR_SEED_KEY) ?? '')
-  const avatarBg = ref(localStorage.getItem(AVATAR_BG_KEY) ?? DEFAULT_AVATAR_BG)
-  const avatarSource = ref<AvatarSource>(normalizeAvatarSource(localStorage.getItem(AVATAR_SOURCE_KEY)))
-  const customAvatarUrl = ref(localStorage.getItem(CUSTOM_AVATAR_URL_KEY) ?? '')
+  const avatarStyle = ref(readStoredValue(AVATAR_STYLE_KEY) ?? DEFAULT_AVATAR_STYLE)
+  const avatarSeed = ref(readStoredValue(AVATAR_SEED_KEY) ?? '')
+  const avatarBg = ref(readStoredValue(AVATAR_BG_KEY) ?? DEFAULT_AVATAR_BG)
+  const avatarSource = ref<AvatarSource>(normalizeAvatarSource(readStoredValue(AVATAR_SOURCE_KEY)))
+  const customAvatarUrl = ref(readStoredValue(CUSTOM_AVATAR_URL_KEY) ?? '')
   const customAvatarCrop = ref<AvatarCrop | null>(readStoredAvatarCrop())
-  const viewMode = ref<ViewMode>((localStorage.getItem(VIEW_MODE_KEY) as ViewMode) ?? 'table')
-  const historyPanelOpen = ref(localStorage.getItem(HISTORY_PANEL_KEY) === 'true')
-  const enableAds = ref(localStorage.getItem(ENABLE_ADS_KEY) === 'true')
+  const viewMode = ref<ViewMode>((readStoredValue(VIEW_MODE_KEY) as ViewMode) ?? 'table')
+  const historyPanelOpen = ref(readStoredValue(HISTORY_PANEL_KEY) === 'true')
+  const enableAds = ref(readStoredValue(ENABLE_ADS_KEY) === 'true')
 
   // Cached validation result — reset to 'unknown' when config changes so the
   // lobby re-checks; stays valid across page navigations for the same config.
@@ -92,21 +107,21 @@ export const useConfigStore = defineStore('config', () => {
 
   function initializeConfig () {
     try {
-      const raw = localStorage.getItem(RECENT_ROOMS_KEY)
+      const raw = readStoredValue(RECENT_ROOMS_KEY)
       recentRooms.value = raw ? JSON.parse(raw) : []
     } catch {
       recentRooms.value = []
     }
 
-    let potentialUserId = localStorage.getItem(USER_ID_KEY)
+    let potentialUserId = readStoredValue(USER_ID_KEY)
     if (!potentialUserId) {
       potentialUserId = createClientId()
       localStorage.setItem(USER_ID_KEY, potentialUserId)
     }
     userId.value = potentialUserId
-    userName.value = localStorage.getItem(USER_NAME_KEY) || ''
+    userName.value = readStoredValue(USER_NAME_KEY) || ''
 
-    const config = localStorage.getItem(CONFIG_KEY)
+    const config = readStoredValue(CONFIG_KEY)
     if (!config) {
       configFound.value = false
       return
@@ -227,7 +242,7 @@ export const useConfigStore = defineStore('config', () => {
 
   function readStoredAvatarCrop (): AvatarCrop | null {
     try {
-      const raw = localStorage.getItem(CUSTOM_AVATAR_CROP_KEY)
+      const raw = readStoredValue(CUSTOM_AVATAR_CROP_KEY)
       return raw ? normalizeAvatarCrop(JSON.parse(raw) as AvatarCrop) : null
     } catch {
       return null

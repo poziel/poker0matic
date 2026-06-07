@@ -15,11 +15,11 @@
     </label>
 
     <p class="ad-settings-note">
-      When disabled, Poker0matic does not render ad containers or load Google ad scripts.
+      When disabled, Refinimo does not render ad containers or load Google ad scripts.
     </p>
 
     <p v-if="model.enableAds" class="ad-settings-thanks">
-      Thank you for enabling ads. This helps support Poker0matic and gives me more room to keep developing and improving the app.
+      Thank you for enabling ads. This helps support Refinimo and gives me more room to keep developing and improving the app.
     </p>
   </section>
 </template>
