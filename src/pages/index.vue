@@ -3,10 +3,10 @@
     <div class="landing-topbar">
       <router-link class="landing-brand" to="/">
         <span class="landing-brand-mark">
-          <img alt="Poker0matic logo" src="/images/logo.png">
+          <img alt="Refinimo logo" src="/images/logo.png">
         </span>
 
-        <span class="landing-brand-name">poker<span>0</span>matic</span>
+        <span class="landing-brand-name">Refinimo</span>
       </router-link>
 
       <div class="landing-nav">
@@ -86,7 +86,7 @@
           <h1 class="landing-title">Run estimation sessions without turning your backlog into a spreadsheet circus.</h1>
 
           <p class="landing-lead">
-            Poker0matic is a collaborative planning poker app for agile teams. Create a room, invite your team,
+            Refinimo is a collaborative planning poker app for agile teams. Create a room, invite your team,
             vote on stories in real time, then reveal estimates together to drive better sprint planning
             conversations.
           </p>
@@ -141,7 +141,7 @@
 
         <div class="landing-grid landing-grid-three">
           <article class="landing-card">
-            <h3>What Poker0matic is</h3>
+            <h3>What Refinimo is</h3>
 
             <p>
               A browser-based planning poker workspace where developers, designers, product managers, and other
@@ -207,7 +207,7 @@
             <h3>You control the backend</h3>
 
             <p>
-              Poker0matic uses your own Firebase project, so your team keeps ownership of room data instead of
+              Refinimo uses your own Firebase project, so your team keeps ownership of room data instead of
               depending on a shared hosted backend you do not control.
             </p>
           </article>
@@ -267,7 +267,7 @@
       <section class="landing-section landing-section-with-top-gap">
         <div class="landing-section-head">
           <div class="kicker">How Firebase works</div>
-          <h2>Poker0matic stays free by letting each team bring its own Firebase project.</h2>
+          <h2>Refinimo stays free by letting each team bring its own Firebase project.</h2>
         </div>
 
         <div class="landing-grid landing-grid-two">
@@ -275,7 +275,7 @@
             <h3>Why Firebase is needed</h3>
 
             <p>
-              Poker0matic has no custom backend. Rooms, votes, players, and history live in Firebase Realtime
+              Refinimo has no custom backend. Rooms, votes, players, and history live in Firebase Realtime
               Database, so the app needs a Firebase project before your team can start playing.
             </p>
           </article>
@@ -285,7 +285,7 @@
 
             <p>
               Create a Firebase project with any name you want, enable Realtime Database, register a web app,
-              then paste the generated config values into the Poker0matic configuration page or modal.
+              then paste the generated config values into the Refinimo configuration page or modal.
             </p>
           </article>
         </div>
@@ -309,7 +309,7 @@
             <h3>What stays in your browser</h3>
 
             <p>
-              Poker0matic uses browser localStorage for your generated user identity, display name, avatar
+              Refinimo uses browser localStorage for your generated user identity, display name, avatar
               choices, recent rooms, saved Firebase configuration, and personal UI preferences. That local data
               stays on the device and is reused when you come back.
             </p>
@@ -337,7 +337,7 @@
           </div>
 
           <p class="landing-rules-copy">
-            These example rules are updated for the current Poker0matic room schema and are a better starting
+            These example rules are updated for the current Refinimo room schema and are a better starting
             point than the default temporary snippet.
           </p>
 
@@ -384,7 +384,7 @@
           <h3>Special thanks to sky0matic</h3>
 
           <p>
-            This project started as a fork of <strong>sky0matic's Poker0matic</strong>. As the implementation
+            This project started as a fork of <strong>sky0matic's Poker0Matic</strong>. As the implementation
             moved too far away from sky0matic's original direction for the project, it became its own project
             instead. Special thanks to sky0matic for providing the initial foundation that made this version
             possible.
@@ -416,7 +416,7 @@
 
     <footer class="landing-footer">
       <div class="landing-footer-copy">
-        <span class="landing-footer-brand">Poker0matic</span>
+        <span class="landing-footer-brand">Refinimo</span>
         <span class="landing-footer-text">Collaborative planning poker for scrum teams using their own Firebase backend.</span>
       </div>
 
@@ -459,7 +459,7 @@
     {
       id: '01',
       title: 'Create your Firebase project',
-      body: 'Open Firebase Console, click "Create a project", give it any name you want, and finish the basic project setup. You can skip optional services that Poker0matic does not need.',
+      body: 'Open Firebase Console, click "Create a project", give it any name you want, and finish the basic project setup. You can skip optional services that Refinimo does not need.',
     },
     {
       id: '02',
@@ -469,7 +469,7 @@
     {
       id: '03',
       title: 'Replace the default rules',
-      body: 'Open the Realtime Database Rules tab, replace the default temporary rules with the Poker0matic rules shown below, then publish them so the current room schema is accepted.',
+      body: 'Open the Realtime Database Rules tab, replace the default temporary rules with the Refinimo rules shown below, then publish them so the current room schema is accepted.',
     },
     {
       id: '04',
@@ -478,8 +478,8 @@
     },
     {
       id: '05',
-      title: 'Paste the config into Poker0matic',
-      body: 'Open Poker0matic configuration, paste each Firebase value into the matching field, save, and the app will keep that setup in browser localStorage for future visits on that device.',
+      title: 'Paste the config into Refinimo',
+      body: 'Open Refinimo configuration, paste each Firebase value into the matching field, save, and the app will keep that setup in browser localStorage for future visits on that device.',
     },
   ]
   const firebaseRules = `{

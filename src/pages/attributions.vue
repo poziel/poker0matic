@@ -6,7 +6,7 @@
       </div>
 
       <div class="page-card-body">
-        <p class="about-line">Thanks to the services and projects that help power poker0matic.</p>
+        <p class="about-line">Thanks to the services and projects that help power Refinimo.</p>
 
         <ul class="about-credit-list">
           <li>

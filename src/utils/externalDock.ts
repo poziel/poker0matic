@@ -4,16 +4,31 @@ export interface ExternalDockRoomContext {
   updatedAt: number
 }
 
-const STORAGE_PREFIX = 'poker_external_dock'
+const STORAGE_PREFIX = 'refinimo_external_dock'
+const LEGACY_STORAGE_PREFIX = 'poker_external_dock'
 
 export const EXTERNAL_DOCK_CONTEXT_KEY = `${STORAGE_PREFIX}_context`
 export const EXTERNAL_DOCK_HEARTBEAT_KEY = `${STORAGE_PREFIX}_heartbeat`
 export const EXTERNAL_DOCK_COMMAND_KEY = `${STORAGE_PREFIX}_command`
 export const EXTERNAL_DOCK_HEARTBEAT_TTL_MS = 3500
 
+function readStoredValue (key: string): string | null {
+  const current = localStorage.getItem(key)
+  if (current !== null) {
+    return current
+  }
+
+  const legacyKey = key.replace(STORAGE_PREFIX, LEGACY_STORAGE_PREFIX)
+  const legacy = localStorage.getItem(legacyKey)
+  if (legacy !== null) {
+    localStorage.setItem(key, legacy)
+  }
+  return legacy
+}
+
 export function readExternalDockContext (): ExternalDockRoomContext {
   try {
-    const raw = localStorage.getItem(EXTERNAL_DOCK_CONTEXT_KEY)
+    const raw = readStoredValue(EXTERNAL_DOCK_CONTEXT_KEY)
     if (!raw) {
       return emptyExternalDockContext()
     }
@@ -61,7 +76,7 @@ export function requestExternalDockClose () {
 }
 
 export function isExternalDockHeartbeatActive () {
-  const raw = localStorage.getItem(EXTERNAL_DOCK_HEARTBEAT_KEY)
+  const raw = readStoredValue(EXTERNAL_DOCK_HEARTBEAT_KEY)
   const timestamp = raw ? Number(raw) : Number.NaN
   return Number.isFinite(timestamp) && Date.now() - timestamp < EXTERNAL_DOCK_HEARTBEAT_TTL_MS
 }

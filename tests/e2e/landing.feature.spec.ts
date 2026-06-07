@@ -1,8 +1,8 @@
 import { expect, type Page, test } from '@playwright/test'
 
 async function givenTheLandingPageIsOpen (page: Page) {
-  await page.goto('/poker0matic/')
-  await expect(page).toHaveTitle(/Poker0matic/)
+  await page.goto('/')
+  await expect(page).toHaveTitle(/Refinimo/)
 }
 
 async function whenTheVisitorOpensTheHowItWorksTab (page: Page) {
@@ -25,7 +25,7 @@ test.describe('Feature: Landing page discovery', () => {
 
     await whenTheVisitorOpensTheHowItWorksTab(page)
     await expect(page.getByRole('heading', {
-      name: 'Poker0matic stays free by letting each team bring its own Firebase project.',
+      name: 'Refinimo stays free by letting each team bring its own Firebase project.',
     })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Show rules' })).toBeVisible()
 
@@ -58,7 +58,7 @@ test.describe('Feature: Landing page discovery', () => {
 
     await page.getByTestId('landing-primary-action').click()
 
-    await expect(page).toHaveURL(/\/poker0matic\/app$/)
+    await expect(page).toHaveURL(/\/app$/)
     await expect(page.getByRole('heading', { name: 'Connect to Firebase' })).toBeVisible()
   })
 })

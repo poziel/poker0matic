@@ -1,6 +1,6 @@
 # Firebase Setup Guide
 
-Poker0matic uses Firebase Realtime Database as its backend. Each team that self-hosts needs to create their own Firebase project and paste the config into the app's `/config` page.
+Refinimo uses Firebase Realtime Database as its backend. Each team that self-hosts needs to create their own Firebase project and paste the config into the app's `/config` page.
 
 ---
 
@@ -8,7 +8,7 @@ Poker0matic uses Firebase Realtime Database as its backend. Each team that self-
 
 1. Go to the [Firebase Console](https://console.firebase.google.com/) and sign in with a Google account.
 2. Click **Add project**.
-3. Enter a project name (e.g. `my-team-poker`), then click **Continue**.
+3. Enter a project name (e.g. `my-team-refinimo`), then click **Continue**.
 4. Disable Google Analytics if you don't need it, then click **Create project**.
 5. Wait for the project to be provisioned, then click **Continue**.
 
@@ -23,7 +23,7 @@ Poker0matic uses Firebase Realtime Database as its backend. Each team that self-
 5. Click **Enable**.
 
 > After creation, note the **Database URL** shown at the top of the Realtime Database page. It looks like:
-> `https://my-team-poker-default-rtdb.firebaseio.com`
+> `https://my-team-refinimo-default-rtdb.firebaseio.com`
 > You will need this in Step 4.
 
 ---
@@ -32,16 +32,16 @@ Poker0matic uses Firebase Realtime Database as its backend. Each team that self-
 
 1. In the left sidebar, click the **gear icon** next to "Project Overview" → **Project settings**.
 2. Scroll down to the **Your apps** section and click the **`</>`** (web) icon.
-3. Enter a nickname (e.g. `poker0matic`) and click **Register app**. You do **not** need Firebase Hosting.
+3. Enter a nickname (e.g. `Refinimo`) and click **Register app**. You do **not** need Firebase Hosting.
 4. Firebase will show you a config snippet that looks like this:
 
 ```js
 const firebaseConfig = {
   apiKey: "AIza...",
-  authDomain: "my-team-poker.firebaseapp.com",
-  databaseURL: "https://my-team-poker-default-rtdb.firebaseio.com",
-  projectId: "my-team-poker",
-  storageBucket: "my-team-poker.firebasestorage.app",
+  authDomain: "my-team-refinimo.firebaseapp.com",
+  databaseURL: "https://my-team-refinimo-default-rtdb.firebaseio.com",
+  projectId: "my-team-refinimo",
+  storageBucket: "my-team-refinimo.firebasestorage.app",
   messagingSenderId: "123456789012",
   appId: "1:123456789012:web:abcdef1234567890"
 };
@@ -51,9 +51,9 @@ Keep this page open — you'll copy these values in the next step.
 
 ---
 
-## Step 4 — Enter the config in Poker0matic
+## Step 4 — Enter the config in Refinimo
 
-1. Open Poker0matic. If no config is saved yet you'll be redirected to `/config` automatically; otherwise navigate there manually.
+1. Open Refinimo. If no config is saved yet you'll be redirected to `/config` automatically; otherwise navigate there manually.
 2. Fill in each field using the values from the Firebase snippet above:
 
 | Field in the app | Firebase config key |
@@ -113,3 +113,7 @@ The default test-mode rules expire after 30 days and then block all access. Repl
 ```
 
 These rules lock down the database at the top level (no global read/write) while allowing any client to read and write within individual rooms. User entries are validated to require a `name` (max 20 characters) and a `joinedAt` timestamp.
+
+## Refinimo domain notes
+
+Using `refinimo.app` does not require changing the Firebase web config shown above because Refinimo currently uses Firebase Realtime Database directly and does not use Firebase Auth, App Check, or Firebase Hosting. GitHub Pages needs `refinimo.app` configured as its custom domain with matching DNS records, and the production build should use `VITE_REFINIMO_BASE_PATH=/`.

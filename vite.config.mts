@@ -7,14 +7,15 @@ import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('./package.json') as { version: string }
-const useFirebaseMock = process.env.VITE_POKER0MATIC_FIREBASE_MOCK === '1'
+const useFirebaseMock = process.env.VITE_REFINIMO_FIREBASE_MOCK === '1'
+const basePath = process.env.VITE_REFINIMO_BASE_PATH ?? '/'
 
 function firebaseMockServerPlugin (): Plugin {
   const state: Record<string, unknown> = {}
   let lastRequestAt = Date.now()
 
   return {
-    name: 'poker0matic-firebase-mock-server',
+    name: 'refinimo-firebase-mock-server',
     configureServer (server) {
       server.middlewares.use((_request, _response, next) => {
         lastRequestAt = Date.now()
@@ -166,7 +167,7 @@ function splitMockPath (path: string) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/poker0matic/',
+  base: basePath,
   plugins: [
     ...(useFirebaseMock ? [firebaseMockServerPlugin()] : []),
     Vue({
