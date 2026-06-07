@@ -37,7 +37,11 @@
 
   const customLoadFailed = ref(false)
   const size = computed(() => props.size ?? 64)
-  const fallbackSrc = computed(() => buildAvatarUrl(props.avatarStyle ?? DEFAULT_AVATAR_STYLE, props.avatarSeed || 'Guest'))
+  const fallbackSrc = computed(() => buildAvatarUrl(
+    props.avatarStyle ?? DEFAULT_AVATAR_STYLE,
+    props.avatarSeed || 'Guest',
+    bg.value,
+  ))
   const avatarSrc = computed(() => props.avatarUrl?.trim() ?? '')
   const customSrc = computed(() => props.customAvatarUrl?.trim() ?? '')
   const hasAvatarUrl = computed(() => (

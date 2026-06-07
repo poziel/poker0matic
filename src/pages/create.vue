@@ -30,12 +30,14 @@
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
+  import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
-  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl } from '@/utils/avatarStyles'
+  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
   import { DEFAULT_REACTION_EMOJIS, sanitizeReactionEmojis } from '@/utils/reactions'
   import { buildInitialTimerForRoom, normalizeTimerDurationSeconds, normalizeTimerWarningValue } from '@/utils/roundTimers'
 
   const router = useRouter()
+  const appStore = useAppStore()
   const configStore = useConfigStore()
   const db = configStore.getDb()
 
@@ -93,8 +95,10 @@
       avatarUrl: buildSelectedAvatarUrl({
         avatarSource: configStore.avatarSource,
         customAvatarUrl: configStore.customAvatarUrl,
+        gravatarEmail: configStore.gravatarEmail,
         avatarStyle: configStore.avatarStyle,
         avatarSeed: configStore.avatarSeed,
+        avatarBg: resolveAvatarBackgroundColor(configStore.avatarBg, appStore.currentTheme),
         fallbackSeed: userName,
       }),
       avatarCrop: buildSelectedAvatarCrop(configStore.avatarSource, configStore.customAvatarCrop),

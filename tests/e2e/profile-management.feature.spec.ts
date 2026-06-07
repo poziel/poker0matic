@@ -27,6 +27,16 @@ test.describe('Feature: profile and configuration management', () => {
         body: pngPixel,
       })
     })
+    await page.route('https://www.gravatar.com/avatar/**', async route => {
+      await route.fulfill({
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'image/png',
+        },
+        body: pngPixel,
+      })
+    })
 
     await page.goto('/app')
     await completeInitialNamePrompt(page)
@@ -60,13 +70,14 @@ test.describe('Feature: profile and configuration management', () => {
 
     await page.getByTestId('settings-section-avatar').click()
     await page.getByTestId('avatar-seed-input').fill('planning-seed')
-    await page.getByTestId('avatar-preview').click()
-    await expect(page.getByTestId('avatar-style-grid').locator('img[src*="planning-seed"]').first()).toBeVisible()
+    await expect(page.getByTestId('avatar-seed-input')).toHaveValue('planning-seed')
+    await expect(page.locator('.avatar-live-preview-copy strong')).toHaveText('DiceBear')
 
     await page.getByTestId('avatar-randomize-seed').click()
     const randomizedSeed = await page.getByTestId('avatar-seed-input').inputValue()
 
-    expect(randomizedSeed).toMatch(/^avatar-/)
+    expect(randomizedSeed).toMatch(/^[a-zA-Z0-9]+$/)
+    expect(randomizedSeed.length).toBeGreaterThanOrEqual(24)
     expect(randomizedSeed).not.toBe('planning-seed')
 
     await page.getByTestId('profile-save').click()
@@ -97,6 +108,22 @@ test.describe('Feature: profile and configuration management', () => {
     await expect(page.evaluate(() => localStorage.getItem('refinimo_avatar_source'))).resolves.toBe('custom')
     await expect(page.evaluate(() => localStorage.getItem('refinimo_custom_avatar_url'))).resolves.toBe(customAvatarUrl)
     await expect(page.evaluate(() => localStorage.getItem('refinimo_custom_avatar_crop'))).resolves.not.toBeNull()
+  })
+
+  test('Scenario: a visitor can switch to a Gravatar email and save it', async ({ page }) => {
+    await openProfileSettings(page)
+
+    await page.getByTestId('settings-section-avatar').click()
+    await page.getByTestId('avatar-source-gravatar').click()
+    await page.getByTestId('avatar-gravatar-email-input').locator('input').fill('Ada@Example.com')
+
+    await expect(page.getByText('Ada@Example.com')).toBeVisible()
+    await expect(page.locator('img[src*="b5fc85e55755f9e0d030a10ab4429b6b2944855f9a0d60077fe832becbc41d72"]').first()).toBeVisible()
+
+    await page.getByTestId('profile-save').click()
+
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_avatar_source'))).resolves.toBe('gravatar')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_gravatar_email'))).resolves.toBe('Ada@Example.com')
   })
 
   test('Scenario: a visitor can update Firebase configuration from the configuration modal', async ({ page }) => {

@@ -25,17 +25,53 @@ It also includes the practical extras that real sessions eventually ask for: cus
 <details>
 <summary>Show screenshots</summary>
 
-### Landing
+### Landing Page
 
-![Refinimo landing page](docs/screenshots/landing.png)
+The front door: what Refinimo is, how Firebase setup works, and why teams can bring their own realtime backend.
+
+| Light | Dark |
+| --- | --- |
+| ![Refinimo landing page in light theme](docs/screenshots/landing-page-light-theme.png.png) | ![Refinimo landing page in dark theme](docs/screenshots/landing-page-dark-theme.png) |
 
 ### Lobby
 
-![Refinimo lobby](docs/screenshots/lobby.png)
+The place to start or rejoin planning sessions, with recent rooms close at hand.
 
-### Revealed Room
+| Light | Dark |
+| --- | --- |
+| ![Refinimo lobby in light theme](docs/screenshots/lobby-light-theme.png) | ![Refinimo lobby in dark theme](docs/screenshots/lobby-dark-theme.png) |
 
-![Refinimo room with revealed votes](docs/screenshots/room-results.png)
+### Create Or Join
+
+Room setup keeps the important choices visible: deck, special cards, history, task context, timers, reactions, and leader mode.
+
+| Light | Dark |
+| --- | --- |
+| ![Refinimo create room page in light theme](docs/screenshots/join-create-page-light-theme.png) | ![Refinimo create room page in dark theme](docs/screenshots/join-create-page-dark-theme.png) |
+
+### Room Creation
+
+The room creation flow is dense enough for real planning defaults, without turning setup into a form marathon.
+
+| Light | Dark |
+| --- | --- |
+| ![Refinimo room creation options in light theme](docs/screenshots/lobby-creation-light-theme.png) | ![Refinimo room creation options in dark theme](docs/screenshots/lobby-creation-dark-theme.png.png) |
+
+### Voting Results
+
+After reveal, Refinimo shows who voted, the vote spread, and the useful summary numbers for the discussion.
+
+| Light | Dark |
+| --- | --- |
+| ![Refinimo room after voting in light theme](docs/screenshots/lobby-after-vote-lighh-theme.png) | ![Refinimo room after voting in dark theme](docs/screenshots/lobby-after-vote-dark-theme.png) |
+
+### Avatar Settings
+
+Profiles let each participant tune their name, avatar, theme, room display, and optional support settings.
+
+| Light | Dark |
+| --- | --- |
+| ![Refinimo avatar settings in light theme](docs/screenshots/user-settings-avatar-light-theme.png) | ![Refinimo avatar settings in dark theme](docs/screenshots/user-settings-avatar-dark-theme.png) |
 
 </details>
 

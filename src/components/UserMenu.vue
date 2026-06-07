@@ -7,6 +7,7 @@
           :avatar-seed="configStore.avatarSeed || displayName"
           :avatar-source="configStore.avatarSource"
           :avatar-style="configStore.avatarStyle"
+          :avatar-url="avatarUrl"
           :custom-avatar-crop="configStore.customAvatarCrop"
           :custom-avatar-url="configStore.customAvatarUrl"
           :size="32"
@@ -58,6 +59,7 @@
   import UserSettingsModal from '@/components/settings/UserSettingsModal.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import { buildGravatarAvatarUrl, isValidGravatarEmail } from '@/utils/avatarStyles'
 
   const appStore = useAppStore()
   const configStore = useConfigStore()
@@ -67,4 +69,9 @@
   const aboutModalOpen = ref(false)
 
   const displayName = computed(() => userName.value || 'Guest')
+  const avatarUrl = computed(() => (
+    configStore.avatarSource === 'gravatar' && isValidGravatarEmail(configStore.gravatarEmail)
+      ? buildGravatarAvatarUrl(configStore.gravatarEmail, 128)
+      : null
+  ))
 </script>

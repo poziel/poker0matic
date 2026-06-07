@@ -502,7 +502,7 @@
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
-  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop } from '@/utils/avatarStyles'
+  import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
   import {
@@ -562,7 +562,8 @@
     avatarStyle?: string
     avatarSeed?: string
     avatarBg?: string
-    avatarSource?: 'dicebear' | 'custom'
+    avatarSource?: 'dicebear' | 'gravatar' | 'custom'
+    gravatarEmail?: string
     customAvatarUrl?: string | null
     customAvatarCrop?: AvatarCrop | null
   }
@@ -1014,6 +1015,7 @@
       () => configStore.avatarStyle,
       () => configStore.avatarSeed,
       () => configStore.avatarSource,
+      () => configStore.gravatarEmail,
       () => configStore.customAvatarUrl,
       () => configStore.customAvatarCrop,
     ],
@@ -1368,8 +1370,10 @@
       avatarUrl: buildSelectedAvatarUrl({
         avatarSource: configStore.avatarSource,
         customAvatarUrl: configStore.customAvatarUrl,
+        gravatarEmail: configStore.gravatarEmail,
         avatarStyle: configStore.avatarStyle,
         avatarSeed: configStore.avatarSeed,
+        avatarBg: resolveAvatarBackgroundColor(configStore.avatarBg, appStore.currentTheme),
         fallbackSeed,
       }),
       avatarCrop: buildSelectedAvatarCrop(configStore.avatarSource, configStore.customAvatarCrop),
@@ -1527,12 +1531,26 @@
       return user.customAvatarUrl.trim()
     }
 
+    if (user.avatarSource === 'gravatar' && user.gravatarEmail) {
+      return buildSelectedAvatarUrl({
+        avatarSource: 'gravatar',
+        customAvatarUrl: null,
+        gravatarEmail: user.gravatarEmail,
+        avatarStyle: user.avatarStyle ?? DEFAULT_AVATAR_STYLE,
+        avatarSeed: user.avatarSeed ?? '',
+        avatarBg: resolveAvatarBackgroundColor(configStore.avatarBg, appStore.currentTheme),
+        fallbackSeed: user.name || 'Guest',
+      })
+    }
+
     if (user.avatarStyle || user.avatarSeed) {
       return buildSelectedAvatarUrl({
         avatarSource: 'dicebear',
         customAvatarUrl: null,
+        gravatarEmail: user.gravatarEmail,
         avatarStyle: user.avatarStyle ?? DEFAULT_AVATAR_STYLE,
         avatarSeed: user.avatarSeed ?? '',
+        avatarBg: resolveAvatarBackgroundColor(configStore.avatarBg, appStore.currentTheme),
         fallbackSeed: user.name || 'Guest',
       })
     }

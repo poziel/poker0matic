@@ -9,6 +9,7 @@ export interface SettingsDraft {
   avatarStyle: string
   avatarSeed: string
   avatarBg: string
+  gravatarEmail: string
   customAvatarUrl: string
   customAvatarCrop: AvatarCrop | null
   customAvatarModerationStatus: AvatarModerationStatus

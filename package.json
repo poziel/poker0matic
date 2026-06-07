@@ -21,6 +21,8 @@
     "ruler:revert": "ruler revert"
   },
   "dependencies": {
+    "@dicebear/core": "^10.1.0",
+    "@dicebear/styles": "^10.1.0",
     "@fontsource/roboto": "^5.2.10",
     "@mdi/font": "7.4.47",
     "@tensorflow/tfjs": "^4.22.0",

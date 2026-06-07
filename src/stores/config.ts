@@ -23,6 +23,7 @@ const AVATAR_STYLE_KEY = 'refinimo_avatar_style'
 const AVATAR_SEED_KEY = 'refinimo_avatar_seed'
 const AVATAR_BG_KEY = 'refinimo_avatar_bg'
 const AVATAR_SOURCE_KEY = 'refinimo_avatar_source'
+const GRAVATAR_EMAIL_KEY = 'refinimo_gravatar_email'
 const CUSTOM_AVATAR_URL_KEY = 'refinimo_custom_avatar_url'
 const CUSTOM_AVATAR_CROP_KEY = 'refinimo_custom_avatar_crop'
 const VIEW_MODE_KEY = 'refinimo_view_mode'
@@ -70,6 +71,7 @@ export const useConfigStore = defineStore('config', () => {
   const avatarSeed = ref(readStoredValue(AVATAR_SEED_KEY) ?? '')
   const avatarBg = ref(readStoredValue(AVATAR_BG_KEY) ?? DEFAULT_AVATAR_BG)
   const avatarSource = ref<AvatarSource>(normalizeAvatarSource(readStoredValue(AVATAR_SOURCE_KEY)))
+  const gravatarEmail = ref(readStoredValue(GRAVATAR_EMAIL_KEY) ?? '')
   const customAvatarUrl = ref(readStoredValue(CUSTOM_AVATAR_URL_KEY) ?? '')
   const customAvatarCrop = ref<AvatarCrop | null>(readStoredAvatarCrop())
   const viewMode = ref<ViewMode>((readStoredValue(VIEW_MODE_KEY) as ViewMode) ?? 'table')
@@ -218,6 +220,15 @@ export const useConfigStore = defineStore('config', () => {
     localStorage.setItem(AVATAR_SOURCE_KEY, avatarSource.value)
   }
 
+  function setGravatarEmail (email: string) {
+    gravatarEmail.value = email.trim()
+    if (gravatarEmail.value) {
+      localStorage.setItem(GRAVATAR_EMAIL_KEY, gravatarEmail.value)
+    } else {
+      localStorage.removeItem(GRAVATAR_EMAIL_KEY)
+    }
+  }
+
   function setCustomAvatarUrl (url: string) {
     customAvatarUrl.value = url.trim()
     if (customAvatarUrl.value) {
@@ -237,7 +248,11 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   function normalizeAvatarSource (source: string | null | undefined): AvatarSource {
-    return source === 'custom' ? 'custom' : DEFAULT_AVATAR_SOURCE
+    if (source === 'custom' || source === 'gravatar') {
+      return source
+    }
+
+    return DEFAULT_AVATAR_SOURCE
   }
 
   function readStoredAvatarCrop (): AvatarCrop | null {
@@ -303,6 +318,8 @@ export const useConfigStore = defineStore('config', () => {
     setAvatarBg,
     avatarSource,
     setAvatarSource,
+    gravatarEmail,
+    setGravatarEmail,
     customAvatarUrl,
     setCustomAvatarUrl,
     customAvatarCrop,

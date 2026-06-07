@@ -5,6 +5,26 @@
       <p>Choose how your avatar looks for everyone in the room.</p>
     </div>
 
+    <div class="avatar-live-preview">
+      <PlayerAvatar
+        :avatar-bg="effectiveBg"
+        :avatar-crop="currentPreviewCrop"
+        :avatar-seed="effectiveSeed"
+        :avatar-source="model.avatarSource"
+        :avatar-style="model.avatarStyle"
+        :avatar-url="currentPreviewUrl"
+        :custom-avatar-crop="model.customAvatarCrop"
+        :custom-avatar-url="model.customAvatarUrl"
+        :size="92"
+      />
+
+      <div class="avatar-live-preview-copy">
+        <span class="avatar-preview-kicker">Current preview</span>
+        <strong>{{ currentPreviewTitle }}</strong>
+        <span>{{ currentPreviewDetail }}</span>
+      </div>
+    </div>
+
     <div aria-label="Avatar source" class="avatar-source-selector" role="group">
       <button
         class="avatar-source-option"
@@ -14,6 +34,16 @@
         @click="model.avatarSource = 'dicebear'"
       >
         DiceBear
+      </button>
+
+      <button
+        class="avatar-source-option"
+        :class="{ active: model.avatarSource === 'gravatar' }"
+        data-test-id="avatar-source-gravatar"
+        type="button"
+        @click="model.avatarSource = 'gravatar'"
+      >
+        Gravatar
       </button>
 
       <button
@@ -29,16 +59,6 @@
 
     <div class="avatar-controls">
       <div v-if="model.avatarSource === 'custom'" class="custom-avatar-controls">
-        <PlayerAvatar
-          :avatar-bg="effectiveBg"
-          :avatar-seed="effectiveSeed"
-          :avatar-source="model.avatarSource"
-          :avatar-style="model.avatarStyle"
-          :custom-avatar-crop="model.customAvatarCrop"
-          :custom-avatar-url="model.customAvatarUrl"
-          :size="72"
-        />
-
         <v-text-field
           v-model="localCustomAvatarUrl"
           class="p0-field custom-avatar-url-field"
@@ -77,6 +97,23 @@
         </div>
       </div>
 
+      <div v-if="model.avatarSource === 'gravatar'" class="gravatar-avatar-controls">
+        <v-text-field
+          v-model="localGravatarEmail"
+          class="p0-field gravatar-email-field"
+          data-test-id="avatar-gravatar-email-input"
+          hide-details="auto"
+          label="Gravatar email"
+          placeholder="you@example.com"
+          type="email"
+          variant="outlined"
+        />
+
+        <p class="avatar-seed-hint">
+          Refinimo hashes this email in your browser and asks Gravatar for the matching avatar image.
+        </p>
+      </div>
+
       <div v-show="model.avatarSource === 'dicebear'" class="avatar-seed-input-row">
         <input
           v-model="localAvatarSeed"
@@ -84,10 +121,7 @@
           data-test-id="avatar-seed-input"
           :placeholder="`${displayName} (default seed)`"
           type="text"
-          @keydown.enter="applyPreview"
         >
-
-        <button class="avatar-preview-btn" data-test-id="avatar-preview" type="button" @click="applyPreview">Preview</button>
 
         <button
           aria-label="Randomize avatar seed"
@@ -101,32 +135,53 @@
         </button>
       </div>
 
-      <label v-show="model.avatarSource === 'dicebear'" class="toggle-item">
-        <div class="toggle-info">
-          <span class="toggle-name">Follow theme accent</span>
+      <div v-show="model.avatarSource === 'dicebear'" class="avatar-bg-options">
+        <div class="avatar-bg-options-head">
+          <span>Background</span>
+          <span>Light colors tend to render best</span>
         </div>
 
-        <input v-model="avatarBgFollowTheme" class="p0-toggle" type="checkbox">
-      </label>
+        <div aria-label="Recommended avatar backgrounds" class="avatar-bg-swatch-row" role="group">
+          <button
+            v-for="preset in AVATAR_BACKGROUND_PRESETS"
+            :key="preset.color"
+            :aria-label="`Use ${preset.label} background`"
+            class="avatar-bg-swatch"
+            :class="{ active: !avatarBgFollowTheme && localAvatarBg.toLowerCase() === preset.color }"
+            :style="{ backgroundColor: preset.color }"
+            :title="preset.label"
+            type="button"
+            @click="selectBackgroundPreset(preset.color)"
+          />
+        </div>
 
-      <label v-if="model.avatarSource === 'dicebear' && !avatarBgFollowTheme" class="avatar-bg-picker">
-        <input
-          v-model="localAvatarBg"
-          class="avatar-color-input"
-          type="color"
-        >
+        <div class="avatar-bg-custom-row">
+          <label class="avatar-bg-theme-toggle">
+            <span>Follow theme accent</span>
+            <input v-model="avatarBgFollowTheme" class="p0-toggle" type="checkbox">
+          </label>
 
-        <span class="avatar-bg-label">Custom background</span>
+          <label class="avatar-bg-picker">
+            <input
+              v-model="localAvatarBg"
+              class="avatar-color-input"
+              type="color"
+              @input="avatarBgFollowTheme = false"
+            >
 
-        <code class="avatar-color-hex">{{ localAvatarBg }}</code>
-      </label>
+            <span class="avatar-bg-label">Custom</span>
+
+            <code class="avatar-color-hex">{{ localAvatarBg }}</code>
+          </label>
+        </div>
+      </div>
 
       <p v-show="model.avatarSource === 'dicebear'" class="avatar-seed-hint">
-        Your username is the default seed. The background shows through transparent avatar styles.
+        Your username is the default seed. Random seeds are unique browser-generated strings.
       </p>
     </div>
 
-    <div v-show="model.avatarSource === 'dicebear'" class="avatar-style-grid" data-test-id="avatar-style-grid">
+    <div v-show="model.avatarSource === 'dicebear'" class="avatar-style-list" data-test-id="avatar-style-grid">
       <button
         v-for="style in AVATAR_STYLES"
         :key="style.id"
@@ -135,16 +190,25 @@
         type="button"
         @click="model.avatarStyle = style.id"
       >
-        <span v-if="style.recommended" class="avatar-style-rec">Recommended</span>
+        <span class="avatar-style-card-head">
+          <span class="avatar-style-label">{{ style.label }}</span>
 
-        <PlayerAvatar
-          :avatar-bg="effectiveBg"
-          :avatar-seed="effectiveSeed"
-          :avatar-style="style.id"
-          :size="56"
-        />
+          <span class="avatar-style-meta">
+            <span>{{ style.id }}</span>
+            <span v-if="style.recommended" class="avatar-style-rec">Suggested</span>
+          </span>
+        </span>
 
-        <span class="avatar-style-label">{{ style.label }}</span>
+        <span class="avatar-style-samples">
+          <img
+            v-for="(preview, index) in style.previews"
+            :key="`${style.id}-${index}`"
+            alt=""
+            class="avatar-style-sample"
+            loading="lazy"
+            :src="preview"
+          >
+        </span>
       </button>
     </div>
 
@@ -158,12 +222,13 @@
   import { Cropper } from 'vue-advanced-cropper'
   import PlayerAvatar from '@/components/PlayerAvatar.vue'
   import { type AvatarModerationResult, formatModerationScore, isModerationResultBlocking, moderateCustomAvatarUrl } from '@/utils/avatarModeration'
-  import { AVATAR_STYLES, type AvatarCrop, DEFAULT_AVATAR_BG, isValidCustomAvatarUrl, THEME_BG_VALUE } from '@/utils/avatarStyles'
+  import { AVATAR_BACKGROUND_PRESETS, AVATAR_STYLES, type AvatarCrop, buildGravatarAvatarUrl, createRandomAvatarSeed, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_CROP, isValidCustomAvatarUrl, isValidGravatarEmail, resolveAvatarBackgroundColor, THEME_BG_VALUE } from '@/utils/avatarStyles'
   import 'vue-advanced-cropper/dist/style.css'
 
   const model = defineModel<SettingsDraft>({ required: true })
   const localAvatarSeed = ref(model.value.avatarSeed)
   const previewSeed = ref(model.value.avatarSeed)
+  const localGravatarEmail = ref(model.value.gravatarEmail)
   const localCustomAvatarUrl = ref(model.value.customAvatarUrl)
   const moderationResult = ref<AvatarModerationResult | null>(null)
   const avatarBgFollowTheme = ref(model.value.avatarBg === THEME_BG_VALUE)
@@ -172,8 +237,39 @@
   )
 
   const displayName = computed(() => model.value.userName.trim() || 'Guest')
-  const effectiveBg = computed(() => avatarBgFollowTheme.value ? THEME_BG_VALUE : localAvatarBg.value)
+  const effectiveBg = computed(() => avatarBgFollowTheme.value
+    ? resolveAvatarBackgroundColor(THEME_BG_VALUE, model.value.theme)
+    : localAvatarBg.value)
   const effectiveSeed = computed(() => previewSeed.value.trim() || displayName.value)
+  const selectedStyleLabel = computed(() => (
+    AVATAR_STYLES.find(style => style.id === model.value.avatarStyle)?.label ?? model.value.avatarStyle
+  ))
+  const currentPreviewUrl = computed(() => {
+    if (model.value.avatarSource === 'gravatar' && isValidGravatarEmail(model.value.gravatarEmail)) {
+      return buildGravatarAvatarUrl(model.value.gravatarEmail, 256)
+    }
+
+    if (model.value.avatarSource === 'custom' && isValidCustomAvatarUrl(model.value.customAvatarUrl)) {
+      return model.value.customAvatarUrl.trim()
+    }
+
+    return null
+  })
+  const currentPreviewCrop = computed(() => (
+    model.value.avatarSource === 'custom' && currentPreviewUrl.value
+      ? model.value.customAvatarCrop
+      : DEFAULT_AVATAR_CROP
+  ))
+  const currentPreviewTitle = computed(() => {
+    if (model.value.avatarSource === 'dicebear') return 'DiceBear'
+    if (model.value.avatarSource === 'gravatar') return 'Gravatar'
+    return 'Image URL'
+  })
+  const currentPreviewDetail = computed(() => {
+    if (model.value.avatarSource === 'dicebear') return selectedStyleLabel.value
+    if (model.value.avatarSource === 'gravatar') return model.value.gravatarEmail.trim() || 'No email yet'
+    return model.value.customAvatarUrl.trim() || 'No URL yet'
+  })
   const canCropCustomAvatar = computed(() => (
     model.value.avatarSource === 'custom'
     && isValidCustomAvatarUrl(model.value.customAvatarUrl)
@@ -229,10 +325,9 @@
     localCustomAvatarUrl.value = url
   })
 
-  function applyPreview () {
-    previewSeed.value = localAvatarSeed.value
-    model.value.avatarSeed = localAvatarSeed.value
-  }
+  watch(() => model.value.gravatarEmail, email => {
+    localGravatarEmail.value = email
+  })
 
   function randomizeAvatarSeed () {
     const seed = createRandomAvatarSeed()
@@ -241,8 +336,19 @@
     model.value.avatarSeed = seed
   }
 
+  function selectBackgroundPreset (color: string) {
+    avatarBgFollowTheme.value = false
+    localAvatarBg.value = color
+    model.value.avatarBg = color
+  }
+
   watch(localAvatarSeed, seed => {
+    previewSeed.value = seed
     model.value.avatarSeed = seed
+  })
+
+  watch(localGravatarEmail, email => {
+    model.value.gravatarEmail = email
   })
 
   watch(avatarBgFollowTheme, followTheme => {
@@ -323,18 +429,6 @@
       width: result.coordinates.width / result.image.width,
       height: result.coordinates.height / result.image.height,
     }
-  }
-
-  function createRandomAvatarSeed (): string {
-    if (globalThis.crypto?.getRandomValues) {
-      const values = new Uint32Array(2)
-      globalThis.crypto.getRandomValues(values)
-      return `avatar-${values[0].toString(36)}-${values[1].toString(36)}`
-    }
-
-    const first = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
-    const second = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
-    return `avatar-${first}-${second}`
   }
 
   function scheduleModeration (url: string) {

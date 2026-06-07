@@ -35,6 +35,7 @@
   import ThemeSettings from '@/components/settings/ThemeSettings.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import { isValidGravatarEmail } from '@/utils/avatarStyles'
 
   type SettingsSectionId = 'display-name' | 'avatar' | 'theme' | 'room-display' | 'advertising'
 
@@ -64,6 +65,10 @@
         || settingsDraft.value.customAvatarModerationStatus === 'blocked'
       )
     )
+    || (
+      settingsDraft.value.avatarSource === 'gravatar'
+      && !isValidGravatarEmail(settingsDraft.value.gravatarEmail)
+    )
   ))
 
   watch(model, open => {
@@ -79,6 +84,7 @@
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed,
       avatarBg: configStore.avatarBg,
+      gravatarEmail: configStore.gravatarEmail,
       customAvatarUrl: configStore.customAvatarUrl,
       customAvatarCrop: configStore.customAvatarCrop,
       customAvatarModerationStatus: 'idle',
@@ -97,6 +103,7 @@
     configStore.setAvatarSeed(settingsDraft.value.avatarSeed)
     configStore.setAvatarBg(settingsDraft.value.avatarBg)
     configStore.setAvatarSource(settingsDraft.value.avatarSource)
+    configStore.setGravatarEmail(settingsDraft.value.gravatarEmail)
     configStore.setCustomAvatarUrl(settingsDraft.value.customAvatarUrl)
     configStore.setCustomAvatarCrop(settingsDraft.value.customAvatarCrop)
     configStore.setUserName(trimmedName)
