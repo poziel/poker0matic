@@ -227,6 +227,7 @@
               :display-vote-counts="displayVoteCounts"
               :history-enabled="historyEnabled"
               :stats="stats"
+              :vote-options="voteOptions"
               @commit-vote="onCommitVote"
             />
           </Transition>
@@ -546,15 +547,16 @@
   type TaskFlowMode = 'current' | 'next'
   interface RoundStats {
     avg: number | null
-    median: number | null
-    closest: number | null
-    min: number | null
-    max: number | null
+    median: VoteValue | null
+    closest: VoteValue | null
+    min: VoteValue | null
+    max: VoteValue | null
     spread: number | null
     counts: Record<string, number>
     maxCount: number
     total: number
     numericTotal: number
+    ordinalTotal: number
     consensus: ConsensusState
   }
   type NormalizedRoomHistoryEntry = RoomHistoryEntry & {
@@ -838,9 +840,24 @@
     return base
   })
 
-  const deckNums = computed(() =>
-    voteOptions.value.filter((v): v is number => typeof v === 'number'),
-  )
+  const orderedEstimateValues = computed(() => {
+    const seen = new Set<string>()
+    return voteOptions.value.filter(value => {
+      if (value === '?' || value === '☕') return false
+      const key = String(value)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  })
+
+  const estimateOrderLookup = computed(() => {
+    const lookup = new Map<string, number>()
+    for (const [index, value] of orderedEstimateValues.value.entries()) {
+      lookup.set(String(value), index + 1)
+    }
+    return lookup
+  })
 
   const activeRoundParticipants = computed<Record<string, RoomUser>>(() =>
     currentRoom.value?.roundParticipants
@@ -918,17 +935,24 @@
       .filter((vote): vote is number => typeof vote === 'number'),
   )
 
+  const ordinalVotes = computed(() =>
+    revealedVotes.value.flatMap(vote => {
+      const position = estimateOrderLookup.value.get(String(vote))
+      return position == null ? [] : [{ vote, position }]
+    }),
+  )
+
   const averageVote = computed(() => {
     if (numericVotes.value.length === 0) return null
     const sum = numericVotes.value.reduce((acc, val) => acc + val, 0)
     return Number.parseFloat((sum / numericVotes.value.length).toFixed(2))
   })
 
-  const medianVote = computed(() => {
-    if (numericVotes.value.length === 0) return null
-    const sorted = numericVotes.value.toSorted((a, b) => a - b)
+  const medianVote = computed<VoteValue | null>(() => {
+    if (ordinalVotes.value.length === 0) return null
+    const sorted = ordinalVotes.value.toSorted((a, b) => a.position - b.position)
     const mid = Math.floor(sorted.length / 2)
-    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+    return sorted[mid]?.vote ?? null
   })
 
   const unanimousVote = computed(() => {
@@ -943,35 +967,40 @@
     const counts = countVotes(revealedVotes.value)
     const uniqueVoteCount = Object.keys(counts).length
     const maxCount = Math.max(...Object.values(counts))
-    const nums = numericVotes.value
-    const hasNumericVotes = nums.length > 0
-    const min = hasNumericVotes ? Math.min(...nums) : null
-    const max = hasNumericVotes ? Math.max(...nums) : null
-    const spread = min != null && max != null ? max - min : null
-    const numericCounts = countVotes(nums)
+    const ordinal = ordinalVotes.value
+    const ordinalPositions = ordinal.map(vote => vote.position)
+    const minPosition = ordinalPositions.length > 0 ? Math.min(...ordinalPositions) : null
+    const maxPosition = ordinalPositions.length > 0 ? Math.max(...ordinalPositions) : null
+    const min = minPosition == null ? null : (orderedEstimateValues.value[minPosition - 1] ?? null)
+    const max = maxPosition == null ? null : (orderedEstimateValues.value[maxPosition - 1] ?? null)
+    const spread = minPosition != null && maxPosition != null ? maxPosition - minPosition : null
 
-    let closest: number | null = null
-    if (averageVote.value != null) {
-      closest = deckNums.value[0] ?? nums[0] ?? 0
-      let bestDistance = Math.abs(averageVote.value - closest)
-      for (const num of deckNums.value) {
-        const distance = Math.abs(averageVote.value - num)
+    let closest: VoteValue | null = null
+    if (ordinal.length > 0) {
+      const averagePosition = ordinal.reduce((acc, vote) => acc + vote.position, 0) / ordinal.length
+      closest = ordinal[0]?.vote ?? null
+      let bestDistance = Math.abs(averagePosition - (ordinal[0]?.position ?? 0))
+      let bestPosition = ordinal[0]?.position ?? 0
+      for (const vote of ordinal) {
+        const distance = Math.abs(averagePosition - vote.position)
         if (distance < bestDistance - 1e-9) {
-          closest = num
+          closest = vote.vote
           bestDistance = distance
-        } else if (Math.abs(distance - bestDistance) < 1e-9 && num > closest) {
-          closest = num
+          bestPosition = vote.position
+        } else if (Math.abs(distance - bestDistance) < 1e-9 && vote.position > bestPosition) {
+          closest = vote.vote
+          bestPosition = vote.position
         }
       }
     }
 
-    const isCloseNumericVote = nums.length === revealedVotes.value.length
+    const isCloseOrdinalVote = ordinal.length === revealedVotes.value.length
       && spread != null
-      && spread <= 3
-      && Object.keys(numericCounts).length <= 2
+      && spread <= 1
+      && uniqueVoteCount <= 2
     const consensus: ConsensusState = uniqueVoteCount === 1
       ? 'consensus'
-      : (isCloseNumericVote ? 'close' : 'split')
+      : (isCloseOrdinalVote ? 'close' : 'split')
 
     return {
       avg: averageVote.value,
@@ -983,7 +1012,8 @@
       counts,
       maxCount,
       total: revealedVotes.value.length,
-      numericTotal: nums.length,
+      numericTotal: numericVotes.value.length,
+      ordinalTotal: ordinal.length,
       consensus,
     }
   })
@@ -1369,6 +1399,11 @@
   function formatOptionalNum (num: number | null | undefined): string | null {
     if (num === null || num === undefined) return null
     return formatNum(num)
+  }
+
+  function formatOptionalVote (vote: VoteValue | null | undefined): string | null {
+    if (vote === null || vote === undefined) return null
+    return String(vote)
   }
 
   function parseStoredVote (vote: string | VoteValue): VoteValue {
@@ -2320,7 +2355,7 @@
         id,
         finalVote: defaultFinalVote.value,
         avg: formatOptionalNum(stats.value?.avg),
-        closest: formatOptionalNum(stats.value?.closest),
+        closest: formatOptionalVote(stats.value?.closest),
         round: currentRound.value,
         durationMs,
         completedAt,
@@ -2460,7 +2495,7 @@
           description: currentTask.value?.description ?? null,
           finalVote: defaultFinalVote.value,
           avg: formatOptionalNum(stats.value?.avg),
-          closest: formatOptionalNum(stats.value?.closest),
+          closest: formatOptionalVote(stats.value?.closest),
           round: currentRound.value,
           durationMs,
           completedAt,

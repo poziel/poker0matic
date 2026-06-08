@@ -23,7 +23,7 @@
   --success: #3ecf8e;
   --warn:    #f5b14d;
   --playing-field-surface: color-mix(in oklab, var(--bg-3), white 3%);
-  --stats-surface: color-mix(in oklab, transparent, var(--playing-field-surface) 70%);
+  --stats-surface: color-mix(in oklab, transparent, var(--playing-field-surface) 40%);
 
   --card-face:   #f5f4ef;
   --card-face-2: #e8e6df;
@@ -528,7 +528,7 @@ button { font-family: inherit; }
   border: 1px solid color-mix(in oklab, var(--accent), white 16%);
   border-radius: 9px;
   box-shadow: 0 10px 24px rgba(var(--accent-glow), .32), inset 0 1px 0 rgba(255,255,255,.24);
-  color: var(--accent-contrast);
+  color: #fff;
   display: inline-flex;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -546,7 +546,7 @@ button { font-family: inherit; }
   z-index: 3;
 }
 .round-final-score strong {
-  color: var(--accent-contrast);
+  color: #fff;
   font-family: var(--font-sans);
   font-size: 20px;
   font-weight: 800;
@@ -608,7 +608,7 @@ button { font-family: inherit; }
   appearance: none;
   background: color-mix(in oklab, var(--stats-surface), var(--playing-field-surface) 12%);
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid transparent;
   color: var(--text-2);
   cursor: pointer;
   display: flex;
@@ -657,6 +657,9 @@ button { font-family: inherit; }
   min-height: 20px;
   padding-left: 9px;
   white-space: nowrap;
+}
+.stats-expanded .stats-summary {
+  border-color: var(--border);
 }
 .stats-expanded .stats-summary-item {
   display: none;
@@ -822,7 +825,6 @@ button { font-family: inherit; }
   min-width: 18px;
 }
 .labeled-separator span {
-  background: var(--separator-label-bg, transparent);
   flex: 0 0 auto;
   padding: 0 4px;
 }
@@ -1769,17 +1771,25 @@ button { font-family: inherit; }
   flex-direction: column;
   gap: 6px;
   justify-content: center;
-  padding: 13px 8px 7px;
+  padding: 15px 8px 10px;
   position: relative;
 }
-.reaction-separator {
-  --separator-label-bg: color-mix(in oklab, var(--bg-1), transparent 8%);
+.reaction-label {
+  background: color-mix(in oklab, var(--bg-1), transparent 8%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .08em;
   left: 50%;
-  max-width: 52%;
+  line-height: 1;
+  padding: 4px 8px;
   position: absolute;
-  top: -5px;
-  transform: translateX(-50%);
-  width: 52%;
+  text-transform: uppercase;
+  top: 0;
+  transform: translate(-50%, -50%);
 }
 .reaction-buttons {
   display: flex;

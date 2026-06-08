@@ -49,7 +49,6 @@
   <v-dialog
     max-width="560"
     :model-value="modelValue"
-    persistent
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <v-card class="p0-modal" flat>

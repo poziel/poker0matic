@@ -1,6 +1,4 @@
 <script setup lang="ts">
-  import LabeledSeparator from './LabeledSeparator.vue'
-
   defineProps<{
     reactions: readonly string[]
   }>()
@@ -15,7 +13,7 @@
     aria-label="Quick reactions"
     class="reaction-bar"
   >
-    <LabeledSeparator class="reaction-separator" label="React" />
+    <span class="reaction-label">React</span>
 
     <div class="reaction-buttons">
       <button

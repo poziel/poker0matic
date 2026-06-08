@@ -1,18 +1,20 @@
 <script setup lang="ts">
+  import type { VoteValue } from '@/types/room'
   import { computed, ref } from 'vue'
   import LabeledSeparator from './LabeledSeparator.vue'
 
   interface RoundStats {
     avg: number | null
-    median: number | null
-    closest: number | null
-    min: number | null
-    max: number | null
+    median: string | number | null
+    closest: string | number | null
+    min: string | number | null
+    max: string | number | null
     spread: number | null
     counts: Record<string, number>
     maxCount: number
     total: number
     numericTotal: number
+    ordinalTotal: number
     consensus: 'consensus' | 'close' | 'split'
   }
 
@@ -22,6 +24,7 @@
     historyEnabled?: boolean
     committedVote?: string | null
     canCommitVote?: boolean
+    voteOptions?: VoteValue[]
   }>()
 
   const emit = defineEmits<{
@@ -44,16 +47,18 @@
   })
 
   const hasNumericStats = computed(() => props.stats?.numericTotal != null && props.stats.numericTotal > 0)
+  const hasOrdinalStats = computed(() => props.stats?.ordinalTotal != null && props.stats.ordinalTotal > 0)
   const summaryAverage = computed(() => props.stats && hasNumericStats.value ? formatNum(props.stats.avg) : '-')
-  const summaryClosest = computed(() => props.stats && hasNumericStats.value ? String(props.stats.closest ?? '-') : '-')
+  const summaryClosest = computed(() => props.stats && hasOrdinalStats.value ? formatVote(props.stats.closest) : '-')
 
   const canCommitEstimate = computed(() => props.historyEnabled === true && props.canCommitVote === true)
   const distributionEntries = computed(() =>
-    Object.entries(props.displayVoteCounts ?? {}).map(([value, count]) => ({
-      count,
-      percent: props.stats?.maxCount ? Math.max(8, (count / props.stats.maxCount) * 100) : 0,
-      value,
-    })),
+    sortDistributionEntries(props.displayVoteCounts ?? {}, props.voteOptions ?? [])
+      .map(([value, count]) => ({
+        count,
+        percent: props.stats?.maxCount ? Math.max(8, (count / props.stats.maxCount) * 100) : 0,
+        value,
+      })),
   )
 
   const autoSelectedValue = computed<string | null>(() => {
@@ -72,6 +77,33 @@
   function formatNum (num: number | null | undefined): string {
     if (num == null) return '-'
     return Number.isInteger(num) ? String(num) : String(Number.parseFloat(num.toFixed(2)))
+  }
+
+  function formatVote (vote: string | number | null | undefined): string {
+    if (vote == null) return '-'
+    return String(vote)
+  }
+
+  function sortDistributionEntries (
+    counts: Record<string, number>,
+    voteOptions: readonly VoteValue[],
+  ): Array<[string, number]> {
+    const order = new Map<string, number>()
+    for (const [index, value] of voteOptions.entries()) {
+      const key = String(value)
+      if (!order.has(key)) {
+        order.set(key, index)
+      }
+    }
+
+    return Object.entries(counts).toSorted(([left], [right]) => {
+      const leftOrder = order.get(left)
+      const rightOrder = order.get(right)
+      if (leftOrder != null && rightOrder != null) return leftOrder - rightOrder
+      if (leftOrder != null) return -1
+      if (rightOrder != null) return 1
+      return left.localeCompare(right, undefined, { numeric: true })
+    })
   }
 
   function commitValue (value: string) {
@@ -134,29 +166,29 @@
 
           <button
             class="stats-metric stats-metric-action"
-            :class="{ selected: selectedCommittedVote === formatNum(stats?.median) }"
-            :disabled="!canCommitEstimate || !stats || !hasNumericStats"
+            :class="{ selected: selectedCommittedVote === formatVote(stats?.median) }"
+            :disabled="!canCommitEstimate || !stats || stats.median == null"
             type="button"
-            @click="commitValue(formatNum(stats?.median))"
+            @click="commitValue(formatVote(stats?.median))"
           >
             <span>Median</span>
 
             <strong :class="{ muted: !stats }">
-              {{ stats ? formatNum(stats.median) : '-' }}
+              {{ stats ? formatVote(stats.median) : '-' }}
             </strong>
           </button>
 
           <button
             class="stats-metric stats-metric-action"
-            :class="{ selected: selectedCommittedVote === String(stats?.closest) }"
+            :class="{ selected: selectedCommittedVote === formatVote(stats?.closest) }"
             :disabled="!canCommitEstimate || !stats || stats.closest == null"
             type="button"
-            @click="commitValue(String(stats?.closest))"
+            @click="commitValue(formatVote(stats?.closest))"
           >
             <span>Closest</span>
 
             <strong :class="{ muted: !stats }">
-              {{ stats ? stats.closest : '-' }}
+              {{ stats ? formatVote(stats.closest) : '-' }}
             </strong>
           </button>
 
@@ -164,8 +196,8 @@
             <span>Spread</span>
 
             <strong :class="{ muted: !stats }">
-              <template v-if="stats && hasNumericStats">
-                {{ stats.min }}<span class="spread-separator">-</span>{{ stats.max }}
+              <template v-if="stats && hasOrdinalStats">
+                {{ formatVote(stats.min) }}<span class="spread-separator">-</span>{{ formatVote(stats.max) }}
               </template>
 
               <template v-else>-</template>
