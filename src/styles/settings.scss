@@ -22,6 +22,8 @@
   --danger:  #f05a5a;
   --success: #3ecf8e;
   --warn:    #f5b14d;
+  --playing-field-surface: color-mix(in oklab, var(--bg-3), white 3%);
+  --stats-surface: color-mix(in oklab, transparent, var(--playing-field-surface) 70%);
 
   --card-face:   #f5f4ef;
   --card-face-2: #e8e6df;
@@ -515,6 +517,11 @@ button { font-family: inherit; }
   position: relative;
   z-index: 1;
 }
+
+[data-theme$="-light"] {
+  --playing-field-surface: color-mix(in oklab, var(--bg-1), var(--bg-2) 8%);
+  --stats-surface: color-mix(in oklab, transparent, var(--playing-field-surface) 70%);
+}
 .round-final-score {
   align-items: center;
   background: var(--accent);
@@ -556,9 +563,8 @@ button { font-family: inherit; }
   z-index: 2;
 }
 .playing-field {
-  background:
-    radial-gradient(70% 80% at 50% 42%, rgba(var(--accent-glow), .06), transparent 70%),
-    color-mix(in oklab, var(--bg-1), var(--bg-2) 54%);
+  background-color: var(--playing-field-surface);
+  background-image: radial-gradient(70% 80% at 50% 42%, rgb(var(--accent-glow) / .045), transparent 70%);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 18px 40px rgba(0,0,0,.16);
@@ -566,12 +572,10 @@ button { font-family: inherit; }
   z-index: 2;
 }
 [data-theme$="-light"] .playing-field {
-  background:
-    radial-gradient(70% 80% at 50% 42%, rgba(var(--accent-glow), .06), transparent 70%),
-    color-mix(in oklab, var(--bg-1), var(--bg-2) 26%);
+  background-image: radial-gradient(70% 80% at 50% 42%, rgb(var(--accent-glow) / .05), transparent 70%);
 }
 .stats {
-  background: color-mix(in oklab, var(--bg-1), var(--bg-2) 54%);
+  background: var(--stats-surface);
   border: 1px solid var(--border);
   border-radius: 0 0 12px 12px;
   border-top: none;
@@ -583,13 +587,14 @@ button { font-family: inherit; }
   position: relative;
   width: 100%;
   z-index: 0;
+  --separator-label-bg: var(--stats-surface);
 }
 .stats::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 18px;
-  background: linear-gradient(180deg, rgba(var(--accent-glow), .12), transparent);
+  background: linear-gradient(180deg, rgb(var(--accent-glow) / .12), transparent);
   opacity: .42;
   pointer-events: none;
 }
@@ -601,7 +606,7 @@ button { font-family: inherit; }
 .stats-summary {
   align-items: center;
   appearance: none;
-  background: linear-gradient(90deg, color-mix(in oklab, var(--bg-2), transparent 28%), color-mix(in oklab, var(--bg-1), transparent 2%));
+  background: color-mix(in oklab, var(--stats-surface), var(--playing-field-surface) 12%);
   border: none;
   border-bottom: 1px solid var(--border);
   color: var(--text-2);
@@ -629,7 +634,7 @@ button { font-family: inherit; }
   transform: translateX(-50%);
 }
 .stats-summary:hover {
-  background: var(--bg-2);
+  background: color-mix(in oklab, var(--stats-surface), var(--playing-field-surface) 22%);
   color: var(--text-1);
 }
 .stats-summary-title {
@@ -804,9 +809,9 @@ button { font-family: inherit; }
   gap: 8px;
   letter-spacing: .08em;
   line-height: 1;
-  max-width: 360px;
+  max-width: 90%;
   text-transform: uppercase;
-  width: min(360px, 100%);
+  width: 90%;
 }
 .labeled-separator::before,
 .labeled-separator::after {
@@ -817,7 +822,9 @@ button { font-family: inherit; }
   min-width: 18px;
 }
 .labeled-separator span {
+  background: var(--separator-label-bg, transparent);
   flex: 0 0 auto;
+  padding: 0 4px;
 }
 
 .distribution {
@@ -1264,12 +1271,7 @@ button { font-family: inherit; }
   padding: 20px 20px 16px;
 }
 .table::before {
-  content: "";
-  position: absolute; inset: 12px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  pointer-events: none;
-  opacity: .6;
+  display: none;
 }
 .players {
   display: grid;
@@ -1764,11 +1766,17 @@ button { font-family: inherit; }
   flex-direction: column;
   gap: 6px;
   justify-content: center;
-  padding: 5px 8px 7px;
+  padding: 13px 8px 7px;
+  position: relative;
 }
 .reaction-separator {
-  max-width: 156px;
-  width: 156px;
+  --separator-label-bg: color-mix(in oklab, var(--bg-1), transparent 8%);
+  left: 50%;
+  max-width: 52%;
+  position: absolute;
+  top: -5px;
+  transform: translateX(-50%);
+  width: 52%;
 }
 .reaction-buttons {
   display: flex;

@@ -203,7 +203,7 @@
           </div>
 
           <label v-if="canCommitEstimate" class="custom-final-control">
-            <span>Custom final</span>
+            <span>Custom</span>
 
             <input
               v-model="customVoteInput"
