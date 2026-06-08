@@ -18,6 +18,7 @@
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    allowVoteChangesAfterReveal: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
     timerEnabled: boolean
@@ -180,6 +181,25 @@
           data-test-id="room-toggle-history"
           type="checkbox"
           @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
+        >
+      </label>
+    </div>
+
+    <div class="room-settings-section">
+      <span class="settings-label">Revealed votes</span>
+
+      <label class="toggle-item">
+        <div class="toggle-info">
+          <v-icon icon="mdi-card-bulleted-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Allow vote changes after reveal</span>
+        </div>
+
+        <input
+          :checked="modelValue.allowVoteChangesAfterReveal"
+          class="p0-toggle"
+          data-test-id="room-toggle-post-reveal-voting"
+          type="checkbox"
+          @change="patch({ allowVoteChangesAfterReveal: ($event.target as HTMLInputElement).checked })"
         >
       </label>
     </div>

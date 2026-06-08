@@ -21,6 +21,7 @@ export interface RoundEditLock {
 
 export interface RoomSettings {
   showVotes?: boolean
+  allowVoteChangesAfterReveal?: boolean
   v?: number
   deck?: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
   customDeck?: string | null

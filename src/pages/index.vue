@@ -516,6 +516,7 @@
           "specialQuestion": { ".validate": "newData.isBoolean()" },
           "specialCoffee": { ".validate": "newData.isBoolean()" },
           "historyEnabled": { ".validate": "newData.isBoolean()" },
+          "allowVoteChangesAfterReveal": { ".validate": "newData.isBoolean()" },
           "leaderModeEnabled": { ".validate": "newData.isBoolean()" },
           "taskInformationEnabled": { ".validate": "newData.isBoolean()" }
         },

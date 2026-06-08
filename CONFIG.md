@@ -103,6 +103,7 @@ The default test-mode rules expire after 30 days and then block all access. Repl
         },
         "settings": {
           "showVotes": { ".validate": "newData.isBoolean()" },
+          "allowVoteChangesAfterReveal": { ".validate": "newData.isBoolean()" },
           "v": { ".validate": "newData.isNumber()" }
         },
         "lastActivity": { ".validate": "newData.isNumber()" }

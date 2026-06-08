@@ -73,6 +73,7 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
+  const allowVoteChangesAfterReveal = computed(() => currentRoom.value?.settings?.allowVoteChangesAfterReveal === true)
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
   const currentTask = computed(() => currentRoom.value?.currentTask ?? null)
@@ -132,7 +133,7 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
   const selectedVote = computed(() => currentParticipant.value?.vote ?? null)
   const canVoteInCurrentRound = computed(() =>
     !!currentParticipant.value
-    && !showVotes.value
+    && (!showVotes.value || allowVoteChangesAfterReveal.value)
     && !isRoundLockedByOther.value
     && (!taskInformationEnabled.value || !!currentTask.value),
   )
@@ -149,6 +150,9 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
     }
     if (taskInformationEnabled.value && !currentTask.value) {
       return 'Task information is required before anyone can vote'
+    }
+    if (showVotes.value && !allowVoteChangesAfterReveal.value) {
+      return 'Voting is locked after reveal for this room'
     }
     return ''
   })

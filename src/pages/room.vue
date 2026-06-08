@@ -169,6 +169,7 @@
             specialQuestion: currentRoom.settings?.specialQuestion !== false,
             specialCoffee: currentRoom.settings?.specialCoffee !== false,
             historyEnabled: currentRoom.settings?.historyEnabled !== false,
+            allowVoteChangesAfterReveal: currentRoom.settings?.allowVoteChangesAfterReveal === true,
             leaderModeEnabled: currentRoom.settings?.leaderModeEnabled === true,
             taskInformationEnabled: currentRoom.settings?.taskInformationEnabled === true,
             timerEnabled: currentRoom.settings?.timerEnabled === true,
@@ -193,28 +194,45 @@
           @save="saveTaskInformation"
         />
 
-        <SimpleResultsGrid
-          v-if="configStore.viewMode === 'grid'"
-          :current-user-id="configStore.userId"
-          :leader-user-id="leaderUserId"
-          :players="sortedRoomUsers"
-          :show-votes="showVotes"
-          @open-player-menu="openPlayerMenu"
-        />
+        <div class="room-display-stack" :class="{ revealed: showVotes }">
+          <div v-if="showVotes && committedVote" class="round-final-score">
+            <span>Final</span>
+            <strong>{{ committedVote }}</strong>
+          </div>
 
-        <PokerTable
-          v-else
-          :current-user-id="configStore.userId"
-          :leader-user-id="leaderUserId"
-          :players="sortedRoomUsers"
-          :shaking-user-ids="shakingUserIds"
-          :show-votes="showVotes"
-          @open-player-menu="openPlayerMenu"
-        />
+          <SimpleResultsGrid
+            v-if="configStore.viewMode === 'grid'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :show-votes="showVotes"
+            @open-player-menu="openPlayerMenu"
+          />
+
+          <PokerTable
+            v-else
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
+            :show-votes="showVotes"
+            @open-player-menu="openPlayerMenu"
+          />
+
+          <RoundStatsPanel
+            v-if="showVotes"
+            :can-commit-vote="canCommitFinalVote"
+            :committed-vote="committedVote"
+            :display-vote-counts="displayVoteCounts"
+            :history-enabled="historyEnabled"
+            :stats="stats"
+            @commit-vote="onCommitVote"
+          />
+        </div>
 
         <FloatingReactions :reactions="floatingReactions" />
 
-        <div class="action-row room-action-row">
+        <div class="action-row room-action-row" :class="{ 'room-action-row-revealed': showVotes }">
           <template v-if="taskInformationEnabled && !currentTask">
             <v-btn
               class="p0-btn p0-btn-primary"
@@ -351,13 +369,6 @@
           placement="room-support"
         />
 
-        <div v-if="showVotes && committedVote" class="committed-vote-center">
-          <div class="committed-vote-badge">
-            <v-icon icon="mdi-check-circle" size="14" />
-            Final: <strong>{{ committedVote }}</strong>
-          </div>
-        </div>
-
         <ReactionBar
           v-if="reactionsEnabled"
           :reactions="reactionEmojis"
@@ -367,20 +378,15 @@
         <VoteDock
           v-if="!externalVotingDockActive"
           v-model:collapsed="dockCollapsed"
-          :can-commit-vote="canCommitFinalVote"
           :can-vote="canVoteInCurrentRound"
           :committed-vote="committedVote"
           :disabled-hint="voteActionHint"
-          :display-vote-counts="displayVoteCounts"
           :external-dock-active="appStore.externalDockActive"
-          :history-enabled="currentRoom?.settings?.historyEnabled !== false"
           :selected-vote="selectedVote"
           :show-votes="showVotes"
-          :stats="stats"
           :user-name="userName"
           :vote-options="voteOptions"
           @cast-vote="castVote"
-          @commit-vote="onCommitVote"
           @open-phone-dock="openPhoneDockQr"
           @toggle-external-dock="toggleExternalDock"
         />
@@ -497,6 +503,7 @@
   import ReactionBar from '@/components/ReactionBar.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
   import RoomSidePanel from '@/components/RoomSidePanel.vue'
+  import RoundStatsPanel from '@/components/RoundStatsPanel.vue'
   import SimpleResultsGrid from '@/components/SimpleResultsGrid.vue'
   import TaskInfoModal from '@/components/TaskInfoModal.vue'
   import VoteDock from '@/components/VoteDock.vue'
@@ -660,6 +667,7 @@
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
+  const allowVoteChangesAfterReveal = computed(() => currentRoom.value?.settings?.allowVoteChangesAfterReveal === true)
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
   const timerEnabled = computed(() => currentRoom.value?.settings?.timerEnabled === true)
@@ -788,10 +796,11 @@
     if (leaderModeEnabled.value && !isLeader.value) return 'Waiting for the leader to manage this round'
     if (isRoundLockedByOther.value) return `${roundEditLock.value?.userName ?? 'Another participant'} is entering task information`
     if (taskInformationEnabled.value && !currentTask.value) return 'Task information is required before anyone can vote'
+    if (showVotes.value && !allowVoteChangesAfterReveal.value) return 'Voting is locked after reveal for this room'
     return ''
   })
   const canVoteInCurrentRound = computed(() =>
-    !showVotes.value
+    (!showVotes.value || allowVoteChangesAfterReveal.value)
     && !isRoundLockedByOther.value
     && (!taskInformationEnabled.value || !!currentTask.value),
   )
@@ -860,7 +869,7 @@
   })
   const voteShortcutLookup = computed(() => {
     const availableValues = showVotes.value
-      ? historyShortcutVoteValues.value
+      ? (canVoteInCurrentRound.value ? voteOptions.value.map(String) : historyShortcutVoteValues.value)
       : (dockCollapsed.value ? [] : voteOptions.value.map(String))
 
     const lookup: Record<string, string> = {}
@@ -1158,7 +1167,8 @@
           }
           const vote = voteShortcutLookup.value[key]
           if (!vote) return
-          if (showVotes.value) onCommitVote(vote)
+          if (showVotes.value && canVoteInCurrentRound.value) castVote(parseShortcutVoteValue(vote))
+          else if (showVotes.value) onCommitVote(vote)
           else castVote(parseShortcutVoteValue(vote))
         },
       },
@@ -1479,7 +1489,8 @@
   }
 
   function canTriggerVoteShortcut (): boolean {
-    if (showVotes.value) return !dockCollapsed.value && historyEnabled.value && canCommitFinalVote.value
+    if (showVotes.value && canVoteInCurrentRound.value) return !dockCollapsed.value
+    if (showVotes.value) return historyEnabled.value && canCommitFinalVote.value
     return !dockCollapsed.value && canVoteInCurrentRound.value
   }
 
@@ -2095,6 +2106,7 @@
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    allowVoteChangesAfterReveal: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
     timerEnabled: boolean
@@ -2125,6 +2137,7 @@
       'settings/specialQuestion': settings.specialQuestion,
       'settings/specialCoffee': settings.specialCoffee,
       'settings/historyEnabled': settings.historyEnabled,
+      'settings/allowVoteChangesAfterReveal': settings.allowVoteChangesAfterReveal,
       'settings/leaderModeEnabled': settings.leaderModeEnabled,
       'settings/taskInformationEnabled': settings.taskInformationEnabled,
       'settings/timerEnabled': settings.timerEnabled,
