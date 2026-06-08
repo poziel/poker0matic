@@ -29,7 +29,7 @@
       'dock-external-window': externalWindow,
     }"
   >
-    <template v-if="(!showVotes || canVote) && (!collapsed || externalWindow)">
+    <template v-if="!collapsed || externalWindow">
       <div class="dock-cards">
         <button
           v-for="option in voteOptions"
@@ -58,14 +58,10 @@
         </template>
 
         <template v-else>
-          {{ disabledHint || 'Voting is temporarily unavailable for this round' }}
+          Playing as <strong>{{ userName }}</strong> · deck is read-only for this round
         </template>
       </div>
     </template>
-
-    <div v-else-if="showVotes && !collapsed" class="dock-hint dock-locked-hint">
-      {{ disabledHint || 'Voting is locked after reveal for this room' }}
-    </div>
 
     <!-- ── Toggle (always at bottom) ─────────────────────────────────── -->
     <div v-if="!externalWindow" class="dock-toggle">

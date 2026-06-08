@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue'
+  import LabeledSeparator from './LabeledSeparator.vue'
 
   interface RoundStats {
     avg: number | null
@@ -173,9 +174,9 @@
         </div>
 
         <template v-if="distributionEntries.length > 0">
-          <div class="distribution">
-            <span class="distribution-label">Distribution</span>
+          <LabeledSeparator label="Distribution" />
 
+          <div class="distribution">
             <button
               v-for="entry in distributionEntries"
               :key="entry.value"

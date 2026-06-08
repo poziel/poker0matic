@@ -49,7 +49,9 @@ test.describe('Feature: room workflow', () => {
     await expect(page.getByTestId('round-insights-toggle')).toContainText('Closest')
     await page.getByTestId('round-insights-toggle').click()
     await expect(resultCard(page, '5')).toBeVisible()
-    await expect(page.getByTestId('vote-card')).toHaveCount(0)
+    await expect(voteCard(page, '5')).toHaveClass(/selected/)
+    await expect(voteCard(page, '5')).toBeDisabled()
+    await expect(voteCard(page, '8')).toBeDisabled()
     await expect(page.getByTestId('round-insights-toggle')).toContainText('Consensus')
 
     await page.getByTestId('room-hide-votes').click()

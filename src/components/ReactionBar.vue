@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import LabeledSeparator from './LabeledSeparator.vue'
+
   defineProps<{
     reactions: readonly string[]
   }>()
@@ -13,17 +15,19 @@
     aria-label="Quick reactions"
     class="reaction-bar"
   >
-    <span class="reaction-bar-label">React</span>
+    <LabeledSeparator class="reaction-separator" label="React" />
 
-    <button
-      v-for="emoji in reactions"
-      :key="emoji"
-      :aria-label="`Send ${emoji} reaction`"
-      class="reaction-btn"
-      type="button"
-      @click="$emit('react', emoji)"
-    >
-      {{ emoji }}
-    </button>
+    <div class="reaction-buttons">
+      <button
+        v-for="emoji in reactions"
+        :key="emoji"
+        :aria-label="`Send ${emoji} reaction`"
+        class="reaction-btn"
+        type="button"
+        @click="$emit('react', emoji)"
+      >
+        {{ emoji }}
+      </button>
+    </div>
   </div>
 </template>
