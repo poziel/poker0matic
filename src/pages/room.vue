@@ -66,6 +66,11 @@
             </span>
           </div>
 
+          <div v-if="showVotes && committedVote" class="round-final-score">
+            <span>Final</span>
+            <strong>{{ committedVote }}</strong>
+          </div>
+
           <div class="main-head-right">
             <div class="progress-pill">
               <span class="progress-dots">
@@ -195,11 +200,6 @@
         />
 
         <div class="room-display-stack" :class="{ revealed: showVotes }">
-          <div v-if="showVotes && committedVote" class="round-final-score">
-            <span>Final</span>
-            <strong>{{ committedVote }}</strong>
-          </div>
-
           <SimpleResultsGrid
             v-if="configStore.viewMode === 'grid'"
             :current-user-id="configStore.userId"
@@ -219,15 +219,17 @@
             @open-player-menu="openPlayerMenu"
           />
 
-          <RoundStatsPanel
-            v-if="showVotes"
-            :can-commit-vote="canCommitFinalVote"
-            :committed-vote="committedVote"
-            :display-vote-counts="displayVoteCounts"
-            :history-enabled="historyEnabled"
-            :stats="stats"
-            @commit-vote="onCommitVote"
-          />
+          <Transition name="insights-strip">
+            <RoundStatsPanel
+              v-if="showVotes"
+              :can-commit-vote="canCommitFinalVote"
+              :committed-vote="committedVote"
+              :display-vote-counts="displayVoteCounts"
+              :history-enabled="historyEnabled"
+              :stats="stats"
+              @commit-vote="onCommitVote"
+            />
+          </Transition>
         </div>
 
         <FloatingReactions :reactions="floatingReactions" />
@@ -379,7 +381,6 @@
           v-if="!externalVotingDockActive"
           v-model:collapsed="dockCollapsed"
           :can-vote="canVoteInCurrentRound"
-          :committed-vote="committedVote"
           :disabled-hint="voteActionHint"
           :external-dock-active="appStore.externalDockActive"
           :selected-vote="selectedVote"

@@ -7,7 +7,6 @@
     userName: string
     voteOptions: readonly VoteValue[]
     showVotes: boolean
-    committedVote?: string | null
     canVote: boolean
     disabledHint?: string
     externalDockActive?: boolean
@@ -30,13 +29,7 @@
       'dock-external-window': externalWindow,
     }"
   >
-
     <template v-if="(!showVotes || canVote) && (!collapsed || externalWindow)">
-      <div v-if="showVotes" class="dock-change-vote-head">
-        <span>Change your vote</span>
-        <strong v-if="selectedVote != null">{{ selectedVote }}</strong>
-      </div>
-
       <div class="dock-cards">
         <button
           v-for="option in voteOptions"
@@ -60,12 +53,10 @@
       </div>
 
       <div class="dock-hint">
-        <template v-if="canVote && !showVotes">
-          Playing as <strong>{{ userName }}</strong> · tap a card to vote
-        </template>
-
-        <template v-else-if="canVote">
-          Vote changes update the revealed results immediately
+        <template v-if="canVote">
+          Playing as <strong>{{ userName }}</strong> ·
+          <template v-if="showVotes">vote changes update the revealed results immediately</template>
+          <template v-else>tap a card to vote</template>
         </template>
 
         <template v-else>
@@ -87,17 +78,16 @@
         @click="$emit('update:collapsed', !collapsed)"
       >
         <template v-if="collapsed">
-          <span v-if="showVotes && committedVote" class="dock-mini-vote">{{ committedVote }}</span>
-          <span v-else-if="selectedVote != null" class="dock-mini-vote">{{ selectedVote }}</span>
+          <span v-if="selectedVote != null" class="dock-mini-vote">{{ selectedVote }}</span>
         </template>
 
         <span class="dock-toggle-label">
           <template v-if="collapsed">
-            {{ selectedVote != null ? 'Your vote · expand deck' : (showVotes ? 'Expand vote deck' : 'Expand deck') }}
+            Expand deck
           </template>
 
           <template v-else>
-            {{ showVotes ? 'Collapse vote deck' : 'Collapse deck' }}
+            Collapse deck
           </template>
         </span>
 

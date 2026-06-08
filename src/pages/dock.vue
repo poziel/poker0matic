@@ -63,7 +63,6 @@
         <VoteDock
           :can-vote="canVoteInCurrentRound"
           :collapsed="false"
-          :committed-vote="committedVote"
           :disabled-hint="voteActionHint"
           external-window
           :selected-vote="selectedVote"
@@ -120,7 +119,6 @@
   const {
     canVoteInCurrentRound,
     castVote,
-    committedVote,
     currentRoom,
     roomMissing,
     selectedVote,

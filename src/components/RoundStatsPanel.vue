@@ -168,32 +168,34 @@
           </div>
         </div>
 
-        <div v-if="distributionEntries.length > 0" class="distribution">
-          <span class="distribution-label">Distribution</span>
+        <template v-if="distributionEntries.length > 0">
+          <div class="distribution">
+            <span class="distribution-label">Distribution</span>
 
-          <button
-            v-for="entry in distributionEntries"
-            :key="entry.value"
-            :aria-pressed="entry.value === committedVote || entry.value === autoSelectedValue"
-            class="dist-choice"
-            :class="{
-              selected: entry.value === committedVote || entry.value === autoSelectedValue,
-              clickable: canCommitEstimate,
-            }"
-            :data-card-value="entry.value"
-            data-test-id="vote-result-card"
-            :disabled="!canCommitEstimate"
-            type="button"
-            @click="commitValue(entry.value)"
-          >
-            <span class="dist-choice-value">{{ entry.value }}</span>
+            <button
+              v-for="entry in distributionEntries"
+              :key="entry.value"
+              :aria-pressed="entry.value === committedVote || entry.value === autoSelectedValue"
+              class="dist-choice"
+              :class="{
+                selected: entry.value === committedVote || entry.value === autoSelectedValue,
+                clickable: canCommitEstimate,
+              }"
+              :data-card-value="entry.value"
+              data-test-id="vote-result-card"
+              :disabled="!canCommitEstimate"
+              type="button"
+              @click="commitValue(entry.value)"
+            >
+              <span class="dist-choice-value">{{ entry.value }}</span>
 
-            <span class="dist-choice-track">
-              <span :style="{ width: `${entry.percent}%` }" />
-            </span>
+              <span class="dist-choice-track">
+                <span :style="{ width: `${entry.percent}%` }" />
+              </span>
 
-            <span class="dist-choice-count">{{ entry.count }}</span>
-          </button>
+              <span class="dist-choice-count">{{ entry.count }}</span>
+            </button>
+          </div>
 
           <label v-if="canCommitEstimate" class="custom-final-control">
             <span>Custom</span>
@@ -216,7 +218,7 @@
               Set
             </button>
           </label>
-        </div>
+        </template>
       </div>
     </div>
   </section>
