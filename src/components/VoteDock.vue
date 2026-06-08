@@ -54,9 +54,7 @@
 
       <div class="dock-hint">
         <template v-if="canVote">
-          Playing as <strong>{{ userName }}</strong> ·
-          <template v-if="showVotes">vote changes update the revealed results immediately</template>
-          <template v-else>tap a card to vote</template>
+          Playing as <strong>{{ userName }}</strong> · tap a card to vote
         </template>
 
         <template v-else>

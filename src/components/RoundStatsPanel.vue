@@ -62,6 +62,7 @@
     return keys.length === 1 ? keys[0] : null
   })
 
+  const selectedCommittedVote = computed(() => props.committedVote ?? autoSelectedValue.value)
   const customVoteValue = computed(() => customVoteInput.value.trim())
   const canCommitCustom = computed(() =>
     canCommitEstimate.value && customVoteValue.value.length > 0 && customVoteValue.value !== props.committedVote,
@@ -102,11 +103,11 @@
         {{ consensusLabel }}
       </span>
 
-      <span class="stats-summary-item">
+      <span v-if="!expanded" class="stats-summary-item">
         Avg <strong>{{ summaryAverage }}</strong>
       </span>
 
-      <span class="stats-summary-item">
+      <span v-if="!expanded" class="stats-summary-item">
         Closest <strong>{{ summaryClosest }}</strong>
       </span>
 
@@ -118,6 +119,7 @@
         <div class="stats-expanded-row">
           <button
             class="stats-metric stats-metric-action"
+            :class="{ selected: selectedCommittedVote === formatNum(stats?.avg) }"
             :disabled="!canCommitEstimate || !stats || !hasNumericStats"
             type="button"
             @click="commitValue(formatNum(stats?.avg))"
@@ -131,6 +133,7 @@
 
           <button
             class="stats-metric stats-metric-action"
+            :class="{ selected: selectedCommittedVote === formatNum(stats?.median) }"
             :disabled="!canCommitEstimate || !stats || !hasNumericStats"
             type="button"
             @click="commitValue(formatNum(stats?.median))"
@@ -144,6 +147,7 @@
 
           <button
             class="stats-metric stats-metric-action"
+            :class="{ selected: selectedCommittedVote === String(stats?.closest) }"
             :disabled="!canCommitEstimate || !stats || stats.closest == null"
             type="button"
             @click="commitValue(String(stats?.closest))"
@@ -175,10 +179,10 @@
             <button
               v-for="entry in distributionEntries"
               :key="entry.value"
-              :aria-pressed="entry.value === committedVote || entry.value === autoSelectedValue"
+              :aria-pressed="entry.value === selectedCommittedVote"
               class="dist-choice"
               :class="{
-                selected: entry.value === committedVote || entry.value === autoSelectedValue,
+                selected: entry.value === selectedCommittedVote,
                 clickable: canCommitEstimate,
               }"
               :data-card-value="entry.value"
@@ -198,13 +202,13 @@
           </div>
 
           <label v-if="canCommitEstimate" class="custom-final-control">
-            <span>Custom</span>
+            <span>Custom final</span>
 
             <input
               v-model="customVoteInput"
               data-test-id="vote-custom-final-input"
               maxlength="8"
-              placeholder="value"
+              placeholder="Vote"
               type="text"
               @keydown.enter.prevent="commitCustom"
             >

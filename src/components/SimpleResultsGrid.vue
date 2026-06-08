@@ -32,7 +32,7 @@
 </script>
 
 <template>
-  <div class="results-grid" data-test-id="room-results-grid">
+  <div class="playing-field playing-field-grid results-grid" data-test-id="room-results-grid">
     <div class="rg-header">
       <span>Player</span>
       <span>{{ showVotes ? 'Vote' : 'Status' }}</span>

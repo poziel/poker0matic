@@ -30,7 +30,7 @@
 </script>
 
 <template>
-  <div class="table" data-cstyle="real" data-test-id="room-table">
+  <div class="playing-field playing-field-table table" data-cstyle="real" data-test-id="room-table">
     <div class="players">
       <div
         v-for="player in players"
