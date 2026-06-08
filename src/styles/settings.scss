@@ -826,6 +826,9 @@ button { font-family: inherit; }
   flex: 0 0 auto;
   padding: 0 4px;
 }
+.stats-details .labeled-separator {
+  margin: 10px 0;
+}
 
 .distribution {
   align-items: center;
@@ -2771,6 +2774,9 @@ button { font-family: inherit; }
 
 /* special cards / history toggles */
 .toggles-row { display: flex; gap: 8px; }
+.toggles-row-stacked {
+  flex-direction: column;
+}
 .toggle-item {
   flex: 1;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -2931,20 +2937,6 @@ button { font-family: inherit; }
 .deck-option-label {
   font-size: 13px; font-weight: 600; color: var(--text-1);
   flex: 1;
-}
-.deck-option-count {
-  font-size: 10px; font-family: var(--font-mono);
-  color: var(--text-4);
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 1px 5px;
-  flex-shrink: 0;
-}
-.deck-option.active .deck-option-count {
-  background: color-mix(in oklab, var(--accent), transparent 80%);
-  border-color: color-mix(in oklab, var(--accent), transparent 60%);
-  color: var(--accent);
 }
 .deck-option-preview {
   font-size: 10.5px; font-family: var(--font-mono);

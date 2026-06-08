@@ -60,7 +60,7 @@ const styleDefinitions = import.meta.glob<DiceBearStyleDefinition>(
  * Deliberately more elevated than any theme's --bg-elev so transparent avatar
  * styles remain legible without requiring user action.
  */
-export const DEFAULT_AVATAR_BG = '#374357'
+export const DEFAULT_AVATAR_BG = '#dbeafe'
 
 /**
  * Sentinel stored in avatarBg when the user opts into "follow theme".

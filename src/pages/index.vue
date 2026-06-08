@@ -511,7 +511,7 @@
         "settings": {
           "showVotes": { ".validate": "newData.isBoolean()" },
           "v": { ".validate": "newData.isNumber()" },
-          "deck": { ".validate": "newData.isString() && (newData.val() === 'fibonacci' || newData.val() === 'linear' || newData.val() === 'tshirt' || newData.val() === 'custom')" },
+          "deck": { ".validate": "newData.isString() && (newData.val() === 'fibonacci' || newData.val() === 'modified-fibonacci' || newData.val() === 'linear' || newData.val() === 'power-of-2' || newData.val() === 'tshirt' || newData.val() === 'custom')" },
           "customDeck": { ".validate": "newData.val() === null || newData.isString()" },
           "specialQuestion": { ".validate": "newData.isBoolean()" },
           "specialCoffee": { ".validate": "newData.isBoolean()" },

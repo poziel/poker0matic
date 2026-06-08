@@ -531,6 +531,7 @@
     normalizeTimerDurationSeconds,
     normalizeTimerWarningValue,
     pauseRoundTimer,
+    pauseRoundTimerForReveal,
     restartRoundTimer,
     resumeRoundTimer,
   } from '@/utils/roundTimers'
@@ -581,9 +582,11 @@
   }
 
   const PRESET_DECKS: Record<string, VoteValue[]> = {
-    fibonacci: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
-    linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
-    tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    'fibonacci': [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
+    'modified-fibonacci': [0, 1, 2, 3, 5, 8, 13, 20, 40, 100],
+    'linear': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+    'power-of-2': [1, 2, 4, 8, 16, 32, 64, 128],
+    'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
 
@@ -720,6 +723,7 @@
   const timerLabel = computed(() => {
     if (!timerEnabled.value) return ''
     if (timerExpiredAnimationActive.value) return 'Timer expired'
+    if (showVotes.value && roundTimer.value?.status === 'paused' && roundTimer.value.finishedBy === 'revealed') return 'Timer paused'
     if (showVotes.value || roundTimer.value?.status === 'finished') return 'Timer ended'
     if (roundTimer.value?.status === 'paused') return 'Timer paused'
     if (roundTimer.value?.status === 'running') return timerMode.value === 'manual' ? 'Manual timer running' : 'Automatic timer running'
@@ -728,7 +732,6 @@
   })
   const timerExpired = computed(() =>
     timerExpiredAnimationActive.value
-    || showVotes.value
     || roundTimer.value?.status === 'finished',
   )
   const timerProgressPercent = computed(() => {
@@ -2083,7 +2086,7 @@
   }
 
   function buildNewVoteOptions (settings: {
-    deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+    deck: 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
     customDeck: string
     specialQuestion: boolean
     specialCoffee: boolean
@@ -2102,7 +2105,7 @@
 
   function applyRoomConfig (settings: {
     name: string
-    deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+    deck: 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
     customDeck: string
     specialQuestion: boolean
     specialCoffee: boolean
@@ -2232,19 +2235,42 @@
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': true,
-      'roundTimer': finishRoundTimer(roundTimer.value, currentRound.value, 'revealed'),
+      'roundTimer': pauseRoundTimerForReveal(roundTimer.value, currentRound.value, Date.now()),
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
 
-  function hideVotes () {
+  async function hideVotes () {
     if (!db || !canManageRound.value) return
     closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, {
-      'settings/showVotes': false,
-      'committedVote': null,
-      'lastActivity': Date.now(),
+
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+
+      const now = Date.now()
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const timer = current.roundTimer as RoundTimerState | null | undefined
+      const config = getRoomTimerConfig(current)
+      let nextTimer = timer ?? null
+
+      if (timer && timer.roundNumber === roundNumber) {
+        if (timer.status === 'paused' && timer.finishedBy === 'revealed' && config.mode === 'automatic') {
+          nextTimer = resumeRoundTimer(timer, now)
+        } else if (timer.status === 'finished' && timer.finishedBy === 'expired' && config.mode === 'automatic') {
+          nextTimer = restartRoundTimer(timer, now)
+        }
+      }
+
+      return {
+        ...current,
+        committedVote: null,
+        lastActivity: now,
+        roundTimer: nextTimer,
+        settings: current.settings
+          ? { ...current.settings, showVotes: false }
+          : { showVotes: false },
+      }
     }).catch(console.error)
   }
 

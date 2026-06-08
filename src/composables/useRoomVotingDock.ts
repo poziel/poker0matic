@@ -26,9 +26,11 @@ interface RoomVotingDockOptions {
 }
 
 const PRESET_DECKS: Record<string, VoteValue[]> = {
-  fibonacci: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
-  linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
-  tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+  'fibonacci': [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
+  'modified-fibonacci': [0, 1, 2, 3, 5, 8, 13, 20, 40, 100],
+  'linear': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+  'power-of-2': [1, 2, 4, 8, 16, 32, 64, 128],
+  'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
 }
 
 function parseCustomDeck (raw: string): VoteValue[] {
