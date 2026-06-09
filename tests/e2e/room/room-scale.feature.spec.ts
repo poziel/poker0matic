@@ -66,16 +66,15 @@ test.describe('Feature: room scale', () => {
     await page.getByTestId('room-toggle-view').click()
 
     await expect(page.getByTestId('room-console-view')).toBeVisible()
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('[●]')
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('is thinking...')
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Console attached' })).toBeVisible()
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada is in the lobby.' })).toBeVisible()
 
     await voteCard(page, '5').click()
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('[✓]')
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('is ready.')
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
 
     await page.getByTestId('room-reveal-votes').click()
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('[ 5 ]')
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('voted 5')
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: '[ 5 ]' })).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: 'Ada voted 5.' })).toBeVisible()
 
     await page.getByTestId('room-toggle-view').click()
     await expect(page.getByTestId('room-group-status-view')).toBeVisible()

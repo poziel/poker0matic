@@ -26,6 +26,7 @@
 </template>
 
 <script lang="ts" setup>
+  import type { RoomConsoleLogEntry } from '@/types/room'
   import { ref as dbRef, onDisconnect, set } from 'firebase/database'
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
@@ -40,6 +41,8 @@
   const appStore = useAppStore()
   const configStore = useConfigStore()
   const db = configStore.getDb()
+  const CONSOLE_LOG_START_ID = '0000000000000-start'
+  const CONSOLE_LOG_CREATOR_ID = '0000000000001-creator'
 
   const settings = ref<RoomFormSettings>({
     name: '',
@@ -120,6 +123,10 @@
       createdAt: joinedAt,
       createdBy: userId,
       createdByUserId: userId,
+      consoleLog: {
+        [CONSOLE_LOG_START_ID]: buildConsoleLogEntry(CONSOLE_LOG_START_ID, 'system', 'Console attached to round 1.', joinedAt, 1),
+        [CONSOLE_LOG_CREATOR_ID]: buildConsoleLogEntry(CONSOLE_LOG_CREATOR_ID, 'info', `${userName} is in the lobby.`, joinedAt + 1, 1, userId, userName),
+      },
       leaderUserId: leaderModeEnabled ? userId : null,
       currentTask: null,
       roundParticipants: {
@@ -152,5 +159,25 @@
     onDisconnect(userRef).remove()
 
     router.push(`/app/room/${newRoomId}`)
+  }
+
+  function buildConsoleLogEntry (
+    id: string,
+    level: RoomConsoleLogEntry['level'],
+    message: string,
+    createdAt: number,
+    round: number,
+    userId?: string,
+    userName?: string,
+  ): RoomConsoleLogEntry {
+    return {
+      id,
+      level,
+      message,
+      createdAt,
+      round,
+      userId: userId ?? null,
+      userName: userName ?? null,
+    }
   }
 </script>

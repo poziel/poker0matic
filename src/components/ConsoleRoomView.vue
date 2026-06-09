@@ -1,80 +1,67 @@
 <script setup lang="ts">
-  import type { VoteValue } from '@/types/room'
-
-  interface ConsoleRoomPlayer {
-    userId: string
-    name: string
-    joinedAt: number
-    vote?: VoteValue
-    isConnected?: boolean
-  }
+  import type { RoomConsoleLogEntry } from '@/types/room'
 
   defineProps<{
-    players: ConsoleRoomPlayer[]
-    currentUserId: string | null
-    leaderUserId: string | null
-    showVotes: boolean
+    entries: RoomConsoleLogEntry[]
     roundLabel: string
     votedCount: number
     totalPlayers: number
   }>()
 
-  const formatVote = (vote: VoteValue | null | undefined) => vote == null ? '-' : String(vote)
+  function formatTime (createdAt: number) {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(new Date(createdAt))
+  }
+
+  function formatPrompt (entry: RoomConsoleLogEntry) {
+    if (entry.level === 'trace') return 'trace'
+    if (entry.level === 'result') return 'vote'
+    if (entry.level === 'system') return 'sys'
+    return 'info'
+  }
 </script>
 
 <template>
   <section class="console-room-view" data-test-id="room-console-view">
-    <div class="console-room-header">
-      <span class="console-room-prompt">refinimo</span>
-      <span>{{ roundLabel }}</span>
-      <span>{{ votedCount }}/{{ totalPlayers }} ready</span>
+    <div class="console-room-titlebar">
+      <span class="console-room-dot console-room-dot-danger" />
+      <span class="console-room-dot console-room-dot-warn" />
+      <span class="console-room-dot console-room-dot-ok" />
+      <span class="console-room-title">refinimo console</span>
+      <span class="console-room-context">{{ roundLabel }} · {{ votedCount }}/{{ totalPlayers }} voted</span>
     </div>
 
-    <div aria-live="polite" class="console-room-feed" role="log">
-      <p class="console-room-line console-room-line-system">
-        <span class="console-room-prefix">$</span>
-        <span>{{ showVotes ? 'reveal --votes' : 'watch --round --players' }}</span>
-      </p>
-
+    <div aria-live="polite" class="console-room-feed p0-scrollbar" role="log">
       <p
-        v-for="player in players"
-        :key="player.userId"
+        v-for="entry in entries"
+        :key="entry.id"
         class="console-room-line"
-        :class="{
-          'console-room-line-you': player.userId === currentUserId,
-          'console-room-line-leader': player.userId === leaderUserId,
-          'console-room-line-ready': player.vote != null,
-        }"
-        :data-player-name="player.name"
+        :class="`console-room-line-${entry.level}`"
+        :data-log-level="entry.level"
         data-test-id="room-console-line"
       >
-        <template v-if="showVotes">
-          <span class="console-room-status">[ {{ formatVote(player.vote) }} ]</span>
-          <span class="console-room-name">{{ player.name }}</span>
-          <span>voted {{ formatVote(player.vote) }}</span>
-        </template>
-
-        <template v-else-if="player.vote != null">
-          <span class="console-room-status">[✓]</span>
-          <span class="console-room-name">{{ player.name }}</span>
-          <span>is ready.</span>
-        </template>
-
-        <template v-else>
-          <span class="console-room-status">[●]</span>
-          <span class="console-room-name">{{ player.name }}</span>
-          <span>is thinking...</span>
-        </template>
-
-        <span v-if="player.userId === currentUserId" class="console-room-tag">you</span>
-        <span v-if="player.userId === leaderUserId" class="console-room-tag">lead</span>
-        <span v-if="player.isConnected" class="console-room-presence">online</span>
+        <span class="console-room-time">{{ formatTime(entry.createdAt) }}</span>
+        <span class="console-room-prompt">[{{ formatPrompt(entry) }}]</span>
+        <span v-if="entry.level === 'result'" class="console-room-vote">[ {{ entry.vote ?? '-' }} ]</span>
+        <span class="console-room-message">{{ entry.message }}</span>
       </p>
 
-      <p v-if="players.length === 0" class="console-room-line console-room-line-muted">
-        <span class="console-room-status">[ ]</span>
-        <span>No players connected.</span>
+      <p v-if="entries.length === 0" class="console-room-line console-room-line-info" data-test-id="room-console-line">
+        <span class="console-room-time">--:--:--</span>
+        <span class="console-room-prompt">[info]</span>
+        <span class="console-room-message">Waiting for room activity.</span>
       </p>
+    </div>
+
+    <div aria-hidden="true" class="console-room-input">
+      <span class="console-room-input-user">room</span>
+      <span class="console-room-input-path">~/planning</span>
+      <span class="console-room-input-symbol">$</span>
+      <span class="console-room-input-command">tail -f activity.log</span>
+      <span class="console-room-caret" />
     </div>
   </section>
 </template>

@@ -255,11 +255,8 @@
 
           <ConsoleRoomView
             v-if="configStore.viewMode === 'console'"
-            :current-user-id="configStore.userId"
-            :leader-user-id="leaderUserId"
-            :players="sortedRoomUsers"
+            :entries="consoleLogEntries"
             :round-label="currentRoundLabel"
-            :show-votes="showVotes"
             :total-players="totalPlayers"
             :voted-count="votedCount"
           />
@@ -577,7 +574,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AvatarCrop, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
+  import type { AvatarCrop, RoomConsoleLogEntry, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
   import type { ExternalDockSession } from '@/utils/externalDockSession'
   import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
@@ -678,6 +675,7 @@
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
   const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple', 'console', 'group-status']
+  const MAX_CONSOLE_LOG_ENTRIES = 160
   const VIEW_MODE_LABELS: Record<ViewMode, string> = {
     'console': 'console view',
     'grid': 'grid view',
@@ -1034,6 +1032,9 @@
       }))
       .toSorted((a, b) => a.joinedAt - b.joinedAt),
   )
+  const consoleLogEntries = computed(() =>
+    normalizeConsoleLogEntries(currentRoom.value?.consoleLog),
+  )
 
   const numericVotes = computed(() =>
     revealedVotes.value
@@ -1203,6 +1204,13 @@
     if (!db || !room || room.roundParticipants || Object.keys(users).length === 0) return
     update(dbRef(db, `rooms/${roomId}`), {
       roundParticipants: buildRoundParticipants(users),
+    }).catch(console.error)
+  }, { deep: true })
+
+  watch([currentRoom, activeRoundParticipants], ([room, participants]) => {
+    if (!db || !room || room.consoleLog || Object.keys(participants).length === 0) return
+    update(dbRef(db, `rooms/${roomId}`), {
+      consoleLog: buildRoundConsoleLogMap(currentRound.value, participants, Date.now()),
     }).catch(console.error)
   }, { deep: true })
 
@@ -1630,6 +1638,148 @@
     return participants
   }
 
+  function normalizeConsoleLogEntries (value: unknown): RoomConsoleLogEntry[] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+    return Object.entries(value as Record<string, Partial<RoomConsoleLogEntry>>)
+      .flatMap(([key, entry]) => {
+        if (!entry || typeof entry !== 'object') return []
+        if (typeof entry.message !== 'string' || typeof entry.createdAt !== 'number') return []
+        const level: RoomConsoleLogEntry['level'] = entry.level === 'trace' || entry.level === 'result' || entry.level === 'system'
+          ? entry.level
+          : 'info'
+        return [{
+          id: typeof entry.id === 'string' ? entry.id : key,
+          level,
+          message: entry.message,
+          createdAt: entry.createdAt,
+          round: typeof entry.round === 'number' ? entry.round : 1,
+          userId: typeof entry.userId === 'string' ? entry.userId : null,
+          userName: typeof entry.userName === 'string' ? entry.userName : null,
+          vote: entry.vote ?? null,
+        }]
+      })
+      .toSorted((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+  }
+
+  function buildConsoleLogId (createdAt: number, suffix = Math.random().toString(36).slice(2, 8)): string {
+    return `log-${createdAt}-${suffix.replace(/[.#$\/[\]]/g, '-')}`
+  }
+
+  function buildConsoleLogEntry (
+    level: RoomConsoleLogEntry['level'],
+    message: string,
+    createdAt: number,
+    round: number,
+    options: {
+      id?: string
+      userId?: string | null
+      userName?: string | null
+      vote?: VoteValue | null
+    } = {},
+  ): RoomConsoleLogEntry {
+    return {
+      id: options.id ?? buildConsoleLogId(createdAt),
+      level,
+      message,
+      createdAt,
+      round,
+      userId: options.userId ?? null,
+      userName: options.userName ?? null,
+      vote: options.vote ?? null,
+    }
+  }
+
+  function buildConsoleLogAppendUpdates (
+    entries: RoomConsoleLogEntry[],
+    existingLog: Record<string, RoomConsoleLogEntry> | undefined = currentRoom.value?.consoleLog,
+  ): Record<string, unknown> {
+    const updates: Record<string, unknown> = {}
+    const existingEntries = normalizeConsoleLogEntries(existingLog)
+    const overflowCount = Math.max(0, existingEntries.length + entries.length - MAX_CONSOLE_LOG_ENTRIES)
+    for (const entry of existingEntries.slice(0, overflowCount)) {
+      updates[`consoleLog/${entry.id}`] = null
+    }
+    for (const entry of entries) {
+      updates[`consoleLog/${entry.id}`] = entry
+    }
+    return updates
+  }
+
+  function appendConsoleLogMap (
+    existingLog: Record<string, RoomConsoleLogEntry> | undefined,
+    entries: RoomConsoleLogEntry[],
+  ): Record<string, RoomConsoleLogEntry> {
+    const existingEntries = normalizeConsoleLogEntries(existingLog)
+    return Object.fromEntries(
+      [...existingEntries, ...entries]
+        .slice(-MAX_CONSOLE_LOG_ENTRIES)
+        .map(entry => [entry.id, entry]),
+    )
+  }
+
+  function buildRevealConsoleLogEntries (
+    createdAt: number,
+    participants: Record<string, RoomUser> = activeRoundParticipants.value,
+    roundNumber: number = currentRound.value,
+  ): RoomConsoleLogEntry[] {
+    return Object.entries(participants)
+      .toSorted(([, a], [, b]) => a.joinedAt - b.joinedAt)
+      .map(([userId, user], index) => {
+        const vote = user.vote ?? '-'
+        return buildConsoleLogEntry(
+          'result',
+          `${user.name} voted ${String(vote)}.`,
+          createdAt + index,
+          roundNumber,
+          {
+            id: buildConsoleLogId(createdAt + index, `reveal-${userId}`),
+            userId,
+            userName: user.name,
+            vote,
+          },
+        )
+      })
+  }
+
+  function buildRoundConsoleLogMap (
+    roundNumber: number,
+    participants: Record<string, RoomUser>,
+    createdAt: number,
+    action: 'started' | 'reset' = 'started',
+  ): Record<string, RoomConsoleLogEntry> {
+    const entries = [
+      buildConsoleLogEntry(
+        'system',
+        action === 'reset' ? `Round ${roundNumber} reset. Console attached.` : `Console attached to round ${roundNumber}.`,
+        createdAt,
+        roundNumber,
+        { id: `round-${roundNumber}-0000-system` },
+      ),
+      ...Object.entries(participants)
+        .toSorted(([, a], [, b]) => a.joinedAt - b.joinedAt)
+        .map(([userId, user], index) => buildConsoleLogEntry(
+          'info',
+          `${user.name} is in the lobby.`,
+          createdAt + index + 1,
+          roundNumber,
+          {
+            id: `round-${roundNumber}-${String(index + 1).padStart(4, '0')}-${userId.replace(/[.#$\/[\]]/g, '-')}`,
+            userId,
+            userName: user.name,
+          },
+        )),
+    ]
+    return Object.fromEntries(entries.map(entry => [entry.id, entry]))
+  }
+
+  function buildRevealConsoleLogUpdates (
+    createdAt: number,
+    participants: Record<string, RoomUser> = activeRoundParticipants.value,
+    roundNumber: number = currentRound.value,
+  ): Record<string, unknown> {
+    return buildConsoleLogAppendUpdates(buildRevealConsoleLogEntries(createdAt, participants, roundNumber))
+  }
+
   function normalizeRoomUsers (value: unknown): Record<string, RoomUser> {
     if (!value || typeof value !== 'object') return {}
     return Object.fromEntries(
@@ -1783,6 +1933,20 @@
     const updates: Record<string, unknown> = {
       [`users/${configStore.userId}`]: userRecord,
       [`roundParticipants/${configStore.userId}`]: roundParticipant,
+    }
+    if (!existingParticipant) {
+      const createdAt = Date.now()
+      const entry = buildConsoleLogEntry(
+        'info',
+        `${userRecord.name} is in the lobby.`,
+        createdAt,
+        currentRound.value,
+        {
+          userId: configStore.userId,
+          userName: userRecord.name,
+        },
+      )
+      Object.assign(updates, buildConsoleLogAppendUpdates([entry]))
     }
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
@@ -2124,16 +2288,21 @@
       const currentTimer = current.roundTimer as RoundTimerState | null | undefined
       const config = getRoomTimerConfig(current)
       if (!isTimerRunningForRound(currentTimer, roundNumber)) return current
-      if (currentTimer.endsAt !== timer.endsAt || currentTimer.endsAt > Date.now()) return current
+      const now = Date.now()
+      if (currentTimer.endsAt !== timer.endsAt || currentTimer.endsAt > now) return current
       if (current.settings?.showVotes === true) return current
+      const revealEntries = config.autoRevealEnabled
+        ? buildRevealConsoleLogEntries(now, normalizeRoomUsers(current.roundParticipants), roundNumber)
+        : []
 
       return {
         ...current,
+        consoleLog: appendConsoleLogMap(current.consoleLog, revealEntries),
         settings: current.settings
           ? { ...current.settings, showVotes: config.autoRevealEnabled }
           : { showVotes: config.autoRevealEnabled },
         roundTimer: finishRoundTimer(currentTimer, roundNumber, 'expired'),
-        lastActivity: Date.now(),
+        lastActivity: now,
       }
     }).catch(console.error)
   }
@@ -2147,14 +2316,30 @@
 
     closePlayerMenu()
 
-    const isVoteChange = selectedVote.value !== null && value !== selectedVote.value
+    const previousVote = selectedVote.value
+    const isVoteChange = previousVote !== null && value !== previousVote
 
-    const userRef = dbRef(db, `rooms/${roomId}/roundParticipants/${configStore.userId}`)
-    const newVote = value === selectedVote.value ? null : value
-    update(userRef, { vote: newVote }).catch(console.error)
-
-    const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, { lastActivity: Date.now() }).catch(console.error)
+    const newVote = value === previousVote ? null : value
+    const createdAt = Date.now()
+    const currentPlayerName = activeRoundParticipants.value[configStore.userId]?.name ?? userName.value ?? 'Anonymous'
+    const message = newVote == null
+      ? `${currentPlayerName} cleared their vote.`
+      : (previousVote == null ? `${currentPlayerName} voted.` : `${currentPlayerName} changed their vote.`)
+    const entry = buildConsoleLogEntry(
+      'trace',
+      message,
+      createdAt,
+      currentRound.value,
+      {
+        userId: configStore.userId,
+        userName: currentPlayerName,
+      },
+    )
+    update(dbRef(db, `rooms/${roomId}`), {
+      [`roundParticipants/${configStore.userId}/vote`]: newVote,
+      lastActivity: createdAt,
+      ...buildConsoleLogAppendUpdates([entry]),
+    }).catch(console.error)
 
     if (isVoteChange && configStore.userId) {
       triggerShakeForUser(configStore.userId)
@@ -2367,10 +2552,12 @@
     if (!db || !canManageRound.value || (taskInformationEnabled.value && !currentTask.value)) return
     closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
+    const now = Date.now()
     update(roomRef, {
       'settings/showVotes': true,
-      'roundTimer': pauseRoundTimerForReveal(roundTimer.value, currentRound.value, Date.now()),
-      'lastActivity': Date.now(),
+      'roundTimer': pauseRoundTimerForReveal(roundTimer.value, currentRound.value, now),
+      'lastActivity': now,
+      ...buildRevealConsoleLogUpdates(now),
     }).catch(console.error)
   }
 
@@ -2398,6 +2585,9 @@
       'lastActivity': now,
       'roundTimer': nextTimer,
       'settings/showVotes': false,
+      ...buildConsoleLogAppendUpdates([
+        buildConsoleLogEntry('info', 'Votes hidden. The round is open again.', now, roundNumber),
+      ]),
     }).catch(console.error)
   }
 
@@ -2417,6 +2607,7 @@
       return {
         ...current,
         committedVote: null,
+        consoleLog: buildRoundConsoleLogMap(roundNumber, currentUsers, lastActivity, 'reset'),
         roundParticipants: buildRoundParticipants(currentUsers),
         roundTimer: buildTimerForRound(current, roundNumber, lastActivity),
         lastActivity,
@@ -2473,6 +2664,7 @@
     const nextRoundNumber = currentRound.value + 1
     return {
       'committedVote': null,
+      'consoleLog': buildRoundConsoleLogMap(nextRoundNumber, roomUsers.value, lastActivity),
       'lastActivity': lastActivity,
       'roundNumber': nextRoundNumber,
       'roundParticipants': buildRoundParticipants(roomUsers.value),
@@ -2626,15 +2818,18 @@
 
     closePlayerMenu()
 
+    const lastActivity = Date.now()
+    const restoredParticipants = buildRoundParticipantsWithVotes(
+      roomUsers.value,
+      entry.votes && Object.keys(entry.votes).length > 0 ? entry.votes : undefined,
+    )
     const updates: Record<string, unknown> = {
       'settings/showVotes': false,
       'committedVote': null,
-      'lastActivity': Date.now(),
-      'roundParticipants': buildRoundParticipantsWithVotes(
-        roomUsers.value,
-        entry.votes && Object.keys(entry.votes).length > 0 ? entry.votes : undefined,
-      ),
-      'roundTimer': buildCurrentRoomTimerForRound(currentRound.value, Date.now()),
+      'consoleLog': buildRoundConsoleLogMap(currentRound.value, restoredParticipants, lastActivity, 'reset'),
+      'lastActivity': lastActivity,
+      'roundParticipants': restoredParticipants,
+      'roundTimer': buildCurrentRoomTimerForRound(currentRound.value, lastActivity),
       'currentTask': entry.title
         ? {
           title: entry.title,
@@ -2652,9 +2847,10 @@
         participants[userId].vote = parseStoredVote(legacyVote)
       }
       updates.roundParticipants = participants
+      updates.consoleLog = buildRoundConsoleLogMap(currentRound.value, participants, lastActivity, 'reset')
     }
 
-    roundStartTime = Date.now()
+    roundStartTime = lastActivity
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
   }
 
