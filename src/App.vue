@@ -1,5 +1,9 @@
 <template>
-  <v-app class="p0-app">
+  <v-app v-if="isDockOnlyRoute" class="p0-app p0-app-dock-only">
+    <router-view />
+  </v-app>
+
+  <v-app v-else class="p0-app">
     <v-app-bar v-if="!isPublicRoute" class="hdr" flat height="57">
       <v-btn
         class="brand"
@@ -114,7 +118,8 @@
   const configStore = useConfigStore()
 
   const isInRoom = computed(() => route.path.startsWith('/app/room/'))
-  const isPublicRoute = computed(() => route.meta.public === true || route.meta.dockOnly === true)
+  const isDockOnlyRoute = computed(() => route.meta.dockOnly === true)
+  const isPublicRoute = computed(() => route.meta.public === true || isDockOnlyRoute.value)
   const requiresUserName = computed(() => route.meta.requiresUserName === true)
 
   const nameSetupOpen = ref(false)
@@ -134,6 +139,10 @@
   }
 
   onMounted(async () => {
+    if (isDockOnlyRoute.value) {
+      return
+    }
+
     configStore.initializeConfig()
     syncNameSetupPrompt()
     syncExternalDockStatus()
@@ -177,6 +186,8 @@
   })
 
   watch(() => route.fullPath, () => {
+    if (isDockOnlyRoute.value) return
+
     syncNameSetupPrompt()
     syncExternalDockContext()
   })
@@ -188,7 +199,10 @@
       () => appStore.roomPresenceActive,
       () => appStore.roomHasRoundParticipant,
     ],
-    syncExternalDockContext,
+    () => {
+      if (isDockOnlyRoute.value) return
+      syncExternalDockContext()
+    },
   )
 
   onUnmounted(() => {

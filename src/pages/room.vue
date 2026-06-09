@@ -1792,7 +1792,6 @@
       : `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}?theme=${encodeURIComponent(appStore.currentTheme)}`
     const dockWindow = window.open(url, 'Refinimo-voting-dock', 'popup,width=520,height=720')
     if (dockWindow) {
-      appStore.setExternalDockActive(true)
       dockWindow.focus()
     }
   }
