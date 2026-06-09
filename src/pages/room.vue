@@ -18,34 +18,34 @@
 
       <main class="main">
         <div class="main-head">
-          <div class="main-head-left">
-            <v-btn
-              v-if="sidePanelEnabled"
-              :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
-              class="icon-btn mobile-panel-btn"
-              data-test-id="room-toggle-panel"
-              density="compact"
-              icon
-              :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
-              variant="text"
-              @click="roomCommands.toggleSidePanel()"
-            >
-              <v-icon :icon="historyPanelOpen ? 'mdi-backburger' : 'mdi-menu'" size="16" />
-            </v-btn>
+          <v-btn
+            v-if="sidePanelEnabled"
+            :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+            class="icon-btn mobile-panel-btn"
+            data-test-id="room-toggle-panel"
+            density="compact"
+            icon
+            :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+            variant="text"
+            @click="roomCommands.toggleSidePanel()"
+          >
+            <v-icon :icon="historyPanelOpen ? 'mdi-backburger' : 'mdi-menu'" size="16" />
+          </v-btn>
 
-            <v-btn
-              aria-label="Back to lobby"
-              class="icon-btn"
-              data-test-id="room-back-to-lobby"
-              density="compact"
-              icon
-              title="Back to lobby"
-              variant="text"
-              @click="roomCommands.goToLobby()"
-            >
-              <v-icon icon="mdi-home-outline" size="16" />
-            </v-btn>
+          <v-btn
+            aria-label="Back to lobby"
+            class="icon-btn home-btn"
+            data-test-id="room-back-to-lobby"
+            density="compact"
+            icon
+            title="Back to lobby"
+            variant="text"
+            @click="roomCommands.goToLobby()"
+          >
+            <v-icon icon="mdi-home-outline" size="16" />
+          </v-btn>
 
+          <div class="room-title-row">
             <p class="room-name-label" data-test-id="room-name">{{ currentRoom.name }}</p>
 
             <span aria-hidden="true" class="room-title-separator">•</span>
@@ -71,77 +71,75 @@
             <strong>{{ committedVote }}</strong>
           </div>
 
-          <div class="main-head-right">
-            <div class="progress-pill">
-              <span class="progress-dots">
-                <span
-                  v-for="player in sortedRoomUsers"
-                  :key="player.userId"
-                  class="pdot"
-                  :class="{ done: player.vote != null, connected: player.isConnected }"
-                  :title="player.name"
-                />
-              </span>
+          <div class="progress-pill">
+            <span class="progress-dots">
+              <span
+                v-for="player in sortedRoomUsers"
+                :key="player.userId"
+                class="pdot"
+                :class="{ done: player.vote != null, connected: player.isConnected }"
+                :title="player.name"
+              />
+            </span>
 
-              <span class="vote-count" data-test-id="room-vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
-            </div>
-
-            <v-btn
-              :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
-              class="icon-btn"
-              data-test-id="room-toggle-view"
-              density="compact"
-              icon
-              :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
-              variant="text"
-              @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
-            >
-              <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
-            </v-btn>
-
-            <v-btn
-              v-if="taskInformationEnabled && currentTask"
-              aria-label="Edit task information"
-              class="icon-btn"
-              data-test-id="room-edit-task"
-              density="compact"
-              :disabled="!canEditCurrentTask"
-              icon
-              :title="editTaskActionTitle"
-              variant="text"
-              @click="startTaskInfoFlow('current')"
-            >
-              <v-icon icon="mdi-pencil-outline" size="16" />
-            </v-btn>
-
-            <v-btn
-              aria-label="Room settings"
-              class="icon-btn"
-              data-test-id="room-open-settings"
-              density="compact"
-              :disabled="leaderModeEnabled && !isLeader"
-              icon
-              :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings'"
-              variant="text"
-              @click="roomConfigOpen = true"
-            >
-              <v-icon icon="mdi-tune" size="16" />
-            </v-btn>
-
-            <v-btn
-              :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
-              class="icon-btn"
-              data-test-id="room-share-link"
-              density="compact"
-              :disabled="!firebaseConfig"
-              icon
-              :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
-              variant="text"
-              @click="roomCommands.copyRoomLink()"
-            >
-              <v-icon :icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'" size="16" />
-            </v-btn>
+            <span class="vote-count" data-test-id="room-vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
           </div>
+
+          <v-btn
+            :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            class="icon-btn"
+            data-test-id="room-toggle-view"
+            density="compact"
+            icon
+            :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            variant="text"
+            @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
+          >
+            <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
+          </v-btn>
+
+          <v-btn
+            v-if="taskInformationEnabled && currentTask"
+            aria-label="Edit task information"
+            class="icon-btn"
+            data-test-id="room-edit-task"
+            density="compact"
+            :disabled="!canEditCurrentTask"
+            icon
+            :title="editTaskActionTitle"
+            variant="text"
+            @click="startTaskInfoFlow('current')"
+          >
+            <v-icon icon="mdi-pencil-outline" size="16" />
+          </v-btn>
+
+          <v-btn
+            aria-label="Room settings"
+            class="icon-btn"
+            data-test-id="room-open-settings"
+            density="compact"
+            :disabled="leaderModeEnabled && !isLeader"
+            icon
+            :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings'"
+            variant="text"
+            @click="roomConfigOpen = true"
+          >
+            <v-icon icon="mdi-tune" size="16" />
+          </v-btn>
+
+          <v-btn
+            :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
+            class="icon-btn"
+            data-test-id="room-share-link"
+            density="compact"
+            :disabled="!firebaseConfig"
+            icon
+            :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
+            variant="text"
+            @click="roomCommands.copyRoomLink()"
+          >
+            <v-icon :icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'" size="16" />
+          </v-btn>
         </div>
 
         <div
