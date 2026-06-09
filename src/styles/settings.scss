@@ -1453,8 +1453,11 @@ button { font-family: inherit; }
 }
 .console-room-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
+}
+.console-room-body-with-votes {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
 }
 .console-room-line {
   align-items: baseline;
@@ -1530,8 +1533,36 @@ button { font-family: inherit; }
   min-height: 36px;
   padding: 0 12px;
 }
+.console-room-vote-panel-dots {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 5px;
+}
+.console-room-vote-panel-dots span {
+  background: #30363d;
+  border-radius: 999px;
+  height: 7px;
+  width: 7px;
+}
+.console-room-vote-panel-dots span:nth-child(1) {
+  background: #ff5f56;
+}
+.console-room-vote-panel-dots span:nth-child(2) {
+  background: #ffbd2e;
+}
+.console-room-vote-panel-dots span:nth-child(3) {
+  background: #27c93f;
+}
+.console-room-vote-panel-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .console-room-vote-panel-head strong {
   color: #f0f6fc;
+  flex: 0 0 auto;
 }
 .console-room-vote-trace {
   border-bottom: 1px solid #1f2937;
@@ -1558,9 +1589,14 @@ button { font-family: inherit; }
   margin: 0;
   padding: 5px 12px;
 }
+.console-room-vote-row::before {
+  color: #7d8590;
+  content: 'const';
+  flex: 0 0 auto;
+}
 .console-room-vote-name {
   color: #79c0ff;
-  flex: 1 1 auto;
+  flex: 1 1 120px;
   font-weight: 800;
   min-width: 0;
   overflow: hidden;
@@ -1572,12 +1608,13 @@ button { font-family: inherit; }
 }
 .console-room-vote-value {
   color: #ffd166;
-  flex: 0 0 auto;
+  flex: 0 0 46px;
   font-weight: 900;
+  text-align: right;
 }
 .console-room-vote-comment {
   color: #3fb950;
-  flex: 0 0 auto;
+  flex: 0 0 72px;
 }
 .console-room-vote-row-missed .console-room-vote-value,
 .console-room-vote-row-missed .console-room-vote-comment {
@@ -4582,6 +4619,18 @@ button { font-family: inherit; }
 @media (max-width: 1100px) {
   .side-panel { width: 240px; }
   .side-panel-collapsed { width: 0; border-right-width: 0; overflow: hidden; }
+  .console-room-view {
+    grid-template-rows: auto minmax(0, 560px) auto;
+  }
+  .console-room-body-with-votes {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .console-room-vote-panel {
+    border-left: 0;
+    border-top: 1px solid #1f2937;
+    max-height: 210px;
+  }
 }
 
 /*
@@ -4774,13 +4823,7 @@ button { font-family: inherit; }
   .console-room-view {
     grid-template-rows: auto minmax(0, 520px) auto;
   }
-  .console-room-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
   .console-room-vote-panel {
-    border-left: 0;
-    border-top: 1px solid #1f2937;
     max-height: 180px;
   }
   .console-room-line {

@@ -1219,6 +1219,7 @@
   watch(showVotes, (revealed, wasRevealed) => {
     if (revealed && !wasRevealed) {
       setTimeout(() => {
+        if (configStore.viewMode === 'console') return
         if (stats.value?.consensus === 'consensus' && stats.value.total >= 2) {
           triggerConfetti()
         }

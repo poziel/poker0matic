@@ -19,6 +19,11 @@
     totalPlayers: number
   }>()
   const feedElement = ref<HTMLElement | null>(null)
+  const timeFormatter = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
   const latestVoteTrace = computed(() =>
     props.entries
       .toReversed()
@@ -36,11 +41,7 @@
   )
 
   function formatTime (createdAt: number) {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(new Date(createdAt))
+    return timeFormatter.format(new Date(createdAt))
   }
 
   function formatPrompt (entry: RoomConsoleLogEntry) {
@@ -75,7 +76,7 @@
       <span class="console-room-context">{{ roundLabel }} · {{ votedCount }}/{{ totalPlayers }} voted</span>
     </div>
 
-    <div class="console-room-body">
+    <div class="console-room-body" :class="{ 'console-room-body-with-votes': showVotes }">
       <div ref="feedElement" aria-live="polite" class="console-room-feed p0-scrollbar" role="log">
         <p
           v-for="entry in entries"
@@ -101,7 +102,13 @@
 
       <aside v-if="showVotes" class="console-room-vote-panel" data-test-id="room-console-vote-panel">
         <div class="console-room-vote-panel-head">
-          <span>revealed_votes.ts</span>
+          <span aria-hidden="true" class="console-room-vote-panel-dots">
+            <span />
+            <span />
+            <span />
+          </span>
+
+          <span class="console-room-vote-panel-title">revealed_votes.ts</span>
           <strong>{{ votedCount }}/{{ totalPlayers }}</strong>
         </div>
 

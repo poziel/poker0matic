@@ -74,6 +74,8 @@ test.describe('Feature: room scale', () => {
     await expect(page.getByTestId('room-console-view')).toBeVisible()
     await expect(page.getByTestId('room-console-line').filter({ hasText: 'Console attached' })).toBeVisible()
     await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada is in the lobby.' })).toBeVisible()
+    await expect(page.getByTestId('room-console-vote-panel')).toHaveCount(0)
+    await expect(page.locator('.console-room-body')).not.toHaveClass(/console-room-body-with-votes/)
 
     await voteCard(page, '5').click()
     await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
@@ -83,6 +85,7 @@ test.describe('Feature: room scale', () => {
 
     await page.getByTestId('room-reveal-votes').click()
     await expect(page.getByTestId('room-console-vote-panel')).toBeVisible()
+    await expect(page.locator('.console-room-body')).toHaveClass(/console-room-body-with-votes/)
     await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('5')
     await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('voted')
     await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('-')
