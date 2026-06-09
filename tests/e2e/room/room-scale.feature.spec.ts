@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createRoomForTest, gridPlayer, resultCard, seedRoomParticipants, tablePlayer, voteCard } from '../support/roomFlows'
+import { createRoomForTest, gridPlayer, joinRoomAs, resultCard, seedRoomParticipants, tablePlayer, voteCard } from '../support/roomFlows'
 
 test.describe('Feature: room scale', () => {
   test('Scenario: a room remains usable with more than forty participants', async ({ page }) => {
@@ -58,45 +58,55 @@ test.describe('Feature: room scale', () => {
     await expect(resultCard(page, '5')).toBeVisible()
   })
 
-  test('Scenario: room view modes include console and group status layouts', async ({ page }) => {
+  test('Scenario: room view modes include console and group status layouts', async ({ page, browser }) => {
     const room = await createRoomForTest(page, {
       name: 'Experimental view planning',
       configure: async roomPage => {
         await roomPage.getByTestId('room-toggle-reactions').check()
       },
     })
-    await seedRoomParticipants(page, room.id, [{ name: 'Eva' }])
+    const eva = await joinRoomAs(browser, room, 'Eva')
 
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
+    try {
+      await page.getByTestId('room-toggle-view').click()
+      await page.getByTestId('room-toggle-view').click()
+      await page.getByTestId('room-toggle-view').click()
 
-    await expect(page.getByTestId('room-console-view')).toBeVisible()
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Console attached' })).toBeVisible()
-    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada is in the lobby.' })).toBeVisible()
-    await expect(page.getByTestId('room-console-vote-panel')).toHaveCount(0)
-    await expect(page.locator('.console-room-body')).not.toHaveClass(/console-room-body-with-votes/)
+      await expect(page.getByTestId('room-console-view')).toBeVisible()
+      await expect(page.getByTestId('room-console-line').filter({ hasText: 'Console attached' })).toBeVisible()
+      await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada is in the lobby.' })).toBeVisible()
+      await expect(page.getByTestId('room-console-vote-panel')).toHaveCount(0)
+      await expect(page.locator('.console-room-body')).not.toHaveClass(/console-room-body-with-votes/)
 
-    await voteCard(page, '5').click()
-    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
+      await voteCard(page, '5').click()
+      await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Send 👍 reaction' }).click()
-    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada reacted 👍.' })).toBeVisible()
+      await page.getByRole('button', { name: 'Send 👍 reaction' }).click()
+      await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada reacted 👍.' })).toBeVisible()
+      await expect(eva.page.getByTestId('floating-reaction').filter({ hasText: '👍' })).toBeVisible()
 
-    await page.getByTestId('room-reveal-votes').click()
-    await expect(page.getByTestId('room-console-vote-panel')).toBeVisible()
-    await expect(page.locator('.console-room-body')).toHaveClass(/console-room-body-with-votes/)
-    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('5')
-    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('voted')
-    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('-')
-    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('did not vote')
+      await eva.page.getByRole('button', { name: 'Send 👍 reaction' }).click()
+      await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Eva reacted 👍.' })).toBeVisible()
 
-    await page.getByTestId('room-toggle-view').click()
-    await expect(page.getByTestId('room-group-status-view')).toBeVisible()
-    await expect(page.getByTestId('group-zone-deliberating')).toBeVisible()
-    await expect(page.getByTestId('group-zone-ready')).toBeVisible()
-    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: 'Ada' })).toBeVisible()
-    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: '5' })).toBeVisible()
+      await page.getByTestId('room-reveal-votes').click()
+      await expect(page.getByTestId('room-console-vote-panel')).toBeVisible()
+      await expect(page.getByTestId('room-console-vote-panel')).toContainText('revealedvote.ts')
+      await expect(page.getByTestId('room-console-vote-object')).toContainText(/const\s*votes/)
+      await expect(page.locator('.console-room-body')).toHaveClass(/console-room-body-with-votes/)
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('"5"')
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('voted 5')
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('null')
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('did not vote')
+
+      await page.getByTestId('room-toggle-view').click()
+      await expect(page.getByTestId('room-group-status-view')).toBeVisible()
+      await expect(page.getByTestId('group-zone-deliberating')).toBeVisible()
+      await expect(page.getByTestId('group-zone-ready')).toBeVisible()
+      await expect(page.getByTestId('group-status-player-ready').filter({ hasText: 'Ada' })).toBeVisible()
+      await expect(page.getByTestId('group-status-player-ready').filter({ hasText: '5' })).toBeVisible()
+    } finally {
+      await eva.close()
+    }
   })
 
   test('Scenario: group status view moves a player when they vote', async ({ page }) => {

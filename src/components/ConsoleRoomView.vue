@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import type { RoomConsoleLogEntry, VoteValue } from '@/types/room'
-  import { computed, nextTick, ref, watch } from 'vue'
+  import { nextTick, ref, watch } from 'vue'
 
   interface ConsoleRoomPlayer {
     userId: string
@@ -24,12 +24,6 @@
     minute: '2-digit',
     second: '2-digit',
   })
-  const latestVoteTrace = computed(() =>
-    props.entries
-      .toReversed()
-      .find(entry => entry.level === 'trace' && /\bvote\b/i.test(entry.message)) ?? null,
-  )
-
   watch(
     () => props.entries.map(entry => entry.id).join('|'),
     async () => {
@@ -63,6 +57,15 @@
 
   function formatVote (vote: VoteValue | null | undefined) {
     return vote == null ? '-' : String(vote)
+  }
+
+  function formatVoteLiteral (vote: VoteValue | null | undefined) {
+    if (vote == null) return 'null'
+    return JSON.stringify(String(vote))
+  }
+
+  function formatNameLiteral (name: string) {
+    return JSON.stringify(name)
   }
 </script>
 
@@ -102,21 +105,20 @@
 
       <aside v-if="showVotes" class="console-room-vote-panel" data-test-id="room-console-vote-panel">
         <div class="console-room-vote-panel-head">
-          <span aria-hidden="true" class="console-room-vote-panel-dots">
-            <span />
-            <span />
-            <span />
-          </span>
-
-          <span class="console-room-vote-panel-title">revealed_votes.ts</span>
+          <span class="console-room-vote-panel-title">revealedvote.ts</span>
           <strong>{{ votedCount }}/{{ totalPlayers }}</strong>
         </div>
 
-        <p v-if="latestVoteTrace" class="console-room-vote-trace" data-test-id="room-console-vote-trace">
-          {{ latestVoteTrace.message }}
-        </p>
+        <div class="console-room-vote-list" data-test-id="room-console-vote-object">
+          <p class="console-room-vote-object-line">
+            <span class="console-room-vote-keyword">const</span>
+            <span class="console-room-vote-variable">votes</span>
+            <span class="console-room-vote-operator">:</span>
+            <span class="console-room-vote-type">Record&lt;string, string | null&gt;</span>
+            <span class="console-room-vote-operator">=</span>
+            <span class="console-room-vote-brace">{</span>
+          </p>
 
-        <div class="console-room-vote-list">
           <p
             v-for="player in players"
             :key="player.userId"
@@ -126,13 +128,19 @@
             :data-result-state="player.vote == null ? 'missed' : 'voted'"
             data-test-id="room-console-vote-row"
           >
-            <span class="console-room-vote-name">{{ player.name }}</span>
-            <span class="console-room-vote-equals">=</span>
-            <span class="console-room-vote-value">{{ formatVote(player.vote) }}</span>
+            <span aria-hidden="true" class="console-room-vote-indent" />
+            <span class="console-room-vote-name">{{ formatNameLiteral(player.name) }}</span>
+            <span class="console-room-vote-operator">:</span>
+            <span class="console-room-vote-value">{{ formatVoteLiteral(player.vote) }}</span>
+            <span class="console-room-vote-operator">,</span>
 
             <span class="console-room-vote-comment">
-              {{ player.vote == null ? 'did not vote' : 'voted' }}
+              // {{ player.vote == null ? 'did not vote' : `voted ${formatVote(player.vote)}` }}
             </span>
+          </p>
+
+          <p class="console-room-vote-object-line">
+            <span class="console-room-vote-brace">}</span>
           </p>
         </div>
       </aside>

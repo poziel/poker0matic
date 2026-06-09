@@ -1481,6 +1481,7 @@
         seenReactionIds.add(reactionId)
         if (!isValidReactionEvent(event)) continue
         if (!reactionEmojis.value.includes(event.emoji)) continue
+        if (configStore.viewMode === 'console') continue
         addFloatingReaction(reactionId, event)
       }
     })
@@ -2295,9 +2296,7 @@
       : (previousVote == null ? `${currentPlayerName} voted.` : `${currentPlayerName} changed their vote.`)
     const entry = buildConsoleLogEntry(
       'trace',
-      showVotes.value && allowVoteChangesAfterReveal.value
-        ? `${currentPlayerName} changed their vote. Side panel updated.`
-        : message,
+      message,
       createdAt,
       currentRound.value,
       {
@@ -2329,26 +2328,8 @@
     if (!reactionEmojis.value.includes(emoji)) return
 
     const createdAt = Date.now()
-    if (configStore.viewMode === 'console') {
-      const currentPlayerName = activeRoundParticipants.value[configStore.userId]?.name ?? userName.value ?? 'Anonymous'
-      const entry = buildConsoleLogEntry(
-        'trace',
-        `${currentPlayerName} reacted ${emoji}.`,
-        createdAt,
-        currentRound.value,
-        {
-          userId: configStore.userId,
-          userName: currentPlayerName,
-        },
-      )
-      update(dbRef(db, `rooms/${roomId}`), {
-        lastActivity: createdAt,
-        ...buildConsoleLogAppendUpdates([entry]),
-      }).catch(console.error)
-      return
-    }
-
     const reactionId = `${createdAt}-${configStore.userId}-${Math.random().toString(36).slice(2, 8)}`
+    const currentPlayerName = activeRoundParticipants.value[configStore.userId]?.name ?? userName.value ?? 'Anonymous'
     const event: RoomReactionEvent = {
       emoji,
       userId: configStore.userId,
@@ -2356,9 +2337,25 @@
     }
 
     seenReactionIds.add(reactionId)
-    addFloatingReaction(reactionId, event)
+    if (configStore.viewMode !== 'console') {
+      addFloatingReaction(reactionId, event)
+    }
 
     const reactionRef = dbRef(db, `rooms/${roomId}/reactions/${reactionId}`)
+    const entry = buildConsoleLogEntry(
+      'trace',
+      `${currentPlayerName} reacted ${emoji}.`,
+      createdAt,
+      currentRound.value,
+      {
+        userId: configStore.userId,
+        userName: currentPlayerName,
+      },
+    )
+    update(dbRef(db, `rooms/${roomId}`), {
+      lastActivity: createdAt,
+      ...buildConsoleLogAppendUpdates([entry]),
+    }).catch(console.error)
     set(reactionRef, event)
       .then(() => {
         setTimeout(() => {
