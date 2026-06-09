@@ -83,6 +83,14 @@ test.describe('Feature: room workflow', () => {
     await expect(resultCard(page, '8')).toBeVisible()
     await expect(resultCard(page, '5')).toHaveCount(0)
     await expect(page.getByTestId('room-hide-votes')).toBeVisible()
+
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+
+    await expect(page.getByTestId('room-console-view')).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada changed their vote after reveal. Reprinting votes.' })).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: 'Ada voted 8.' })).toBeVisible()
   })
 
   test('Scenario: resetting a round clears the vote and keeps the room on the same round', async ({ page }) => {

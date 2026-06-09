@@ -1442,7 +1442,8 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 .console-room-feed {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0;
   max-height: 420px;
   overflow-y: auto;
@@ -1452,10 +1453,9 @@ button { font-family: inherit; }
 .console-room-line {
   align-items: baseline;
   color: #c9d1d9;
-  display: grid;
+  display: flex;
   font-size: 13px;
   gap: 10px;
-  grid-template-columns: 76px 58px auto 1fr;
   line-height: 1.55;
   margin: 0;
   min-height: 28px;
@@ -1463,16 +1463,20 @@ button { font-family: inherit; }
 }
 .console-room-time {
   color: #6e7681;
+  flex: 0 0 76px;
 }
 .console-room-prompt {
   color: #58a6ff;
+  flex: 0 0 58px;
   font-weight: 800;
 }
 .console-room-vote {
   color: #ffd166;
+  flex: 0 0 66px;
   font-weight: 900;
 }
 .console-room-message {
+  flex: 1 1 auto;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1494,6 +1498,15 @@ button { font-family: inherit; }
 }
 .console-room-line-result .console-room-prompt {
   color: #3fb950;
+}
+.console-room-line-missed .console-room-prompt {
+  color: #f0883e;
+}
+.console-room-line-missed .console-room-vote {
+  color: #f0883e;
+}
+.console-room-line-missed .console-room-message {
+  color: #ffa657;
 }
 .console-room-input {
   align-items: center;
@@ -4684,12 +4697,22 @@ button { font-family: inherit; }
     padding-top: 14px;
   }
   .console-room-line {
+    align-items: flex-start;
+    flex-wrap: wrap;
     gap: 4px 8px;
-    grid-template-columns: 1fr;
   }
   .console-room-context,
   .console-room-time {
     display: none;
+  }
+  .console-room-prompt {
+    flex-basis: 56px;
+  }
+  .console-room-vote {
+    flex-basis: 60px;
+  }
+  .console-room-message {
+    flex-basis: 100%;
   }
   .group-status-view {
     padding: 12px;

@@ -1725,10 +1725,11 @@
     return Object.entries(participants)
       .toSorted(([, a], [, b]) => a.joinedAt - b.joinedAt)
       .map(([userId, user], index) => {
-        const vote = user.vote ?? '-'
+        const hasVote = user.vote != null
+        const vote = hasVote ? user.vote : null
         return buildConsoleLogEntry(
           'result',
-          `${user.name} voted ${String(vote)}.`,
+          hasVote ? `${user.name} voted ${String(vote)}.` : `${user.name} didn't vote.`,
           createdAt + index,
           roundNumber,
           {
@@ -2327,7 +2328,9 @@
       : (previousVote == null ? `${currentPlayerName} voted.` : `${currentPlayerName} changed their vote.`)
     const entry = buildConsoleLogEntry(
       'trace',
-      message,
+      showVotes.value && allowVoteChangesAfterReveal.value
+        ? `${currentPlayerName} changed their vote after reveal. Reprinting votes.`
+        : message,
       createdAt,
       currentRound.value,
       {
@@ -2335,10 +2338,23 @@
         userName: currentPlayerName,
       },
     )
+    const nextParticipant: RoomUser = {
+      ...(activeRoundParticipants.value[configStore.userId] ?? { name: currentPlayerName, joinedAt: createdAt }),
+    }
+    if (newVote != null) {
+      nextParticipant.vote = newVote
+    }
+    const nextParticipants: Record<string, RoomUser> = {
+      ...activeRoundParticipants.value,
+      [configStore.userId]: nextParticipant,
+    }
+    const postRevealEntries = showVotes.value && allowVoteChangesAfterReveal.value
+      ? buildRevealConsoleLogEntries(createdAt + 1, nextParticipants)
+      : []
     update(dbRef(db, `rooms/${roomId}`), {
       [`roundParticipants/${configStore.userId}/vote`]: newVote,
       lastActivity: createdAt,
-      ...buildConsoleLogAppendUpdates([entry]),
+      ...buildConsoleLogAppendUpdates([entry, ...postRevealEntries]),
     }).catch(console.error)
 
     if (isVoteChange && configStore.userId) {

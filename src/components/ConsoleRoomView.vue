@@ -1,12 +1,24 @@
 <script setup lang="ts">
   import type { RoomConsoleLogEntry } from '@/types/room'
+  import { nextTick, ref, watch } from 'vue'
 
-  defineProps<{
+  const props = defineProps<{
     entries: RoomConsoleLogEntry[]
     roundLabel: string
     votedCount: number
     totalPlayers: number
   }>()
+  const feedElement = ref<HTMLElement | null>(null)
+
+  watch(
+    () => props.entries.map(entry => entry.id).join('|'),
+    async () => {
+      await nextTick()
+      if (!feedElement.value) return
+      feedElement.value.scrollTop = feedElement.value.scrollHeight
+    },
+    { immediate: true },
+  )
 
   function formatTime (createdAt: number) {
     return new Intl.DateTimeFormat(undefined, {
@@ -17,10 +29,20 @@
   }
 
   function formatPrompt (entry: RoomConsoleLogEntry) {
+    if (entry.level === 'result' && entry.vote == null) return 'miss'
     if (entry.level === 'trace') return 'trace'
     if (entry.level === 'result') return 'vote'
     if (entry.level === 'system') return 'sys'
     return 'info'
+  }
+
+  function getEntryClasses (entry: RoomConsoleLogEntry) {
+    return [
+      `console-room-line-${entry.level}`,
+      {
+        'console-room-line-missed': entry.level === 'result' && entry.vote == null,
+      },
+    ]
   }
 </script>
 
@@ -34,13 +56,14 @@
       <span class="console-room-context">{{ roundLabel }} · {{ votedCount }}/{{ totalPlayers }} voted</span>
     </div>
 
-    <div aria-live="polite" class="console-room-feed p0-scrollbar" role="log">
+    <div ref="feedElement" aria-live="polite" class="console-room-feed p0-scrollbar" role="log">
       <p
         v-for="entry in entries"
         :key="entry.id"
         class="console-room-line"
-        :class="`console-room-line-${entry.level}`"
+        :class="getEntryClasses(entry)"
         :data-log-level="entry.level"
+        :data-result-state="entry.level === 'result' ? (entry.vote == null ? 'missed' : 'voted') : undefined"
         data-test-id="room-console-line"
       >
         <span class="console-room-time">{{ formatTime(entry.createdAt) }}</span>

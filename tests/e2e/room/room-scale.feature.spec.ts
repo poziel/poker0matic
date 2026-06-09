@@ -59,7 +59,8 @@ test.describe('Feature: room scale', () => {
   })
 
   test('Scenario: room view modes include console and group status layouts', async ({ page }) => {
-    await createRoomForTest(page, { name: 'Experimental view planning' })
+    const room = await createRoomForTest(page, { name: 'Experimental view planning' })
+    await seedRoomParticipants(page, room.id, [{ name: 'Eva' }])
 
     await page.getByTestId('room-toggle-view').click()
     await page.getByTestId('room-toggle-view').click()
@@ -75,6 +76,8 @@ test.describe('Feature: room scale', () => {
     await page.getByTestId('room-reveal-votes').click()
     await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: '[ 5 ]' })).toBeVisible()
     await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: 'Ada voted 5.' })).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-result-state="missed"]').filter({ hasText: '[ - ]' })).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-result-state="missed"]').filter({ hasText: 'Eva didn\'t vote.' })).toBeVisible()
 
     await page.getByTestId('room-toggle-view').click()
     await expect(page.getByTestId('room-group-status-view')).toBeVisible()
