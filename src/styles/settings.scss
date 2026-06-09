@@ -1399,6 +1399,7 @@ button { font-family: inherit; }
   font-family: var(--font-mono);
   grid-template-rows: auto minmax(0, 420px) auto;
   overflow: hidden;
+  z-index: 1;
 }
 .console-room-titlebar {
   align-items: center;
@@ -1463,16 +1464,13 @@ button { font-family: inherit; }
 }
 .console-room-time {
   color: #6e7681;
-  flex: 0 0 76px;
 }
 .console-room-prompt {
   color: #58a6ff;
-  flex: 0 0 58px;
   font-weight: 800;
 }
 .console-room-vote {
   color: #ffd166;
-  flex: 0 0 66px;
   font-weight: 900;
 }
 .console-room-message {
