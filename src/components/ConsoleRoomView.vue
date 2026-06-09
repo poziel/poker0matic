@@ -55,10 +55,6 @@
     ]
   }
 
-  function formatVote (vote: VoteValue | null | undefined) {
-    return vote == null ? '-' : String(vote)
-  }
-
   function formatVoteLiteral (vote: VoteValue | null | undefined) {
     if (vote == null) return 'null'
     return JSON.stringify(String(vote))
@@ -66,6 +62,13 @@
 
   function formatNameLiteral (name: string) {
     return JSON.stringify(name)
+  }
+
+  function formatVoteComment (vote: VoteValue | null | undefined) {
+    if (vote == null) return 'did not vote'
+    if (vote === '?') return 'I don\'t know.'
+    if (vote === '☕') return 'It\'s break time.'
+    return 'Voted.'
   }
 </script>
 
@@ -106,7 +109,6 @@
       <aside v-if="showVotes" class="console-room-vote-panel" data-test-id="room-console-vote-panel">
         <div class="console-room-vote-panel-head">
           <span class="console-room-vote-panel-title">revealedvote.ts</span>
-          <strong>{{ votedCount }}/{{ totalPlayers }}</strong>
         </div>
 
         <div class="console-room-vote-list" data-test-id="room-console-vote-object">
@@ -132,10 +134,10 @@
             <span class="console-room-vote-name">{{ formatNameLiteral(player.name) }}</span>
             <span class="console-room-vote-operator">:</span>
             <span class="console-room-vote-value">{{ formatVoteLiteral(player.vote) }}</span>
-            <span class="console-room-vote-operator">,</span>
+            <span class="console-room-vote-operator console-room-vote-coma">,</span>
 
             <span class="console-room-vote-comment">
-              // {{ player.vote == null ? 'did not vote' : `voted ${formatVote(player.vote)}` }}
+              // {{ formatVoteComment(player.vote) }}
             </span>
           </p>
 

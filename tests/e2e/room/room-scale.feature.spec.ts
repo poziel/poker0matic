@@ -66,6 +66,10 @@ test.describe('Feature: room scale', () => {
       },
     })
     const eva = await joinRoomAs(browser, room, 'Eva')
+    await seedRoomParticipants(page, room.id, [
+      { name: 'Mystery', vote: '?' },
+      { name: 'Bean', vote: '☕' },
+    ])
 
     try {
       await page.getByTestId('room-toggle-view').click()
@@ -77,6 +81,18 @@ test.describe('Feature: room scale', () => {
       await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada is in the lobby.' })).toBeVisible()
       await expect(page.getByTestId('room-console-vote-panel')).toHaveCount(0)
       await expect(page.locator('.console-room-body')).not.toHaveClass(/console-room-body-with-votes/)
+      await page.locator('html').evaluate(element => {
+        element.dataset.theme = 'midnight'
+      })
+      await expect.poll(async () => page.getByTestId('room-console-view').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(7, 9, 12)')
+      await page.locator('html').evaluate(element => {
+        element.dataset.theme = 'midnight-light'
+      })
+      await expect.poll(async () => page.getByTestId('room-console-view').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(248, 250, 252)')
+      await page.locator('html').evaluate(element => {
+        element.dataset.theme = 'candy-light'
+      })
+      await expect.poll(async () => page.getByTestId('room-console-view').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(248, 250, 252)')
 
       await voteCard(page, '5').click()
       await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
@@ -94,9 +110,11 @@ test.describe('Feature: room scale', () => {
       await expect(page.getByTestId('room-console-vote-object')).toContainText(/const\s*votes/)
       await expect(page.locator('.console-room-body')).toHaveClass(/console-room-body-with-votes/)
       await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('"5"')
-      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('voted 5')
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('Voted.')
       await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('null')
       await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('did not vote')
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Mystery"]')).toContainText('I don\'t know.')
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Bean"]')).toContainText('It\'s break time.')
 
       await page.getByTestId('room-toggle-view').click()
       await expect(page.getByTestId('room-group-status-view')).toBeVisible()

@@ -1390,21 +1390,86 @@ button { font-family: inherit; }
 
 /* --- console room view -------------------------------------------------- */
 .console-room-view {
-  background: #07090c;
-  border: 1px solid #1d2630;
+  --console-bg: #07090c;
+  --console-bar: #0d1117;
+  --console-panel: #090d12;
+  --console-border: #1f2937;
+  --console-border-outer: #1d2630;
+  --console-shadow: rgba(0, 0, 0, .42);
+  --console-text: #c9d1d9;
+  --console-text-strong: #f0f6fc;
+  --console-title: #e5e7eb;
+  --console-muted: #7d8590;
+  --console-time: #6e7681;
+  --console-prompt: #58a6ff;
+  --console-vote: #ffd166;
+  --console-info: #79c0ff;
+  --console-system: #a5d6ff;
+  --console-trace: #8b949e;
+  --console-trace-prompt: #7d8590;
+  --console-result: #f0f6fc;
+  --console-result-prompt: #3fb950;
+  --console-missed: #f0883e;
+  --console-missed-message: #ffa657;
+  --console-keyword: #ff7b72;
+  --console-variable: #79c0ff;
+  --console-type: #ffa657;
+  --console-operator: #8b949e;
+  --console-name: #a5d6ff;
+  --console-comment: #3fb950;
+  --console-input-user: #3fb950;
+  --console-input-path: #58a6ff;
+  --console-input-symbol: #f2cc60;
+  --console-caret: #f0f6fc;
+
+  background: var(--console-bg);
+  border: 1px solid var(--console-border-outer);
   border-radius: 10px;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, .42);
-  color: #d8dee9;
+  box-shadow: 0 18px 46px var(--console-shadow);
+  color: var(--console-text);
   display: grid;
   font-family: var(--font-mono);
   grid-template-rows: auto minmax(0, 420px) auto;
   overflow: hidden;
   z-index: 1;
 }
+[data-theme$="-light"] .console-room-view {
+  --console-bg: #f8fafc;
+  --console-bar: #eef3fb;
+  --console-panel: #f3f6fb;
+  --console-border: #cbd7e7;
+  --console-border-outer: #b9c8dc;
+  --console-shadow: rgba(15, 23, 42, .16);
+  --console-text: #1f2937;
+  --console-text-strong: #0f172a;
+  --console-title: #0f172a;
+  --console-muted: #64748b;
+  --console-time: #64748b;
+  --console-prompt: #2563eb;
+  --console-vote: #b45309;
+  --console-info: #2563eb;
+  --console-system: #0369a1;
+  --console-trace: #64748b;
+  --console-trace-prompt: #64748b;
+  --console-result: #0f172a;
+  --console-result-prompt: #15803d;
+  --console-missed: #b45309;
+  --console-missed-message: #c2410c;
+  --console-keyword: #dc2626;
+  --console-variable: #2563eb;
+  --console-type: #c2410c;
+  --console-operator: #64748b;
+  --console-name: #0369a1;
+  --console-comment: #15803d;
+  --console-input-user: #15803d;
+  --console-input-path: #2563eb;
+  --console-input-symbol: #b45309;
+  --console-caret: #0f172a;
+}
 .console-room-titlebar {
   align-items: center;
-  background: #0d1117;
-  border-bottom: 1px solid #1f2937;
+  background: var(--console-bar);
+  border-bottom: 1px solid var(--console-border);
   display: flex;
   min-height: 38px;
   overflow: hidden;
@@ -1428,14 +1493,14 @@ button { font-family: inherit; }
   background: #27c93f;
 }
 .console-room-title {
-  color: #e5e7eb;
+  color: var(--console-title);
   font-size: 11px;
   font-weight: 800;
   margin-left: 6px;
   text-transform: uppercase;
 }
 .console-room-context {
-  color: #7d8590;
+  color: var(--console-muted);
   font-size: 11px;
   margin-left: auto;
   overflow: hidden;
@@ -1461,7 +1526,7 @@ button { font-family: inherit; }
 }
 .console-room-line {
   align-items: baseline;
-  color: #c9d1d9;
+  color: var(--console-text);
   display: flex;
   font-size: 13px;
   gap: 10px;
@@ -1471,14 +1536,14 @@ button { font-family: inherit; }
   padding: 4px 16px;
 }
 .console-room-time {
-  color: #6e7681;
+  color: var(--console-time);
 }
 .console-room-prompt {
-  color: #58a6ff;
+  color: var(--console-prompt);
   font-weight: 800;
 }
 .console-room-vote {
-  color: #ffd166;
+  color: var(--console-vote);
   font-weight: 900;
 }
 .console-room-message {
@@ -1487,36 +1552,36 @@ button { font-family: inherit; }
   overflow-wrap: anywhere;
 }
 .console-room-line-info .console-room-prompt {
-  color: #79c0ff;
+  color: var(--console-info);
 }
 .console-room-line-system .console-room-prompt,
 .console-room-line-system .console-room-message {
-  color: #a5d6ff;
+  color: var(--console-system);
 }
 .console-room-line-trace {
-  color: #8b949e;
+  color: var(--console-trace);
 }
 .console-room-line-trace .console-room-prompt {
-  color: #7d8590;
+  color: var(--console-trace-prompt);
 }
 .console-room-line-result {
-  color: #f0f6fc;
+  color: var(--console-result);
 }
 .console-room-line-result .console-room-prompt {
-  color: #3fb950;
+  color: var(--console-result-prompt);
 }
 .console-room-line-missed .console-room-prompt {
-  color: #f0883e;
+  color: var(--console-missed);
 }
 .console-room-line-missed .console-room-vote {
-  color: #f0883e;
+  color: var(--console-missed);
 }
 .console-room-line-missed .console-room-message {
-  color: #ffa657;
+  color: var(--console-missed-message);
 }
 .console-room-vote-panel {
-  background: #090d12;
-  border-left: 1px solid #1f2937;
+  background: var(--console-panel);
+  border-left: 1px solid var(--console-border);
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1524,17 +1589,16 @@ button { font-family: inherit; }
 }
 .console-room-vote-panel-head {
   align-items: center;
-  border-bottom: 1px solid #1f2937;
-  color: #7d8590;
+  border-bottom: 1px solid var(--console-border);
+  color: var(--console-muted);
   display: flex;
   font-size: 11px;
-  gap: 12px;
-  justify-content: space-between;
+  line-height: 1;
   min-height: 36px;
   padding: 0 12px;
 }
 .console-room-vote-panel-title {
-  color: #e5e7eb;
+  color: var(--console-title);
   flex: 1 1 auto;
   font-weight: 800;
   min-width: 0;
@@ -1544,7 +1608,7 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 .console-room-vote-panel-head strong {
-  color: #f0f6fc;
+  color: var(--console-text-strong);
   flex: 0 0 auto;
 }
 .console-room-vote-list {
@@ -1556,7 +1620,7 @@ button { font-family: inherit; }
 }
 .console-room-vote-object-line {
   align-items: baseline;
-  color: #c9d1d9;
+  color: var(--console-text);
   display: flex;
   flex-wrap: wrap;
   font-size: 12px;
@@ -1567,7 +1631,7 @@ button { font-family: inherit; }
 }
 .console-room-vote-row {
   align-items: baseline;
-  color: #f0f6fc;
+  color: var(--console-text-strong);
   display: flex;
   flex-wrap: nowrap;
   font-size: 12px;
@@ -1577,29 +1641,31 @@ button { font-family: inherit; }
   padding: 4px 12px;
 }
 .console-room-vote-keyword {
-  color: #ff7b72;
+  color: var(--console-keyword);
   font-weight: 800;
 }
 .console-room-vote-variable {
-  color: #79c0ff;
+  color: var(--console-variable);
   font-weight: 900;
 }
 .console-room-vote-type {
-  color: #ffa657;
+  color: var(--console-type);
   min-width: 0;
   overflow-wrap: anywhere;
 }
 .console-room-vote-brace,
 .console-room-vote-operator {
-  color: #8b949e;
+  color: var(--console-operator);
   flex: 0 0 auto;
+}
+.console-room-vote-coma {
+  margin-left: -5px;
 }
 .console-room-vote-indent {
   flex: 0 0 12px;
 }
 .console-room-vote-name {
-  color: #a5d6ff;
-  flex: 1 1 124px;
+  color: var(--console-name);
   font-weight: 800;
   min-width: 0;
   overflow: hidden;
@@ -1607,31 +1673,29 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 .console-room-vote-value {
-  color: #ffd166;
-  flex: 0 0 58px;
+  color: var(--console-vote);
   font-weight: 900;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .console-room-vote-comment {
-  color: #3fb950;
-  flex: 0 0 104px;
+  color: var(--console-comment);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .console-room-vote-row-missed .console-room-vote-value {
-  color: #f0883e;
+  color: var(--console-missed);
 }
 .console-room-vote-row-missed .console-room-vote-comment {
-  color: #f0883e;
+  color: var(--console-missed);
 }
 .console-room-input {
   align-items: center;
-  background: #0d1117;
-  border-top: 1px solid #1f2937;
-  color: #c9d1d9;
+  background: var(--console-bar);
+  border-top: 1px solid var(--console-border);
+  color: var(--console-text);
   display: flex;
   font-size: 13px;
   gap: 8px;
@@ -1639,20 +1703,20 @@ button { font-family: inherit; }
   padding: 0 16px;
 }
 .console-room-input-user {
-  color: #3fb950;
+  color: var(--console-input-user);
 }
 .console-room-input-path {
-  color: #58a6ff;
+  color: var(--console-input-path);
 }
 .console-room-input-symbol {
-  color: #f2cc60;
+  color: var(--console-input-symbol);
 }
 .console-room-input-command {
-  color: #8b949e;
+  color: var(--console-trace);
 }
 .console-room-caret {
   animation: console-caret-blink 1s steps(2, start) infinite;
-  background: #f0f6fc;
+  background: var(--console-caret);
   display: inline-flex;
   height: 16px;
   width: 8px;
@@ -4635,7 +4699,7 @@ button { font-family: inherit; }
   }
   .console-room-vote-panel {
     border-left: 0;
-    border-top: 1px solid #1f2937;
+    border-top: 1px solid var(--console-border);
     max-height: 210px;
   }
 }
