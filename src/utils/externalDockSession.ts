@@ -1,4 +1,5 @@
 import type { FirebaseConfig } from '@/stores/config'
+import type { ThemeId } from '@/utils/themes'
 import { createClientId } from '@/utils/id'
 
 export const EXTERNAL_DOCK_SESSION_TTL_MS = 5 * 60 * 1000
@@ -39,11 +40,15 @@ export function buildExternalDockUrl (
   roomId: string,
   config: FirebaseConfig,
   dockSession?: string | null,
+  theme?: ThemeId | null,
 ): string {
   const url = new URL(`${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`, window.location.origin)
   url.searchParams.set('config', encodeFirebaseConfig(config))
   if (dockSession) {
     url.searchParams.set('dockSession', dockSession)
+  }
+  if (theme) {
+    url.searchParams.set('theme', theme)
   }
   return url.toString()
 }

@@ -100,30 +100,32 @@
 
           <v-btn
             v-if="configStore.viewMode === 'simple'"
-            aria-label="Open voting dock on phone"
+            :aria-label="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
             class="icon-btn"
+            :class="{ 'icon-btn-active': phoneDockActive }"
             data-test-id="simple-vote-dock-phone"
             density="compact"
             icon
-            title="Open voting dock on phone"
+            :title="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
             variant="text"
             @click="openPhoneDockQr"
           >
-            <v-icon icon="mdi-qrcode" size="16" />
+            <v-icon :icon="phoneDockActive ? 'mdi-cellphone-off' : 'mdi-qrcode'" size="16" />
           </v-btn>
 
           <v-btn
             v-if="configStore.viewMode === 'simple'"
-            :aria-label="externalVotingDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+            :aria-label="appStore.externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
             class="icon-btn"
+            :class="{ 'icon-btn-active': appStore.externalDockActive }"
             data-test-id="simple-vote-dock-external"
             density="compact"
             icon
-            :title="externalVotingDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+            :title="appStore.externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
             variant="text"
             @click="toggleExternalDock"
           >
-            <v-icon :icon="externalVotingDockActive ? 'mdi-monitor-off' : 'mdi-open-in-new'" size="16" />
+            <v-icon :icon="appStore.externalDockActive ? 'mdi-monitor-off' : 'mdi-open-in-new'" size="16" />
           </v-btn>
 
           <v-btn
@@ -445,6 +447,7 @@
           :can-vote="canVoteInCurrentRound"
           :disabled-hint="voteActionHint"
           :external-dock-active="appStore.externalDockActive"
+          :phone-dock-active="phoneDockActive"
           :selected-vote="selectedVote"
           :show-votes="showVotes"
           :user-name="userName"
@@ -1784,9 +1787,14 @@
     }
 
     writeExternalDockContext(roomId, currentRoom.value?.name ?? configStore.activeRoomName)
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`
+    const url = firebaseConfig.value
+      ? buildExternalDockUrl(roomId, firebaseConfig.value, null, appStore.currentTheme)
+      : `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}?theme=${encodeURIComponent(appStore.currentTheme)}`
     const dockWindow = window.open(url, 'Refinimo-voting-dock', 'popup,width=520,height=720')
-    dockWindow?.focus()
+    if (dockWindow) {
+      appStore.setExternalDockActive(true)
+      dockWindow.focus()
+    }
   }
 
   function bringVotingDockBack () {
@@ -1799,6 +1807,12 @@
   }
 
   async function openPhoneDockQr () {
+    if (phoneDockActive.value || phoneDockConnected.value) {
+      await cleanupPhoneDockSession()
+      appStore.showToast('Phone voting dock disconnected.', 'success')
+      return
+    }
+
     if (!db || !firebaseConfig.value || !configStore.userId) {
       appStore.showToast('Room configuration is required before creating a phone dock.', 'error')
       return
@@ -1843,7 +1857,7 @@
 
     try {
       phoneDockQrImage.value = await QRCode.toDataURL(
-        buildExternalDockUrl(roomId, firebaseConfig.value, phoneDockToken.value),
+        buildExternalDockUrl(roomId, firebaseConfig.value, phoneDockToken.value, appStore.currentTheme),
         {
           errorCorrectionLevel: 'L',
           margin: 1,
@@ -1872,8 +1886,13 @@
       }
 
       if (session.claimedAt && !isExternalDockSessionExpired(session)) {
+        const wasConnected = phoneDockConnected.value
         phoneDockConnected.value = true
         phoneDockActive.value = true
+        if (!wasConnected) {
+          closePhoneDockDialog()
+          appStore.showToast('You are connected to your phone.', 'success')
+        }
       }
     })
   }

@@ -351,6 +351,18 @@ button { font-family: inherit; }
   padding: 0;
 }
 .icon-btn:hover { color: var(--text-1); background: var(--bg-3); }
+.icon-btn-active,
+.icon-btn-active.v-btn {
+  background: color-mix(in oklab, var(--accent), transparent 82%);
+  border-color: color-mix(in oklab, var(--accent), transparent 42%);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent), transparent 70%);
+}
+.icon-btn-active:hover,
+.icon-btn-active.v-btn:hover {
+  background: color-mix(in oklab, var(--accent), transparent 76%);
+  color: var(--text-1);
+}
 
 .room-pill {
   display: flex; align-items: center; gap: 8px;
@@ -2058,6 +2070,17 @@ button { font-family: inherit; }
 .external-dock-return-btn:hover {
   border-color: color-mix(in oklab, var(--accent), transparent 50%);
   background: var(--bg-3);
+  color: var(--text-1);
+}
+.dock-phone-btn.active,
+.dock-external-btn.active {
+  background: color-mix(in oklab, var(--accent), transparent 82%);
+  border-color: color-mix(in oklab, var(--accent), transparent 42%);
+  color: var(--accent);
+}
+.dock-phone-btn.active:hover,
+.dock-external-btn.active:hover {
+  background: color-mix(in oklab, var(--accent), transparent 76%);
   color: var(--text-1);
 }
 

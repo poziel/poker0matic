@@ -90,6 +90,7 @@
   import { useRoute } from 'vue-router'
   import VoteDock from '@/components/VoteDock.vue'
   import { useRoomVotingDock } from '@/composables/useRoomVotingDock'
+  import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import {
     clearExternalDockHeartbeat,
@@ -104,7 +105,9 @@
     EXTERNAL_DOCK_SESSION_TTL_MS,
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
+  import { THEME_IDS, type ThemeId } from '@/utils/themes'
 
+  const appStore = useAppStore()
   const configStore = useConfigStore()
   const route = useRoute()
   initializeDockConfig()
@@ -296,6 +299,7 @@
   function initializeDockConfig () {
     configStore.initializeConfig()
     applyRouteConfig()
+    applyRouteTheme()
   }
 
   function readStringQuery (key: string): string | null {
@@ -304,6 +308,13 @@
       return value[0] ?? null
     }
     return typeof value === 'string' && value.trim() ? value.trim() : null
+  }
+
+  function applyRouteTheme () {
+    const theme = readStringQuery('theme')
+    if (theme && THEME_IDS.includes(theme as ThemeId)) {
+      appStore.setTheme(theme as ThemeId)
+    }
   }
 
   function resolveInitialContext (): ExternalDockRoomContext {

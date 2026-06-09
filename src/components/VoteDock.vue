@@ -11,6 +11,7 @@
     disabledHint?: string
     externalDockActive?: boolean
     externalWindow?: boolean
+    phoneDockActive?: boolean
     showHint?: boolean
   }>()
 
@@ -90,21 +91,23 @@
       </button>
 
       <button
-        aria-label="Open voting dock on phone"
+        :aria-label="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
         class="dock-phone-btn"
+        :class="{ active: phoneDockActive }"
         data-test-id="vote-dock-phone"
-        title="Open voting dock on phone"
+        :title="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
         type="button"
         @click.stop="$emit('open-phone-dock')"
       >
-        <v-icon icon="mdi-qrcode" size="14" />
+        <v-icon :icon="phoneDockActive ? 'mdi-cellphone-off' : 'mdi-qrcode'" size="14" />
       </button>
 
       <button
-        :aria-label="externalDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+        :aria-label="externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
         class="dock-external-btn"
+        :class="{ active: externalDockActive }"
         data-test-id="vote-dock-external"
-        :title="externalDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+        :title="externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
         type="button"
         @click.stop="$emit('toggle-external-dock')"
       >
