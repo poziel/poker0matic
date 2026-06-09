@@ -89,8 +89,9 @@ test.describe('Feature: room workflow', () => {
     await page.getByTestId('room-toggle-view').click()
 
     await expect(page.getByTestId('room-console-view')).toBeVisible()
-    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada changed their vote after reveal. Reprinting votes.' })).toBeVisible()
-    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: 'Ada voted 8.' })).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada changed their vote. Side panel updated.' })).toBeVisible()
+    await expect(page.getByTestId('room-console-vote-trace')).toContainText('Ada changed their vote. Side panel updated.')
+    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('8')
   })
 
   test('Scenario: resetting a round clears the vote and keeps the room on the same round', async ({ page }) => {

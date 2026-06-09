@@ -59,7 +59,12 @@ test.describe('Feature: room scale', () => {
   })
 
   test('Scenario: room view modes include console and group status layouts', async ({ page }) => {
-    const room = await createRoomForTest(page, { name: 'Experimental view planning' })
+    const room = await createRoomForTest(page, {
+      name: 'Experimental view planning',
+      configure: async roomPage => {
+        await roomPage.getByTestId('room-toggle-reactions').check()
+      },
+    })
     await seedRoomParticipants(page, room.id, [{ name: 'Eva' }])
 
     await page.getByTestId('room-toggle-view').click()
@@ -73,11 +78,15 @@ test.describe('Feature: room scale', () => {
     await voteCard(page, '5').click()
     await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
 
+    await page.getByRole('button', { name: 'Send 👍 reaction' }).click()
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada reacted 👍.' })).toBeVisible()
+
     await page.getByTestId('room-reveal-votes').click()
-    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: '[ 5 ]' })).toBeVisible()
-    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="result"]').filter({ hasText: 'Ada voted 5.' })).toBeVisible()
-    await expect(page.locator('[data-test-id="room-console-line"][data-result-state="missed"]').filter({ hasText: '[ - ]' })).toBeVisible()
-    await expect(page.locator('[data-test-id="room-console-line"][data-result-state="missed"]').filter({ hasText: 'Eva didn\'t vote.' })).toBeVisible()
+    await expect(page.getByTestId('room-console-vote-panel')).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('5')
+    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('voted')
+    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('-')
+    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Eva"][data-result-state="missed"]')).toContainText('did not vote')
 
     await page.getByTestId('room-toggle-view').click()
     await expect(page.getByTestId('room-group-status-view')).toBeVisible()

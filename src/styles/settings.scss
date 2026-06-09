@@ -1446,10 +1446,15 @@ button { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 0;
-  max-height: 420px;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px 0;
   scrollbar-gutter: stable;
+}
+.console-room-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  min-height: 0;
 }
 .console-room-line {
   align-items: baseline;
@@ -1505,6 +1510,78 @@ button { font-family: inherit; }
 }
 .console-room-line-missed .console-room-message {
   color: #ffa657;
+}
+.console-room-vote-panel {
+  background: #090d12;
+  border-left: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.console-room-vote-panel-head {
+  align-items: center;
+  border-bottom: 1px solid #1f2937;
+  color: #7d8590;
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 12px;
+}
+.console-room-vote-panel-head strong {
+  color: #f0f6fc;
+}
+.console-room-vote-trace {
+  border-bottom: 1px solid #1f2937;
+  color: #8b949e;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 9px 12px;
+}
+.console-room-vote-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+.console-room-vote-row {
+  align-items: baseline;
+  color: #f0f6fc;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 5px 12px;
+}
+.console-room-vote-name {
+  color: #79c0ff;
+  flex: 1 1 auto;
+  font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.console-room-vote-equals {
+  color: #7d8590;
+}
+.console-room-vote-value {
+  color: #ffd166;
+  flex: 0 0 auto;
+  font-weight: 900;
+}
+.console-room-vote-comment {
+  color: #3fb950;
+  flex: 0 0 auto;
+}
+.console-room-vote-row-missed .console-room-vote-value,
+.console-room-vote-row-missed .console-room-vote-comment {
+  color: #f0883e;
 }
 .console-room-input {
   align-items: center;
@@ -4693,6 +4770,18 @@ button { font-family: inherit; }
   .player { width: 100px; }
   .simple-room-view > .dock {
     padding-top: 14px;
+  }
+  .console-room-view {
+    grid-template-rows: auto minmax(0, 520px) auto;
+  }
+  .console-room-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .console-room-vote-panel {
+    border-left: 0;
+    border-top: 1px solid #1f2937;
+    max-height: 180px;
   }
   .console-room-line {
     align-items: flex-start;
