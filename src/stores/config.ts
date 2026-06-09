@@ -32,7 +32,7 @@ const ENABLE_ADS_KEY = 'refinimo_enable_ads'
 const LEGACY_STORAGE_PREFIX = 'poker_'
 const MAX_RECENT_ROOMS = 5
 
-export type ViewMode = 'table' | 'grid'
+export type ViewMode = 'table' | 'grid' | 'simple'
 export type ConfigValidationStatus = 'unknown' | 'valid' | 'unreachable'
 
 export interface RecentRoom {
@@ -74,7 +74,7 @@ export const useConfigStore = defineStore('config', () => {
   const gravatarEmail = ref(readStoredValue(GRAVATAR_EMAIL_KEY) ?? '')
   const customAvatarUrl = ref(readStoredValue(CUSTOM_AVATAR_URL_KEY) ?? '')
   const customAvatarCrop = ref<AvatarCrop | null>(readStoredAvatarCrop())
-  const viewMode = ref<ViewMode>((readStoredValue(VIEW_MODE_KEY) as ViewMode) ?? 'table')
+  const viewMode = ref<ViewMode>(normalizeViewMode(readStoredValue(VIEW_MODE_KEY)))
   const historyPanelOpen = ref(readStoredValue(HISTORY_PANEL_KEY) === 'true')
   const enableAds = ref(readStoredValue(ENABLE_ADS_KEY) === 'true')
 
@@ -253,6 +253,14 @@ export const useConfigStore = defineStore('config', () => {
     }
 
     return DEFAULT_AVATAR_SOURCE
+  }
+
+  function normalizeViewMode (mode: string | null | undefined): ViewMode {
+    if (mode === 'table' || mode === 'grid' || mode === 'simple') {
+      return mode
+    }
+
+    return 'table'
   }
 
   function readStoredAvatarCrop (): AvatarCrop | null {

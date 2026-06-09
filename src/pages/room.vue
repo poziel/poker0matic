@@ -86,16 +86,44 @@
           </div>
 
           <v-btn
-            :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            :aria-label="`Switch to ${nextViewModeLabel}`"
             class="icon-btn"
             data-test-id="room-toggle-view"
             density="compact"
             icon
-            :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            :title="`Switch to ${nextViewModeLabel}`"
             variant="text"
-            @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
+            @click="configStore.setViewMode(nextViewMode)"
           >
-            <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
+            <v-icon :icon="currentViewModeIcon" size="16" />
+          </v-btn>
+
+          <v-btn
+            v-if="configStore.viewMode === 'simple'"
+            aria-label="Open voting dock on phone"
+            class="icon-btn"
+            data-test-id="simple-vote-dock-phone"
+            density="compact"
+            icon
+            title="Open voting dock on phone"
+            variant="text"
+            @click="openPhoneDockQr"
+          >
+            <v-icon icon="mdi-qrcode" size="16" />
+          </v-btn>
+
+          <v-btn
+            v-if="configStore.viewMode === 'simple'"
+            :aria-label="externalVotingDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+            class="icon-btn"
+            data-test-id="simple-vote-dock-external"
+            density="compact"
+            icon
+            :title="externalVotingDockActive ? 'Bring voting dock back' : 'Open voting dock in a window'"
+            variant="text"
+            @click="toggleExternalDock"
+          >
+            <v-icon :icon="externalVotingDockActive ? 'mdi-monitor-off' : 'mdi-open-in-new'" size="16" />
           </v-btn>
 
           <v-btn
@@ -197,7 +225,23 @@
           @save="saveTaskInformation"
         />
 
-        <div class="room-display-stack" :class="{ revealed: showVotes }">
+        <div
+          class="room-display-stack"
+          :class="{
+            revealed: showVotes,
+            'room-display-stack-simple': configStore.viewMode === 'simple',
+          }"
+        >
+          <CardWallView
+            v-if="configStore.viewMode === 'table'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
+            :show-votes="showVotes"
+            @open-player-menu="openPlayerMenu"
+          />
+
           <SimpleResultsGrid
             v-if="configStore.viewMode === 'grid'"
             :current-user-id="configStore.userId"
@@ -207,19 +251,31 @@
             @open-player-menu="openPlayerMenu"
           />
 
-          <PokerTable
-            v-else
+          <SimpleRoomView
+            v-if="configStore.viewMode === 'simple'"
+            :can-commit-vote="canCommitFinalVote"
+            :can-vote="canVoteInCurrentRound"
+            :committed-vote="committedVote"
             :current-user-id="configStore.userId"
+            :disabled-hint="voteActionHint"
+            :display-vote-counts="displayVoteCounts"
+            :external-dock-active="externalVotingDockActive"
+            :history-enabled="historyEnabled"
             :leader-user-id="leaderUserId"
             :players="sortedRoomUsers"
-            :shaking-user-ids="shakingUserIds"
+            :selected-vote="selectedVote"
             :show-votes="showVotes"
+            :stats="stats"
+            :user-name="userName"
+            :vote-options="voteOptions"
+            @cast-vote="castVote"
+            @commit-vote="onCommitVote"
             @open-player-menu="openPlayerMenu"
           />
 
           <Transition name="insights-strip">
             <RoundStatsPanel
-              v-if="showVotes"
+              v-if="showVotes && configStore.viewMode !== 'simple'"
               :can-commit-vote="canCommitFinalVote"
               :committed-vote="committedVote"
               :display-vote-counts="displayVoteCounts"
@@ -233,7 +289,13 @@
 
         <FloatingReactions :reactions="floatingReactions" />
 
-        <div class="action-row room-action-row" :class="{ 'room-action-row-revealed': showVotes }">
+        <div
+          class="action-row room-action-row"
+          :class="{
+            'room-action-row-revealed': showVotes,
+            'room-action-row-simple': configStore.viewMode === 'simple',
+          }"
+        >
           <template v-if="taskInformationEnabled && !currentTask">
             <v-btn
               class="p0-btn p0-btn-primary"
@@ -372,12 +434,13 @@
 
         <ReactionBar
           v-if="reactionsEnabled"
+          :class="{ 'reaction-bar-simple': configStore.viewMode === 'simple' }"
           :reactions="reactionEmojis"
           @react="sendReaction"
         />
 
         <VoteDock
-          v-if="!externalVotingDockActive"
+          v-if="!externalVotingDockActive && configStore.viewMode !== 'simple'"
           v-model:collapsed="dockCollapsed"
           :can-vote="canVoteInCurrentRound"
           :disabled-hint="voteActionHint"
@@ -391,7 +454,7 @@
           @toggle-external-dock="toggleExternalDock"
         />
 
-        <div v-else class="external-dock-return">
+        <div v-if="externalVotingDockActive && configStore.viewMode !== 'simple'" class="external-dock-return">
           <button class="external-dock-return-btn" type="button" @click="bringVotingDockBack">
             <v-icon icon="mdi-monitor-off" size="16" />
             Bring voting dock back
@@ -497,18 +560,19 @@
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
   import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
+  import CardWallView from '@/components/CardWallView.vue'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
   import FloatingReactions from '@/components/FloatingReactions.vue'
-  import PokerTable from '@/components/PokerTable.vue'
   import ReactionBar from '@/components/ReactionBar.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
   import RoomSidePanel from '@/components/RoomSidePanel.vue'
   import RoundStatsPanel from '@/components/RoundStatsPanel.vue'
   import SimpleResultsGrid from '@/components/SimpleResultsGrid.vue'
+  import SimpleRoomView from '@/components/SimpleRoomView.vue'
   import TaskInfoModal from '@/components/TaskInfoModal.vue'
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
-  import { useConfigStore } from '@/stores/config'
+  import { useConfigStore, type ViewMode } from '@/stores/config'
   import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
@@ -560,9 +624,6 @@
   type NormalizedRoomHistoryEntry = RoomHistoryEntry & {
     legacyVotesByName?: Record<string, string>
   }
-  type WritableRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
-    votes?: Record<string, string>
-  }
   type LegacyRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
     votes?: unknown
     voteSnapshots?: unknown
@@ -589,6 +650,17 @@
     'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
+  const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple']
+  const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+    grid: 'grid view',
+    simple: 'simple room',
+    table: 'card wall',
+  }
+  const VIEW_MODE_ICONS: Record<ViewMode, string> = {
+    grid: 'mdi-cards-playing',
+    simple: 'mdi-view-dashboard-outline',
+    table: 'mdi-view-module-outline',
+  }
 
   function parseCustomDeck (raw: string): VoteValue[] {
     return raw.split(',').flatMap(s => {
@@ -690,6 +762,10 @@
   const canCommitFinalVote = computed(() => !leaderModeEnabled.value || isLeader.value)
   const canStartTaskInfoFlow = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
   const externalVotingDockActive = computed(() => appStore.externalDockActive || phoneDockActive.value)
+  const currentViewModeIndex = computed(() => Math.max(0, VIEW_MODE_SEQUENCE.indexOf(configStore.viewMode)))
+  const nextViewMode = computed(() => VIEW_MODE_SEQUENCE[(currentViewModeIndex.value + 1) % VIEW_MODE_SEQUENCE.length])
+  const nextViewModeLabel = computed(() => VIEW_MODE_LABELS[nextViewMode.value])
+  const currentViewModeIcon = computed(() => VIEW_MODE_ICONS[configStore.viewMode])
   const canEditCurrentTask = computed(() =>
     taskInformationEnabled.value
     && !!currentTask.value
@@ -889,7 +965,7 @@
   const voteShortcutLookup = computed(() => {
     const availableValues = showVotes.value
       ? (canVoteInCurrentRound.value ? voteOptions.value.map(String) : historyShortcutVoteValues.value)
-      : (dockCollapsed.value ? [] : voteOptions.value.map(String))
+      : (configStore.viewMode === 'simple' || !dockCollapsed.value ? voteOptions.value.map(String) : [])
 
     const lookup: Record<string, string> = {}
     const standardValues = availableValues.filter(value => value !== '?' && value !== '☕')
@@ -1434,8 +1510,8 @@
       snapshots[userId] = {
         name: user.name,
         vote: user.vote,
-        avatarUrl: user.avatarUrl,
-        avatarCrop: user.avatarCrop,
+        avatarUrl: user.avatarUrl ?? null,
+        avatarCrop: user.avatarCrop ?? null,
       }
     }
     return snapshots
@@ -1473,27 +1549,6 @@
       ...(votes ? { votes } : {}),
       ...(legacyVotesByName ? { legacyVotesByName } : {}),
     }
-  }
-
-  function sanitizeHistoryForWrite (history: unknown): Record<string, WritableRoomHistoryEntry> {
-    if (!history || typeof history !== 'object' || Array.isArray(history)) return {}
-
-    const sanitizedHistory: Record<string, WritableRoomHistoryEntry> = {}
-    for (const [historyId, entry] of Object.entries(history as Record<string, LegacyRoomHistoryEntry>)) {
-      const { votes: storedVotes, voteSnapshots, ...historyEntry } = entry
-      const snapshots = isVoteSnapshotRecord(storedVotes)
-        ? storedVotes
-        : (isVoteSnapshotRecord(voteSnapshots) ? voteSnapshots : undefined)
-      const legacyVotes = isLegacyVoteRecord(storedVotes) ? storedVotes : undefined
-
-      sanitizedHistory[historyId] = {
-        ...historyEntry,
-        ...(legacyVotes ? { votes: legacyVotes } : {}),
-        ...(snapshots ? { voteSnapshots: snapshots } : {}),
-      }
-    }
-
-    return sanitizedHistory
   }
 
   function buildHistoryEntryBase () {
@@ -1537,8 +1592,8 @@
       participants[userId] = {
         name: user.name,
         joinedAt: user.joinedAt,
-        avatarUrl: user.avatarUrl,
-        avatarCrop: user.avatarCrop,
+        avatarUrl: user.avatarUrl ?? null,
+        avatarCrop: user.avatarCrop ?? null,
       }
     }
     return participants
@@ -2276,34 +2331,27 @@
   async function hideVotes () {
     if (!db || !canManageRound.value) return
     closePlayerMenu()
-    const roomRef = dbRef(db, `rooms/${roomId}`)
 
-    await runTransaction(roomRef, current => {
-      if (!current) return current
+    const room = currentRoom.value
+    const now = Date.now()
+    const roundNumber = typeof room?.roundNumber === 'number' ? room.roundNumber : currentRound.value
+    const timer = room?.roundTimer ?? null
+    const config = getRoomTimerConfig(room)
+    let nextTimer = timer
 
-      const now = Date.now()
-      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
-      const timer = current.roundTimer as RoundTimerState | null | undefined
-      const config = getRoomTimerConfig(current)
-      let nextTimer = timer ?? null
-
-      if (timer && timer.roundNumber === roundNumber) {
-        if (timer.status === 'paused' && timer.finishedBy === 'revealed' && config.mode === 'automatic') {
-          nextTimer = resumeRoundTimer(timer, now)
-        } else if (timer.status === 'finished' && timer.finishedBy === 'expired' && config.mode === 'automatic') {
-          nextTimer = restartRoundTimer(timer, now)
-        }
+    if (timer && timer.roundNumber === roundNumber) {
+      if (timer.status === 'paused' && timer.finishedBy === 'revealed' && config.mode === 'automatic') {
+        nextTimer = resumeRoundTimer(timer, now)
+      } else if (timer.status === 'finished' && timer.finishedBy === 'expired' && config.mode === 'automatic') {
+        nextTimer = restartRoundTimer(timer, now)
       }
+    }
 
-      return {
-        ...current,
-        committedVote: null,
-        lastActivity: now,
-        roundTimer: nextTimer,
-        settings: current.settings
-          ? { ...current.settings, showVotes: false }
-          : { showVotes: false },
-      }
+    await update(dbRef(db, `rooms/${roomId}`), {
+      'committedVote': null,
+      'lastActivity': now,
+      'roundTimer': nextTimer,
+      'settings/showVotes': false,
     }).catch(console.error)
   }
 
@@ -2351,7 +2399,7 @@
 
       const historyEntry = {
         id,
-        finalVote: defaultFinalVote.value,
+        finalVote: defaultFinalVote.value ?? '-',
         avg: formatOptionalNum(stats.value?.avg),
         closest: formatOptionalVote(stats.value?.closest),
         round: currentRound.value,
@@ -2363,49 +2411,29 @@
       }
 
       roundStartTime = Date.now()
-      await runTransaction(roomRef, current => {
-        if (!current) return current
-
-        const currentUsers = normalizeRoomUsers(current.users)
-        const roundParticipants = buildRoundParticipants(currentUsers)
-        const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-
-        return {
-          ...current,
-          committedVote: null,
-          roundNumber: nextRoundNumber,
-          roundParticipants,
-          roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-          lastActivity,
-          settings: current.settings
-            ? { ...current.settings, showVotes: false }
-            : { showVotes: false },
-          history: {
-            ...sanitizeHistoryForWrite(current.history),
-            [id]: historyEntry,
-          },
-        }
-      }).catch(console.error)
+      await update(roomRef, buildAdvanceRoundUpdates(lastActivity, {
+        [`history/${id}`]: historyEntry,
+      })).catch(console.error)
       return
     }
 
-    await runTransaction(roomRef, current => {
-      if (!current) return current
+    await update(roomRef, buildAdvanceRoundUpdates(lastActivity)).catch(console.error)
+  }
 
-      const currentUsers = normalizeRoomUsers(current.users)
-      const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-      return {
-        ...current,
-        committedVote: null,
-        roundNumber: nextRoundNumber,
-        roundParticipants: buildRoundParticipants(currentUsers),
-        roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-        lastActivity,
-        settings: current.settings
-          ? { ...current.settings, showVotes: false }
-          : { showVotes: false },
-      }
-    }).catch(console.error)
+  function buildAdvanceRoundUpdates (
+    lastActivity: number,
+    extraUpdates: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    const nextRoundNumber = currentRound.value + 1
+    return {
+      'committedVote': null,
+      'lastActivity': lastActivity,
+      'roundNumber': nextRoundNumber,
+      'roundParticipants': buildRoundParticipants(roomUsers.value),
+      'roundTimer': buildCurrentRoomTimerForRound(nextRoundNumber, lastActivity),
+      'settings/showVotes': false,
+      ...extraUpdates,
+    }
   }
 
   async function startTaskInfoFlow (mode: TaskFlowMode) {
@@ -2491,7 +2519,7 @@
           title: currentTask.value?.title ?? null,
           url: currentTask.value?.url ?? null,
           description: currentTask.value?.description ?? null,
-          finalVote: defaultFinalVote.value,
+          finalVote: defaultFinalVote.value ?? '-',
           avg: formatOptionalNum(stats.value?.avg),
           closest: formatOptionalVote(stats.value?.closest),
           round: currentRound.value,
@@ -2503,29 +2531,11 @@
         }
 
         roundStartTime = Date.now()
-        runTransaction(roomRef, current => {
-          if (!current) return current
-
-          const currentUsers = normalizeRoomUsers(current.users)
-          const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-          return {
-            ...current,
-            currentTask: task,
-            roundEditLock: null,
-            committedVote: null,
-            roundNumber: nextRoundNumber,
-            roundParticipants: buildRoundParticipants(currentUsers),
-            roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-            lastActivity,
-            settings: current.settings
-              ? { ...current.settings, showVotes: false }
-              : { showVotes: false },
-            history: {
-              ...sanitizeHistoryForWrite(current.history),
-              [id]: historyEntry,
-            },
-          }
-        })
+        update(roomRef, buildAdvanceRoundUpdates(lastActivity, {
+          currentTask: task,
+          roundEditLock: null,
+          [`history/${id}`]: historyEntry,
+        }))
           .then(() => {
             taskInfoModalOpen.value = false
             pendingTaskFlow.value = null
@@ -2534,25 +2544,10 @@
         return
       }
 
-      runTransaction(roomRef, current => {
-        if (!current) return current
-
-        const currentUsers = normalizeRoomUsers(current.users)
-        const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-        return {
-          ...current,
-          currentTask: task,
-          roundEditLock: null,
-          committedVote: null,
-          roundNumber: nextRoundNumber,
-          roundParticipants: buildRoundParticipants(currentUsers),
-          roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-          lastActivity,
-          settings: current.settings
-            ? { ...current.settings, showVotes: false }
-            : { showVotes: false },
-        }
-      })
+      update(roomRef, buildAdvanceRoundUpdates(lastActivity, {
+        currentTask: task,
+        roundEditLock: null,
+      }))
         .then(() => {
           taskInfoModalOpen.value = false
           pendingTaskFlow.value = null
@@ -2677,6 +2672,7 @@
 
   const roomCommands = {
     toggleDeck () {
+      if (configStore.viewMode === 'simple') return
       dockCollapsed.value = !dockCollapsed.value
     },
     toggleSidePanel () {

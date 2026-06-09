@@ -613,6 +613,14 @@ button { font-family: inherit; }
   align-self: center;
 }
 .room-action-row-revealed { margin-top: -10px; }
+.room-action-row-simple,
+.room-action-row-simple.room-action-row-revealed {
+  margin-top: 4px;
+}
+.reaction-bar-simple {
+  align-self: center;
+  margin-top: 0;
+}
 .stats[data-state="hidden"] { opacity: .5; }
 .stats-summary {
   align-items: center;
@@ -676,6 +684,9 @@ button { font-family: inherit; }
 }
 .stats-expanded .stats-summary {
   border-color: var(--border);
+}
+.stats-always-expanded .stats-summary {
+  cursor: default;
 }
 .stats-expanded .stats-summary-item {
   display: none;
@@ -1314,6 +1325,55 @@ button { font-family: inherit; }
   gap: 14px;
   position: relative;
   width: 100%;
+}
+.simple-room-view {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.simple-room-view .results-grid {
+  min-height: 0;
+}
+.simple-room-view > .stats {
+  border-radius: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+  max-width: 100%;
+}
+.simple-room-view > .dock {
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  min-width: 0;
+  padding: 12px 0 4px;
+}
+.simple-room-view > .dock.dock-external-window {
+  flex: none;
+  margin-top: 0;
+}
+.simple-room-view .dock-external-window .dock-cards {
+  align-content: center;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  overflow: visible;
+  padding: 0 14px 12px;
+}
+.simple-room-view .dock-external-window .p0-card {
+  --p0-card-w: 64px;
+  --p0-card-h: 92px;
+  --p0-card-radius: 10px;
+  font-size: 22px;
+}
+.simple-room-view .dock-external-window .p0-card-corner {
+  font-size: 10px;
+}
+.simple-room-view .dock-external-window .dock-hint {
+  display: none;
 }
 .player {
   position: relative;
@@ -4167,6 +4227,9 @@ button { font-family: inherit; }
     justify-content: center;
     overflow-x: visible;
   }
+  .simple-room-view {
+    grid-template-columns: 1fr;
+  }
 
   .main-head {
     flex-wrap: wrap;
@@ -4278,6 +4341,9 @@ button { font-family: inherit; }
   .table { padding: 18px; }
   .players { gap: 10px; }
   .player { width: 100px; }
+  .simple-room-view > .dock {
+    padding-top: 14px;
+  }
   .avatar-style-card {
     grid-template-columns: 1fr;
     gap: 10px;

@@ -508,6 +508,10 @@
           ".validate": "newData.val() === null || (newData.hasChildren(['userId', 'userName', 'acquiredAt']) && newData.child('userId').isString() && newData.child('userName').isString() && newData.child('userName').val().length > 0 && newData.child('userName').val().length <= 20 && newData.child('acquiredAt').isNumber())"
         },
 
+        "roundTimer": {
+          ".validate": "newData.val() === null || (newData.hasChildren(['status', 'mode', 'durationMs', 'roundNumber']) && (newData.child('status').val() === 'idle' || newData.child('status').val() === 'running' || newData.child('status').val() === 'paused' || newData.child('status').val() === 'finished') && (newData.child('mode').val() === 'automatic' || newData.child('mode').val() === 'manual') && newData.child('durationMs').isNumber() && newData.child('durationMs').val() >= 10000 && newData.child('roundNumber').isNumber() && newData.child('roundNumber').val() >= 1 && (!newData.child('startedAt').exists() || newData.child('startedAt').val() === null || newData.child('startedAt').isNumber()) && (!newData.child('endsAt').exists() || newData.child('endsAt').val() === null || newData.child('endsAt').isNumber()) && (!newData.child('remainingMs').exists() || newData.child('remainingMs').val() === null || newData.child('remainingMs').isNumber()) && (!newData.child('finishedBy').exists() || newData.child('finishedBy').val() === null || newData.child('finishedBy').val() === 'expired' || newData.child('finishedBy').val() === 'revealed'))"
+        },
+
         "settings": {
           "showVotes": { ".validate": "newData.isBoolean()" },
           "v": { ".validate": "newData.isNumber()" },
@@ -533,6 +537,19 @@
         },
 
         "users": {
+          "$user_id": {
+            ".validate": "newData.hasChildren(['name', 'joinedAt'])",
+            "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "vote": { ".validate": "newData.val() === null || newData.isString() || newData.isNumber()" },
+            "avatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
+            "avatarCrop": {
+              ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
+            }
+          }
+        },
+
+        "roundParticipants": {
           "$user_id": {
             ".validate": "newData.hasChildren(['name', 'joinedAt'])",
             "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },

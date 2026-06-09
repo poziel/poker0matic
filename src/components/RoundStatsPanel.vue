@@ -25,6 +25,7 @@
     committedVote?: string | null
     canCommitVote?: boolean
     voteOptions?: VoteValue[]
+    alwaysExpanded?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -33,6 +34,7 @@
 
   const customVoteInput = ref('')
   const expanded = ref(false)
+  const panelExpanded = computed(() => props.alwaysExpanded === true || expanded.value)
 
   const consensusClass = computed(() => {
     if (!props.stats) return 'wait'
@@ -120,14 +122,14 @@
 <template>
   <section
     class="stats"
-    :class="{ 'stats-expanded': expanded }"
+    :class="{ 'stats-expanded': panelExpanded, 'stats-always-expanded': alwaysExpanded }"
     :data-state="stats ? 'shown' : 'hidden'"
   >
     <button
       class="stats-summary"
       data-test-id="round-insights-toggle"
       type="button"
-      @click="expanded = !expanded"
+      @click="alwaysExpanded ? undefined : expanded = !expanded"
     >
       <span class="stats-summary-title">Round insights</span>
 
@@ -136,15 +138,15 @@
         {{ consensusLabel }}
       </span>
 
-      <span v-if="!expanded" class="stats-summary-item">
+      <span v-if="!panelExpanded" class="stats-summary-item">
         Avg <strong>{{ summaryAverage }}</strong>
       </span>
 
-      <span v-if="!expanded" class="stats-summary-item">
+      <span v-if="!panelExpanded" class="stats-summary-item">
         Closest <strong>{{ summaryClosest }}</strong>
       </span>
 
-      <v-icon class="stats-summary-icon" :icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
+      <v-icon v-if="!alwaysExpanded" class="stats-summary-icon" :icon="panelExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
     </button>
 
     <div class="stats-details">

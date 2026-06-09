@@ -12,12 +12,12 @@
         type="button"
         @click="model.viewMode = 'table'"
       >
-        <v-icon icon="mdi-table" size="22" />
+        <v-icon icon="mdi-view-module-outline" size="22" />
 
         <span>
-          <strong>Table view</strong>
+          <strong>Card wall</strong>
 
-          <small>Show participants around the poker table.</small>
+          <small>Show participants as a flexible wall of cards.</small>
         </span>
       </button>
 
@@ -33,6 +33,21 @@
           <strong>Grid view</strong>
 
           <small>Show participants in a compact results grid.</small>
+        </span>
+      </button>
+
+      <button
+        class="settings-choice-card"
+        :class="{ active: model.viewMode === 'simple' }"
+        type="button"
+        @click="model.viewMode = 'simple'"
+      >
+        <v-icon icon="mdi-view-dashboard-outline" size="22" />
+
+        <span>
+          <strong>Simple room</strong>
+
+          <small>Keep voting, status, and results visible on the page.</small>
         </span>
       </button>
     </div>

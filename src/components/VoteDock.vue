@@ -11,6 +11,7 @@
     disabledHint?: string
     externalDockActive?: boolean
     externalWindow?: boolean
+    showHint?: boolean
   }>()
 
   defineEmits<{
@@ -52,7 +53,7 @@
         </button>
       </div>
 
-      <div class="dock-hint">
+      <div v-if="showHint !== false" class="dock-hint">
         <template v-if="canVote">
           Playing as <strong>{{ userName }}</strong> · tap a card to vote
         </template>

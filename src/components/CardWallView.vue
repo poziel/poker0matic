@@ -4,7 +4,7 @@
 
   type VoteValue = number | string
 
-  interface TablePlayer {
+  interface CardWallPlayer {
     userId: string
     name: string
     joinedAt: number
@@ -15,7 +15,7 @@
   }
 
   const props = defineProps<{
-    players: TablePlayer[]
+    players: CardWallPlayer[]
     showVotes: boolean
     currentUserId: string | null
     shakingUserIds?: string[]
@@ -30,7 +30,7 @@
 </script>
 
 <template>
-  <div class="playing-field playing-field-table table" data-cstyle="real" data-test-id="room-table">
+  <div class="playing-field playing-field-table card-wall-view table" data-cstyle="real" data-test-id="room-table">
     <div class="players">
       <div
         v-for="player in players"
