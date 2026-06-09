@@ -124,6 +124,20 @@ export function finishRoundTimer (
   }
 }
 
+export function pauseRoundTimerForReveal (timer: RoundTimerState | null | undefined, roundNumber: number, now: number): RoundTimerState | null {
+  if (!timer || timer.roundNumber !== roundNumber) {
+    return timer ?? null
+  }
+  if (!isTimerRunningForRound(timer, roundNumber)) {
+    return timer
+  }
+
+  return {
+    ...pauseRoundTimer(timer, now),
+    finishedBy: 'revealed',
+  }
+}
+
 export function pauseRoundTimer (timer: RoundTimerState, now: number): RoundTimerState {
   const remainingMs = isTimerRunningForRound(timer, timer.roundNumber)
     ? Math.max(0, timer.endsAt - now)

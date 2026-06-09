@@ -2,13 +2,12 @@
   import { computed } from 'vue'
   import { MAX_REACTION_EMOJIS } from '@/utils/reactions'
 
-  export type DeckPreset = 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+  export type DeckPreset = 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
 
   type DeckPresetOption = {
     id: DeckPreset
     label: string
     preview: string
-    count?: number
   }
 
   export interface RoomFormSettings {
@@ -18,6 +17,7 @@
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    allowVoteChangesAfterReveal: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
     timerEnabled: boolean
@@ -32,9 +32,11 @@
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
-    { id: 'fibonacci', label: 'Fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 · 55', count: 10 },
-    { id: 'linear', label: 'Linear', preview: '1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 12 · 15', count: 12 },
-    { id: 'tshirt', label: 'T-shirt', preview: 'XS · S · M · L · XL · XXL', count: 6 },
+    { id: 'fibonacci', label: 'Fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 · 55' },
+    { id: 'modified-fibonacci', label: 'Modified fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 20 · 40 · 100' },
+    { id: 'linear', label: 'Linear', preview: '1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 12 · 15' },
+    { id: 'power-of-2', label: 'Power of 2', preview: '1 · 2 · 4 · 8 · 16 · 32 · 64 · 128' },
+    { id: 'tshirt', label: 'T-shirt', preview: 'XS · S · M · L · XL · XXL' },
     { id: 'custom', label: 'Custom', preview: 'Define your own sequence' },
   ]
 
@@ -106,8 +108,7 @@
         >
           <div class="deck-option-top">
             <span class="deck-option-label">{{ preset.label }}</span>
-            <span v-if="preset.count" class="deck-option-count">{{ preset.count }}</span>
-            <v-icon v-else icon="mdi-pencil" size="12" style="color: var(--text-4)" />
+            <v-icon v-if="preset.id === 'custom'" icon="mdi-pencil" size="12" style="color: var(--text-4)" />
           </div>
 
           <span class="deck-option-preview">{{ preset.preview }}</span>
@@ -164,43 +165,71 @@
       </div>
     </div>
 
-    <!-- Round history -->
+    <!-- Round options -->
     <div class="room-settings-section">
-      <span class="settings-label">Round history</span>
+      <span class="settings-label">Round options</span>
 
-      <label class="toggle-item">
-        <div class="toggle-info">
-          <v-icon icon="mdi-history" size="15" style="color: var(--text-2)" />
-          <span class="toggle-name">Save completed rounds</span>
-        </div>
+      <div class="toggles-row toggles-row-stacked">
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-history" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Save completed rounds</span>
+          </div>
 
-        <input
-          :checked="modelValue.historyEnabled"
-          class="p0-toggle"
-          data-test-id="room-toggle-history"
-          type="checkbox"
-          @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
-        >
-      </label>
-    </div>
+          <input
+            :checked="modelValue.historyEnabled"
+            class="p0-toggle"
+            data-test-id="room-toggle-history"
+            type="checkbox"
+            @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
 
-    <div class="room-settings-section">
-      <span class="settings-label">Round context</span>
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-card-bulleted-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Allow vote changes after reveal</span>
+          </div>
 
-      <label class="toggle-item">
-        <div class="toggle-info">
-          <v-icon icon="mdi-text-box-search-outline" size="15" style="color: var(--text-2)" />
-          <span class="toggle-name">Require task information for rounds</span>
-        </div>
+          <input
+            :checked="modelValue.allowVoteChangesAfterReveal"
+            class="p0-toggle"
+            data-test-id="room-toggle-post-reveal-voting"
+            type="checkbox"
+            @change="patch({ allowVoteChangesAfterReveal: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
 
-        <input
-          :checked="modelValue.taskInformationEnabled"
-          class="p0-toggle"
-          data-test-id="room-toggle-task-info"
-          type="checkbox"
-          @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
-        >
-      </label>
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-text-box-search-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Require task information for rounds</span>
+          </div>
+
+          <input
+            :checked="modelValue.taskInformationEnabled"
+            class="p0-toggle"
+            data-test-id="room-toggle-task-info"
+            type="checkbox"
+            @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-crown-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Enable leader mode</span>
+          </div>
+
+          <input
+            :checked="modelValue.leaderModeEnabled"
+            class="p0-toggle"
+            data-test-id="room-toggle-leader-mode"
+            type="checkbox"
+            @change="patch({ leaderModeEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+      </div>
     </div>
 
     <div class="room-settings-section">
@@ -371,25 +400,6 @@
           >
         </label>
       </div>
-    </div>
-
-    <div class="room-settings-section">
-      <span class="settings-label">Room control</span>
-
-      <label class="toggle-item">
-        <div class="toggle-info">
-          <v-icon icon="mdi-crown-outline" size="15" style="color: var(--text-2)" />
-          <span class="toggle-name">Enable leader mode</span>
-        </div>
-
-        <input
-          :checked="modelValue.leaderModeEnabled"
-          class="p0-toggle"
-          data-test-id="room-toggle-leader-mode"
-          type="checkbox"
-          @change="patch({ leaderModeEnabled: ($event.target as HTMLInputElement).checked })"
-        >
-      </label>
     </div>
   </div>
 </template>

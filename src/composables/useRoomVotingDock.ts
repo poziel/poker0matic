@@ -8,15 +8,16 @@ type ConsensusState = 'consensus' | 'close' | 'split'
 
 interface RoundStats {
   avg: number | null
-  median: number | null
-  closest: number | null
-  min: number | null
-  max: number | null
+  median: VoteValue | null
+  closest: VoteValue | null
+  min: VoteValue | null
+  max: VoteValue | null
   spread: number | null
   counts: Record<string, number>
   maxCount: number
   total: number
   numericTotal: number
+  ordinalTotal: number
   consensus: ConsensusState
 }
 
@@ -26,9 +27,11 @@ interface RoomVotingDockOptions {
 }
 
 const PRESET_DECKS: Record<string, VoteValue[]> = {
-  fibonacci: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
-  linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
-  tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+  'fibonacci': [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
+  'modified-fibonacci': [0, 1, 2, 3, 5, 8, 13, 20, 40, 100],
+  'linear': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+  'power-of-2': [1, 2, 4, 8, 16, 32, 64, 128],
+  'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
 }
 
 function parseCustomDeck (raw: string): VoteValue[] {
@@ -73,6 +76,7 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
+  const allowVoteChangesAfterReveal = computed(() => currentRoom.value?.settings?.allowVoteChangesAfterReveal === true)
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
   const currentTask = computed(() => currentRoom.value?.currentTask ?? null)
@@ -114,9 +118,27 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
     return base
   })
 
-  const deckNums = computed(() =>
-    voteOptions.value.filter((value): value is number => typeof value === 'number'),
-  )
+  const orderedEstimateValues = computed(() => {
+    const seen = new Set<string>()
+    return voteOptions.value.filter(value => {
+      if (value === '?' || value === '☕') {
+        return false
+      }
+      const key = String(value)
+      if (seen.has(key)) {
+        return false
+      }
+      seen.add(key)
+      return true
+    })
+  })
+  const estimateOrderLookup = computed(() => {
+    const lookup = new Map<string, number>()
+    for (const [index, value] of orderedEstimateValues.value.entries()) {
+      lookup.set(String(value), index + 1)
+    }
+    return lookup
+  })
   const revealedVotes = computed(() =>
     Object.values(activeRoundParticipants.value)
       .map(user => user.vote)
@@ -132,7 +154,7 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
   const selectedVote = computed(() => currentParticipant.value?.vote ?? null)
   const canVoteInCurrentRound = computed(() =>
     !!currentParticipant.value
-    && !showVotes.value
+    && (!showVotes.value || allowVoteChangesAfterReveal.value)
     && !isRoundLockedByOther.value
     && (!taskInformationEnabled.value || !!currentTask.value),
   )
@@ -150,11 +172,20 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
     if (taskInformationEnabled.value && !currentTask.value) {
       return 'Task information is required before anyone can vote'
     }
+    if (showVotes.value && !allowVoteChangesAfterReveal.value) {
+      return 'Voting is locked after reveal for this room'
+    }
     return ''
   })
 
   const numericVotes = computed(() =>
     revealedVotes.value.filter((vote): vote is number => typeof vote === 'number'),
+  )
+  const ordinalVotes = computed(() =>
+    revealedVotes.value.flatMap(vote => {
+      const position = estimateOrderLookup.value.get(String(vote))
+      return position == null ? [] : [{ vote, position }]
+    }),
   )
   const averageVote = computed(() => {
     if (numericVotes.value.length === 0) {
@@ -163,13 +194,13 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
     const sum = numericVotes.value.reduce((acc, val) => acc + val, 0)
     return Number.parseFloat((sum / numericVotes.value.length).toFixed(2))
   })
-  const medianVote = computed(() => {
-    if (numericVotes.value.length === 0) {
+  const medianVote = computed<VoteValue | null>(() => {
+    if (ordinalVotes.value.length === 0) {
       return null
     }
-    const sorted = numericVotes.value.toSorted((a, b) => a - b)
+    const sorted = ordinalVotes.value.toSorted((a, b) => a.position - b.position)
     const mid = Math.floor(sorted.length / 2)
-    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+    return sorted[mid]?.vote ?? null
   })
   const stats = computed<RoundStats | null>(() => {
     if (!showVotes.value || revealedVotes.value.length === 0) {
@@ -179,32 +210,37 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
     const counts = countVotes(revealedVotes.value)
     const uniqueVoteCount = Object.keys(counts).length
     const maxCount = Math.max(...Object.values(counts))
-    const nums = numericVotes.value
-    const hasNumericVotes = nums.length > 0
-    const min = hasNumericVotes ? Math.min(...nums) : null
-    const max = hasNumericVotes ? Math.max(...nums) : null
-    const spread = min != null && max != null ? max - min : null
-    const numericCounts = countVotes(nums)
+    const ordinal = ordinalVotes.value
+    const ordinalPositions = ordinal.map(vote => vote.position)
+    const minPosition = ordinalPositions.length > 0 ? Math.min(...ordinalPositions) : null
+    const maxPosition = ordinalPositions.length > 0 ? Math.max(...ordinalPositions) : null
+    const min = minPosition == null ? null : (orderedEstimateValues.value[minPosition - 1] ?? null)
+    const max = maxPosition == null ? null : (orderedEstimateValues.value[maxPosition - 1] ?? null)
+    const spread = minPosition != null && maxPosition != null ? maxPosition - minPosition : null
 
-    let closest: number | null = null
-    if (averageVote.value != null) {
-      closest = deckNums.value[0] ?? nums[0] ?? 0
-      let bestDistance = Math.abs(averageVote.value - closest)
-      for (const num of deckNums.value) {
-        const distance = Math.abs(averageVote.value - num)
+    let closest: VoteValue | null = null
+    if (ordinal.length > 0) {
+      const averagePosition = ordinal.reduce((acc, vote) => acc + vote.position, 0) / ordinal.length
+      closest = ordinal[0]?.vote ?? null
+      let bestDistance = Math.abs(averagePosition - (ordinal[0]?.position ?? 0))
+      let bestPosition = ordinal[0]?.position ?? 0
+      for (const vote of ordinal) {
+        const distance = Math.abs(averagePosition - vote.position)
         if (distance < bestDistance - 1e-9) {
-          closest = num
+          closest = vote.vote
           bestDistance = distance
-        } else if (Math.abs(distance - bestDistance) < 1e-9 && num > closest) {
-          closest = num
+          bestPosition = vote.position
+        } else if (Math.abs(distance - bestDistance) < 1e-9 && vote.position > bestPosition) {
+          closest = vote.vote
+          bestPosition = vote.position
         }
       }
     }
 
-    const isCloseNumericVote = nums.length === revealedVotes.value.length
+    const isCloseOrdinalVote = ordinal.length === revealedVotes.value.length
       && spread != null
-      && spread <= 3
-      && Object.keys(numericCounts).length <= 2
+      && spread <= 1
+      && uniqueVoteCount <= 2
 
     return {
       avg: averageVote.value,
@@ -216,8 +252,9 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
       counts,
       maxCount,
       total: revealedVotes.value.length,
-      numericTotal: nums.length,
-      consensus: uniqueVoteCount === 1 ? 'consensus' : (isCloseNumericVote ? 'close' : 'split'),
+      numericTotal: numericVotes.value.length,
+      ordinalTotal: ordinal.length,
+      consensus: uniqueVoteCount === 1 ? 'consensus' : (isCloseOrdinalVote ? 'close' : 'split'),
     }
   })
 

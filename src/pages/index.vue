@@ -511,13 +511,25 @@
         "settings": {
           "showVotes": { ".validate": "newData.isBoolean()" },
           "v": { ".validate": "newData.isNumber()" },
-          "deck": { ".validate": "newData.isString() && (newData.val() === 'fibonacci' || newData.val() === 'linear' || newData.val() === 'tshirt' || newData.val() === 'custom')" },
+          "deck": { ".validate": "newData.isString() && (newData.val() === 'fibonacci' || newData.val() === 'modified-fibonacci' || newData.val() === 'linear' || newData.val() === 'power-of-2' || newData.val() === 'tshirt' || newData.val() === 'custom')" },
           "customDeck": { ".validate": "newData.val() === null || newData.isString()" },
           "specialQuestion": { ".validate": "newData.isBoolean()" },
           "specialCoffee": { ".validate": "newData.isBoolean()" },
           "historyEnabled": { ".validate": "newData.isBoolean()" },
+          "allowVoteChangesAfterReveal": { ".validate": "newData.isBoolean()" },
           "leaderModeEnabled": { ".validate": "newData.isBoolean()" },
-          "taskInformationEnabled": { ".validate": "newData.isBoolean()" }
+          "taskInformationEnabled": { ".validate": "newData.isBoolean()" },
+          "timerEnabled": { ".validate": "newData.isBoolean()" },
+          "timerMode": { ".validate": "newData.isString() && (newData.val() === 'automatic' || newData.val() === 'manual')" },
+          "timerDurationSeconds": { ".validate": "newData.isNumber() && newData.val() >= 10 && newData.val() <= 3600" },
+          "timerAutoRevealEnabled": { ".validate": "newData.isBoolean()" },
+          "timerWarningEnabled": { ".validate": "newData.isBoolean()" },
+          "timerWarningType": { ".validate": "newData.isString() && (newData.val() === 'seconds' || newData.val() === 'percentage')" },
+          "timerWarningValue": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000" },
+          "reactionsEnabled": { ".validate": "newData.isBoolean()" },
+          "reactionEmojis": {
+            "$index": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 16" }
+          }
         },
 
         "users": {
@@ -578,6 +590,12 @@
             "claimedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
             "lastSeenAt": { ".validate": "newData.val() === null || newData.isNumber()" },
             "status": { ".validate": "newData.val() === null || (newData.isString() && (newData.val() === 'waiting' || newData.val() === 'connected' || newData.val() === 'expired' || newData.val() === 'closed'))" }
+          }
+        },
+
+        "reactions": {
+          "$reaction_id": {
+            ".validate": "newData.val() === null || (newData.hasChildren(['emoji', 'userId', 'createdAt']) && newData.child('emoji').isString() && newData.child('emoji').val().length > 0 && newData.child('emoji').val().length <= 16 && newData.child('userId').isString() && newData.child('createdAt').isNumber())"
           }
         }
       }

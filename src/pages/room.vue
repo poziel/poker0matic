@@ -18,34 +18,34 @@
 
       <main class="main">
         <div class="main-head">
-          <div class="main-head-left">
-            <v-btn
-              v-if="sidePanelEnabled"
-              :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
-              class="icon-btn mobile-panel-btn"
-              data-test-id="room-toggle-panel"
-              density="compact"
-              icon
-              :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
-              variant="text"
-              @click="roomCommands.toggleSidePanel()"
-            >
-              <v-icon :icon="historyPanelOpen ? 'mdi-backburger' : 'mdi-menu'" size="16" />
-            </v-btn>
+          <v-btn
+            v-if="sidePanelEnabled"
+            :aria-label="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+            class="icon-btn mobile-panel-btn"
+            data-test-id="room-toggle-panel"
+            density="compact"
+            icon
+            :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+            variant="text"
+            @click="roomCommands.toggleSidePanel()"
+          >
+            <v-icon :icon="historyPanelOpen ? 'mdi-backburger' : 'mdi-menu'" size="16" />
+          </v-btn>
 
-            <v-btn
-              aria-label="Back to lobby"
-              class="icon-btn"
-              data-test-id="room-back-to-lobby"
-              density="compact"
-              icon
-              title="Back to lobby"
-              variant="text"
-              @click="roomCommands.goToLobby()"
-            >
-              <v-icon icon="mdi-home-outline" size="16" />
-            </v-btn>
+          <v-btn
+            aria-label="Back to lobby"
+            class="icon-btn home-btn"
+            data-test-id="room-back-to-lobby"
+            density="compact"
+            icon
+            title="Back to lobby"
+            variant="text"
+            @click="roomCommands.goToLobby()"
+          >
+            <v-icon icon="mdi-home-outline" size="16" />
+          </v-btn>
 
+          <div class="room-title-row">
             <p class="room-name-label" data-test-id="room-name">{{ currentRoom.name }}</p>
 
             <span aria-hidden="true" class="room-title-separator">•</span>
@@ -66,77 +66,80 @@
             </span>
           </div>
 
-          <div class="main-head-right">
-            <div class="progress-pill">
-              <span class="progress-dots">
-                <span
-                  v-for="player in sortedRoomUsers"
-                  :key="player.userId"
-                  class="pdot"
-                  :class="{ done: player.vote != null, connected: player.isConnected }"
-                  :title="player.name"
-                />
-              </span>
-
-              <span class="vote-count" data-test-id="room-vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
-            </div>
-
-            <v-btn
-              :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
-              class="icon-btn"
-              data-test-id="room-toggle-view"
-              density="compact"
-              icon
-              :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
-              variant="text"
-              @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
-            >
-              <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
-            </v-btn>
-
-            <v-btn
-              v-if="taskInformationEnabled && currentTask"
-              aria-label="Edit task information"
-              class="icon-btn"
-              data-test-id="room-edit-task"
-              density="compact"
-              :disabled="!canEditCurrentTask"
-              icon
-              :title="editTaskActionTitle"
-              variant="text"
-              @click="startTaskInfoFlow('current')"
-            >
-              <v-icon icon="mdi-pencil-outline" size="16" />
-            </v-btn>
-
-            <v-btn
-              aria-label="Room settings"
-              class="icon-btn"
-              data-test-id="room-open-settings"
-              density="compact"
-              :disabled="leaderModeEnabled && !isLeader"
-              icon
-              :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings'"
-              variant="text"
-              @click="roomConfigOpen = true"
-            >
-              <v-icon icon="mdi-tune" size="16" />
-            </v-btn>
-
-            <v-btn
-              :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
-              class="icon-btn"
-              data-test-id="room-share-link"
-              density="compact"
-              :disabled="!firebaseConfig"
-              icon
-              :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
-              variant="text"
-              @click="roomCommands.copyRoomLink()"
-            >
-              <v-icon :icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'" size="16" />
-            </v-btn>
+          <div v-if="showVotes && committedVote" class="round-final-score">
+            <span>Final</span>
+            <strong>{{ committedVote }}</strong>
           </div>
+
+          <div class="progress-pill">
+            <span class="progress-dots">
+              <span
+                v-for="player in sortedRoomUsers"
+                :key="player.userId"
+                class="pdot"
+                :class="{ done: player.vote != null, connected: player.isConnected }"
+                :title="player.name"
+              />
+            </span>
+
+            <span class="vote-count" data-test-id="room-vote-count">{{ votedCount }}/{{ totalPlayers }} voted</span>
+          </div>
+
+          <v-btn
+            :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            class="icon-btn"
+            data-test-id="room-toggle-view"
+            density="compact"
+            icon
+            :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            variant="text"
+            @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
+          >
+            <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
+          </v-btn>
+
+          <v-btn
+            v-if="taskInformationEnabled && currentTask"
+            aria-label="Edit task information"
+            class="icon-btn"
+            data-test-id="room-edit-task"
+            density="compact"
+            :disabled="!canEditCurrentTask"
+            icon
+            :title="editTaskActionTitle"
+            variant="text"
+            @click="startTaskInfoFlow('current')"
+          >
+            <v-icon icon="mdi-pencil-outline" size="16" />
+          </v-btn>
+
+          <v-btn
+            aria-label="Room settings"
+            class="icon-btn"
+            data-test-id="room-open-settings"
+            density="compact"
+            :disabled="leaderModeEnabled && !isLeader"
+            icon
+            :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings'"
+            variant="text"
+            @click="roomConfigOpen = true"
+          >
+            <v-icon icon="mdi-tune" size="16" />
+          </v-btn>
+
+          <v-btn
+            :aria-label="shareCopied ? 'Copied!' : 'Share room link'"
+            class="icon-btn"
+            data-test-id="room-share-link"
+            density="compact"
+            :disabled="!firebaseConfig"
+            icon
+            :title="shareCopied ? 'Copied!' : 'Copy room + config link'"
+            variant="text"
+            @click="roomCommands.copyRoomLink()"
+          >
+            <v-icon :icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'" size="16" />
+          </v-btn>
         </div>
 
         <div
@@ -169,6 +172,7 @@
             specialQuestion: currentRoom.settings?.specialQuestion !== false,
             specialCoffee: currentRoom.settings?.specialCoffee !== false,
             historyEnabled: currentRoom.settings?.historyEnabled !== false,
+            allowVoteChangesAfterReveal: currentRoom.settings?.allowVoteChangesAfterReveal === true,
             leaderModeEnabled: currentRoom.settings?.leaderModeEnabled === true,
             taskInformationEnabled: currentRoom.settings?.taskInformationEnabled === true,
             timerEnabled: currentRoom.settings?.timerEnabled === true,
@@ -193,28 +197,43 @@
           @save="saveTaskInformation"
         />
 
-        <SimpleResultsGrid
-          v-if="configStore.viewMode === 'grid'"
-          :current-user-id="configStore.userId"
-          :leader-user-id="leaderUserId"
-          :players="sortedRoomUsers"
-          :show-votes="showVotes"
-          @open-player-menu="openPlayerMenu"
-        />
+        <div class="room-display-stack" :class="{ revealed: showVotes }">
+          <SimpleResultsGrid
+            v-if="configStore.viewMode === 'grid'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :show-votes="showVotes"
+            @open-player-menu="openPlayerMenu"
+          />
 
-        <PokerTable
-          v-else
-          :current-user-id="configStore.userId"
-          :leader-user-id="leaderUserId"
-          :players="sortedRoomUsers"
-          :shaking-user-ids="shakingUserIds"
-          :show-votes="showVotes"
-          @open-player-menu="openPlayerMenu"
-        />
+          <PokerTable
+            v-else
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
+            :show-votes="showVotes"
+            @open-player-menu="openPlayerMenu"
+          />
+
+          <Transition name="insights-strip">
+            <RoundStatsPanel
+              v-if="showVotes"
+              :can-commit-vote="canCommitFinalVote"
+              :committed-vote="committedVote"
+              :display-vote-counts="displayVoteCounts"
+              :history-enabled="historyEnabled"
+              :stats="stats"
+              :vote-options="voteOptions"
+              @commit-vote="onCommitVote"
+            />
+          </Transition>
+        </div>
 
         <FloatingReactions :reactions="floatingReactions" />
 
-        <div class="action-row room-action-row">
+        <div class="action-row room-action-row" :class="{ 'room-action-row-revealed': showVotes }">
           <template v-if="taskInformationEnabled && !currentTask">
             <v-btn
               class="p0-btn p0-btn-primary"
@@ -351,13 +370,6 @@
           placement="room-support"
         />
 
-        <div v-if="showVotes && committedVote" class="committed-vote-center">
-          <div class="committed-vote-badge">
-            <v-icon icon="mdi-check-circle" size="14" />
-            Final: <strong>{{ committedVote }}</strong>
-          </div>
-        </div>
-
         <ReactionBar
           v-if="reactionsEnabled"
           :reactions="reactionEmojis"
@@ -367,20 +379,14 @@
         <VoteDock
           v-if="!externalVotingDockActive"
           v-model:collapsed="dockCollapsed"
-          :can-commit-vote="canCommitFinalVote"
           :can-vote="canVoteInCurrentRound"
-          :committed-vote="committedVote"
           :disabled-hint="voteActionHint"
-          :display-vote-counts="displayVoteCounts"
           :external-dock-active="appStore.externalDockActive"
-          :history-enabled="currentRoom?.settings?.historyEnabled !== false"
           :selected-vote="selectedVote"
           :show-votes="showVotes"
-          :stats="stats"
           :user-name="userName"
           :vote-options="voteOptions"
           @cast-vote="castVote"
-          @commit-vote="onCommitVote"
           @open-phone-dock="openPhoneDockQr"
           @toggle-external-dock="toggleExternalDock"
         />
@@ -497,6 +503,7 @@
   import ReactionBar from '@/components/ReactionBar.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
   import RoomSidePanel from '@/components/RoomSidePanel.vue'
+  import RoundStatsPanel from '@/components/RoundStatsPanel.vue'
   import SimpleResultsGrid from '@/components/SimpleResultsGrid.vue'
   import TaskInfoModal from '@/components/TaskInfoModal.vue'
   import VoteDock from '@/components/VoteDock.vue'
@@ -523,6 +530,7 @@
     normalizeTimerDurationSeconds,
     normalizeTimerWarningValue,
     pauseRoundTimer,
+    pauseRoundTimerForReveal,
     restartRoundTimer,
     resumeRoundTimer,
   } from '@/utils/roundTimers'
@@ -537,15 +545,16 @@
   type TaskFlowMode = 'current' | 'next'
   interface RoundStats {
     avg: number | null
-    median: number | null
-    closest: number | null
-    min: number | null
-    max: number | null
+    median: VoteValue | null
+    closest: VoteValue | null
+    min: VoteValue | null
+    max: VoteValue | null
     spread: number | null
     counts: Record<string, number>
     maxCount: number
     total: number
     numericTotal: number
+    ordinalTotal: number
     consensus: ConsensusState
   }
   type NormalizedRoomHistoryEntry = RoomHistoryEntry & {
@@ -573,9 +582,11 @@
   }
 
   const PRESET_DECKS: Record<string, VoteValue[]> = {
-    fibonacci: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
-    linear: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
-    tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    'fibonacci': [0, 1, 2, 3, 5, 8, 13, 21, 34, 55],
+    'modified-fibonacci': [0, 1, 2, 3, 5, 8, 13, 20, 40, 100],
+    'linear': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+    'power-of-2': [1, 2, 4, 8, 16, 32, 64, 128],
+    'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
 
@@ -660,6 +671,7 @@
 
   const showVotes = computed(() => currentRoom.value?.settings?.showVotes === true)
   const historyEnabled = computed(() => currentRoom.value?.settings?.historyEnabled !== false)
+  const allowVoteChangesAfterReveal = computed(() => currentRoom.value?.settings?.allowVoteChangesAfterReveal === true)
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
   const timerEnabled = computed(() => currentRoom.value?.settings?.timerEnabled === true)
@@ -711,6 +723,7 @@
   const timerLabel = computed(() => {
     if (!timerEnabled.value) return ''
     if (timerExpiredAnimationActive.value) return 'Timer expired'
+    if (showVotes.value && roundTimer.value?.status === 'paused' && roundTimer.value.finishedBy === 'revealed') return 'Timer paused'
     if (showVotes.value || roundTimer.value?.status === 'finished') return 'Timer ended'
     if (roundTimer.value?.status === 'paused') return 'Timer paused'
     if (roundTimer.value?.status === 'running') return timerMode.value === 'manual' ? 'Manual timer running' : 'Automatic timer running'
@@ -719,7 +732,6 @@
   })
   const timerExpired = computed(() =>
     timerExpiredAnimationActive.value
-    || showVotes.value
     || roundTimer.value?.status === 'finished',
   )
   const timerProgressPercent = computed(() => {
@@ -788,10 +800,11 @@
     if (leaderModeEnabled.value && !isLeader.value) return 'Waiting for the leader to manage this round'
     if (isRoundLockedByOther.value) return `${roundEditLock.value?.userName ?? 'Another participant'} is entering task information`
     if (taskInformationEnabled.value && !currentTask.value) return 'Task information is required before anyone can vote'
+    if (showVotes.value && !allowVoteChangesAfterReveal.value) return 'Voting is locked after reveal for this room'
     return ''
   })
   const canVoteInCurrentRound = computed(() =>
-    !showVotes.value
+    (!showVotes.value || allowVoteChangesAfterReveal.value)
     && !isRoundLockedByOther.value
     && (!taskInformationEnabled.value || !!currentTask.value),
   )
@@ -825,9 +838,24 @@
     return base
   })
 
-  const deckNums = computed(() =>
-    voteOptions.value.filter((v): v is number => typeof v === 'number'),
-  )
+  const orderedEstimateValues = computed(() => {
+    const seen = new Set<string>()
+    return voteOptions.value.filter(value => {
+      if (value === '?' || value === '☕') return false
+      const key = String(value)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  })
+
+  const estimateOrderLookup = computed(() => {
+    const lookup = new Map<string, number>()
+    for (const [index, value] of orderedEstimateValues.value.entries()) {
+      lookup.set(String(value), index + 1)
+    }
+    return lookup
+  })
 
   const activeRoundParticipants = computed<Record<string, RoomUser>>(() =>
     currentRoom.value?.roundParticipants
@@ -860,7 +888,7 @@
   })
   const voteShortcutLookup = computed(() => {
     const availableValues = showVotes.value
-      ? historyShortcutVoteValues.value
+      ? (canVoteInCurrentRound.value ? voteOptions.value.map(String) : historyShortcutVoteValues.value)
       : (dockCollapsed.value ? [] : voteOptions.value.map(String))
 
     const lookup: Record<string, string> = {}
@@ -905,17 +933,24 @@
       .filter((vote): vote is number => typeof vote === 'number'),
   )
 
+  const ordinalVotes = computed(() =>
+    revealedVotes.value.flatMap(vote => {
+      const position = estimateOrderLookup.value.get(String(vote))
+      return position == null ? [] : [{ vote, position }]
+    }),
+  )
+
   const averageVote = computed(() => {
     if (numericVotes.value.length === 0) return null
     const sum = numericVotes.value.reduce((acc, val) => acc + val, 0)
     return Number.parseFloat((sum / numericVotes.value.length).toFixed(2))
   })
 
-  const medianVote = computed(() => {
-    if (numericVotes.value.length === 0) return null
-    const sorted = numericVotes.value.toSorted((a, b) => a - b)
+  const medianVote = computed<VoteValue | null>(() => {
+    if (ordinalVotes.value.length === 0) return null
+    const sorted = ordinalVotes.value.toSorted((a, b) => a.position - b.position)
     const mid = Math.floor(sorted.length / 2)
-    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+    return sorted[mid]?.vote ?? null
   })
 
   const unanimousVote = computed(() => {
@@ -930,35 +965,40 @@
     const counts = countVotes(revealedVotes.value)
     const uniqueVoteCount = Object.keys(counts).length
     const maxCount = Math.max(...Object.values(counts))
-    const nums = numericVotes.value
-    const hasNumericVotes = nums.length > 0
-    const min = hasNumericVotes ? Math.min(...nums) : null
-    const max = hasNumericVotes ? Math.max(...nums) : null
-    const spread = min != null && max != null ? max - min : null
-    const numericCounts = countVotes(nums)
+    const ordinal = ordinalVotes.value
+    const ordinalPositions = ordinal.map(vote => vote.position)
+    const minPosition = ordinalPositions.length > 0 ? Math.min(...ordinalPositions) : null
+    const maxPosition = ordinalPositions.length > 0 ? Math.max(...ordinalPositions) : null
+    const min = minPosition == null ? null : (orderedEstimateValues.value[minPosition - 1] ?? null)
+    const max = maxPosition == null ? null : (orderedEstimateValues.value[maxPosition - 1] ?? null)
+    const spread = minPosition != null && maxPosition != null ? maxPosition - minPosition : null
 
-    let closest: number | null = null
-    if (averageVote.value != null) {
-      closest = deckNums.value[0] ?? nums[0] ?? 0
-      let bestDistance = Math.abs(averageVote.value - closest)
-      for (const num of deckNums.value) {
-        const distance = Math.abs(averageVote.value - num)
+    let closest: VoteValue | null = null
+    if (ordinal.length > 0) {
+      const averagePosition = ordinal.reduce((acc, vote) => acc + vote.position, 0) / ordinal.length
+      closest = ordinal[0]?.vote ?? null
+      let bestDistance = Math.abs(averagePosition - (ordinal[0]?.position ?? 0))
+      let bestPosition = ordinal[0]?.position ?? 0
+      for (const vote of ordinal) {
+        const distance = Math.abs(averagePosition - vote.position)
         if (distance < bestDistance - 1e-9) {
-          closest = num
+          closest = vote.vote
           bestDistance = distance
-        } else if (Math.abs(distance - bestDistance) < 1e-9 && num > closest) {
-          closest = num
+          bestPosition = vote.position
+        } else if (Math.abs(distance - bestDistance) < 1e-9 && vote.position > bestPosition) {
+          closest = vote.vote
+          bestPosition = vote.position
         }
       }
     }
 
-    const isCloseNumericVote = nums.length === revealedVotes.value.length
+    const isCloseOrdinalVote = ordinal.length === revealedVotes.value.length
       && spread != null
-      && spread <= 3
-      && Object.keys(numericCounts).length <= 2
+      && spread <= 1
+      && uniqueVoteCount <= 2
     const consensus: ConsensusState = uniqueVoteCount === 1
       ? 'consensus'
-      : (isCloseNumericVote ? 'close' : 'split')
+      : (isCloseOrdinalVote ? 'close' : 'split')
 
     return {
       avg: averageVote.value,
@@ -970,7 +1010,8 @@
       counts,
       maxCount,
       total: revealedVotes.value.length,
-      numericTotal: nums.length,
+      numericTotal: numericVotes.value.length,
+      ordinalTotal: ordinal.length,
       consensus,
     }
   })
@@ -1158,7 +1199,8 @@
           }
           const vote = voteShortcutLookup.value[key]
           if (!vote) return
-          if (showVotes.value) onCommitVote(vote)
+          if (showVotes.value && canVoteInCurrentRound.value) castVote(parseShortcutVoteValue(vote))
+          else if (showVotes.value) onCommitVote(vote)
           else castVote(parseShortcutVoteValue(vote))
         },
       },
@@ -1357,6 +1399,11 @@
     return formatNum(num)
   }
 
+  function formatOptionalVote (vote: VoteValue | null | undefined): string | null {
+    if (vote === null || vote === undefined) return null
+    return String(vote)
+  }
+
   function parseStoredVote (vote: string | VoteValue): VoteValue {
     if (typeof vote !== 'string') return vote
     const trimmed = vote.trim()
@@ -1479,7 +1526,8 @@
   }
 
   function canTriggerVoteShortcut (): boolean {
-    if (showVotes.value) return !dockCollapsed.value && historyEnabled.value && canCommitFinalVote.value
+    if (showVotes.value && canVoteInCurrentRound.value) return !dockCollapsed.value
+    if (showVotes.value) return historyEnabled.value && canCommitFinalVote.value
     return !dockCollapsed.value && canVoteInCurrentRound.value
   }
 
@@ -2071,7 +2119,7 @@
   }
 
   function buildNewVoteOptions (settings: {
-    deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+    deck: 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
     customDeck: string
     specialQuestion: boolean
     specialCoffee: boolean
@@ -2090,11 +2138,12 @@
 
   function applyRoomConfig (settings: {
     name: string
-    deck: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+    deck: 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
     customDeck: string
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    allowVoteChangesAfterReveal: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
     timerEnabled: boolean
@@ -2125,6 +2174,7 @@
       'settings/specialQuestion': settings.specialQuestion,
       'settings/specialCoffee': settings.specialCoffee,
       'settings/historyEnabled': settings.historyEnabled,
+      'settings/allowVoteChangesAfterReveal': settings.allowVoteChangesAfterReveal,
       'settings/leaderModeEnabled': settings.leaderModeEnabled,
       'settings/taskInformationEnabled': settings.taskInformationEnabled,
       'settings/timerEnabled': settings.timerEnabled,
@@ -2218,19 +2268,42 @@
     const roomRef = dbRef(db, `rooms/${roomId}`)
     update(roomRef, {
       'settings/showVotes': true,
-      'roundTimer': finishRoundTimer(roundTimer.value, currentRound.value, 'revealed'),
+      'roundTimer': pauseRoundTimerForReveal(roundTimer.value, currentRound.value, Date.now()),
       'lastActivity': Date.now(),
     }).catch(console.error)
   }
 
-  function hideVotes () {
+  async function hideVotes () {
     if (!db || !canManageRound.value) return
     closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, {
-      'settings/showVotes': false,
-      'committedVote': null,
-      'lastActivity': Date.now(),
+
+    await runTransaction(roomRef, current => {
+      if (!current) return current
+
+      const now = Date.now()
+      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
+      const timer = current.roundTimer as RoundTimerState | null | undefined
+      const config = getRoomTimerConfig(current)
+      let nextTimer = timer ?? null
+
+      if (timer && timer.roundNumber === roundNumber) {
+        if (timer.status === 'paused' && timer.finishedBy === 'revealed' && config.mode === 'automatic') {
+          nextTimer = resumeRoundTimer(timer, now)
+        } else if (timer.status === 'finished' && timer.finishedBy === 'expired' && config.mode === 'automatic') {
+          nextTimer = restartRoundTimer(timer, now)
+        }
+      }
+
+      return {
+        ...current,
+        committedVote: null,
+        lastActivity: now,
+        roundTimer: nextTimer,
+        settings: current.settings
+          ? { ...current.settings, showVotes: false }
+          : { showVotes: false },
+      }
     }).catch(console.error)
   }
 
@@ -2280,7 +2353,7 @@
         id,
         finalVote: defaultFinalVote.value,
         avg: formatOptionalNum(stats.value?.avg),
-        closest: formatOptionalNum(stats.value?.closest),
+        closest: formatOptionalVote(stats.value?.closest),
         round: currentRound.value,
         durationMs,
         completedAt,
@@ -2420,7 +2493,7 @@
           description: currentTask.value?.description ?? null,
           finalVote: defaultFinalVote.value,
           avg: formatOptionalNum(stats.value?.avg),
-          closest: formatOptionalNum(stats.value?.closest),
+          closest: formatOptionalVote(stats.value?.closest),
           round: currentRound.value,
           durationMs,
           completedAt,

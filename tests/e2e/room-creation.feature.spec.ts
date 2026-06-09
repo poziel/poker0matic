@@ -18,6 +18,7 @@ test.describe('Feature: room creation', () => {
     await expect(page.getByTestId('room-toggle-question')).toBeChecked()
     await expect(page.getByTestId('room-toggle-break')).toBeChecked()
     await expect(page.getByTestId('room-toggle-history')).toBeChecked()
+    await expect(page.getByTestId('room-toggle-post-reveal-voting')).not.toBeChecked()
     await expect(page.getByTestId('room-toggle-task-info')).not.toBeChecked()
     await expect(page.getByTestId('room-toggle-timer')).not.toBeChecked()
     await expect(page.getByTestId('room-toggle-reactions')).not.toBeChecked()
@@ -34,6 +35,7 @@ test.describe('Feature: room creation', () => {
 
     await page.getByTestId('room-toggle-question').uncheck()
     await page.getByTestId('room-toggle-break').uncheck()
+    await page.getByTestId('room-toggle-post-reveal-voting').check()
     await page.getByTestId('room-toggle-task-info').check()
     await page.getByTestId('room-toggle-timer').check()
     await expect(page.getByTestId('room-toggle-timer-auto-reveal')).toBeChecked()
@@ -51,6 +53,7 @@ test.describe('Feature: room creation', () => {
     await expect(page.getByTestId('room-custom-deck-input').locator('input')).toHaveValue('1, 2, 3, 5, 8, 13')
     await expect(page.getByTestId('room-toggle-question')).not.toBeChecked()
     await expect(page.getByTestId('room-toggle-break')).not.toBeChecked()
+    await expect(page.getByTestId('room-toggle-post-reveal-voting')).toBeChecked()
     await expect(page.getByTestId('room-toggle-task-info')).toBeChecked()
     await expect(page.getByTestId('room-toggle-timer')).toBeChecked()
     await expect(page.getByTestId('room-timer-duration-input').locator('input')).toHaveValue('180')

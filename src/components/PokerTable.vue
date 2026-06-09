@@ -30,7 +30,7 @@
 </script>
 
 <template>
-  <div class="table" data-cstyle="real" data-test-id="room-table">
+  <div class="playing-field playing-field-table table" data-cstyle="real" data-test-id="room-table">
     <div class="players">
       <div
         v-for="player in players"
@@ -74,7 +74,7 @@
           :style="{ '--flip-delay': showVotes && player.vote != null ? `${getPlayerIndex(player.userId) * 90}ms` : '0ms' }"
         >
           <div class="pcard-back p0-card p0-card-back">
-            <span class="logo">P0</span>
+            <span class="logo">RF</span>
           </div>
 
           <div class="pcard-face p0-card p0-card-value">

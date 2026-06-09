@@ -61,21 +61,15 @@
 
       <template v-else-if="currentRoom">
         <VoteDock
-          :can-commit-vote="canCommitFinalVote"
           :can-vote="canVoteInCurrentRound"
           :collapsed="false"
-          :committed-vote="committedVote"
           :disabled-hint="voteActionHint"
-          :display-vote-counts="displayVoteCounts"
           external-window
-          :history-enabled="historyEnabled"
           :selected-vote="selectedVote"
           :show-votes="showVotes"
-          :stats="stats"
           :user-name="userName || 'Guest'"
           :vote-options="voteOptions"
           @cast-vote="castVote"
-          @commit-vote="commitVote"
         />
       </template>
 
@@ -123,18 +117,12 @@
   const isPhoneSession = computed(() => !!dockSessionToken.value)
   const sessionReady = computed(() => !isPhoneSession.value || !!dockSessionUserId.value)
   const {
-    canCommitFinalVote,
     canVoteInCurrentRound,
     castVote,
-    commitVote,
-    committedVote,
     currentRoom,
-    displayVoteCounts,
-    historyEnabled,
     roomMissing,
     selectedVote,
     showVotes,
-    stats,
     stop,
     subscribeToRoom,
     userName,
