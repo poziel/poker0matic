@@ -57,4 +57,53 @@ test.describe('Feature: room scale', () => {
     await page.getByTestId('round-insights-toggle').click()
     await expect(resultCard(page, '5')).toBeVisible()
   })
+
+  test('Scenario: room view modes include console and group status layouts', async ({ page }) => {
+    await createRoomForTest(page, { name: 'Experimental view planning' })
+
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+
+    await expect(page.getByTestId('room-console-view')).toBeVisible()
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('[●]')
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('is thinking...')
+
+    await voteCard(page, '5').click()
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('[✓]')
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('is ready.')
+
+    await page.getByTestId('room-reveal-votes').click()
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('[ 5 ]')
+    await expect(page.getByTestId('room-console-line').filter({ hasText: 'Ada' })).toContainText('voted 5')
+
+    await page.getByTestId('room-toggle-view').click()
+    await expect(page.getByTestId('room-group-status-view')).toBeVisible()
+    await expect(page.getByTestId('group-zone-deliberating')).toBeVisible()
+    await expect(page.getByTestId('group-zone-ready')).toBeVisible()
+    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: 'Ada' })).toBeVisible()
+    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: '5' })).toBeVisible()
+  })
+
+  test('Scenario: group status view moves a player when they vote', async ({ page }) => {
+    await createRoomForTest(page, { name: 'Group status planning' })
+
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+
+    await expect(page.getByTestId('room-group-status-view')).toBeVisible()
+    await expect(page.getByTestId('group-status-player-deliberating').filter({ hasText: 'Ada' })).toBeVisible()
+    await expect(page.getByTestId('group-status-player-ready')).toHaveCount(0)
+
+    await voteCard(page, '8').click()
+
+    await expect(page.getByTestId('group-status-player-deliberating')).toHaveCount(0)
+    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: 'Ada' })).toBeVisible()
+    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: 'ready' })).toBeVisible()
+
+    await page.getByTestId('room-reveal-votes').click()
+    await expect(page.getByTestId('group-status-player-ready').filter({ hasText: '8' })).toBeVisible()
+  })
 })

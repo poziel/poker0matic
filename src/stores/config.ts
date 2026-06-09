@@ -32,7 +32,7 @@ const ENABLE_ADS_KEY = 'refinimo_enable_ads'
 const LEGACY_STORAGE_PREFIX = 'poker_'
 const MAX_RECENT_ROOMS = 5
 
-export type ViewMode = 'table' | 'grid' | 'simple'
+export type ViewMode = 'table' | 'grid' | 'simple' | 'console' | 'group-status'
 export type ConfigValidationStatus = 'unknown' | 'valid' | 'unreachable'
 
 export interface RecentRoom {
@@ -256,7 +256,7 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   function normalizeViewMode (mode: string | null | undefined): ViewMode {
-    if (mode === 'table' || mode === 'grid' || mode === 'simple') {
+    if (mode === 'table' || mode === 'grid' || mode === 'simple' || mode === 'console' || mode === 'group-status') {
       return mode
     }
 

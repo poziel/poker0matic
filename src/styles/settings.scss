@@ -1387,6 +1387,250 @@ button { font-family: inherit; }
 .simple-room-view .dock-external-window .dock-hint {
   display: none;
 }
+
+/* --- console room view -------------------------------------------------- */
+.console-room-view {
+  background: color-mix(in oklab, #020609, var(--bg-1) 18%);
+  border: 1px solid color-mix(in oklab, var(--accent), transparent 74%);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .22);
+  color: color-mix(in oklab, var(--text-1), #d8ffe6 12%);
+  display: grid;
+  font-family: var(--font-mono);
+  overflow: hidden;
+}
+.console-room-header {
+  align-items: center;
+  background: color-mix(in oklab, #071014, transparent 12%);
+  border-bottom: 1px solid color-mix(in oklab, var(--accent), transparent 82%);
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.console-room-prompt {
+  color: var(--accent);
+  font-weight: 800;
+}
+.console-room-feed {
+  display: grid;
+  gap: 0;
+  padding: 10px 0;
+}
+.console-room-line {
+  align-items: baseline;
+  border-left: 3px solid transparent;
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 9px;
+  line-height: 1.55;
+  margin: 0;
+  min-height: 34px;
+  padding: 7px 16px 7px 13px;
+}
+.console-room-line-ready {
+  border-left-color: color-mix(in oklab, var(--accent), transparent 35%);
+  color: var(--text-1);
+}
+.console-room-line-system {
+  color: color-mix(in oklab, var(--accent), var(--text-1) 18%);
+}
+.console-room-line-you {
+  background: color-mix(in oklab, var(--accent), transparent 94%);
+}
+.console-room-line-leader .console-room-name {
+  color: color-mix(in oklab, var(--warn), var(--text-1) 30%);
+}
+.console-room-status,
+.console-room-prefix {
+  color: var(--accent);
+  font-weight: 800;
+}
+.console-room-name {
+  color: var(--text-1);
+  font-weight: 800;
+}
+.console-room-tag,
+.console-room-presence {
+  border: 1px solid color-mix(in oklab, var(--border), transparent 10%);
+  border-radius: 999px;
+  color: var(--text-3);
+  font-size: 10px;
+  padding: 1px 7px;
+}
+.console-room-presence {
+  color: var(--accent);
+}
+.console-room-line-muted {
+  color: var(--text-3);
+}
+
+/* --- group status view -------------------------------------------------- */
+.group-status-view {
+  background: color-mix(in oklab, var(--playing-field-surface), transparent 10%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .16);
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+  padding: 16px;
+}
+.group-status-meter {
+  background: color-mix(in oklab, var(--bg-2), transparent 18%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+.group-status-meter-fill {
+  background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent), white 22%));
+  display: block;
+  height: 100%;
+  transition: width .34s ease;
+}
+.group-status-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 14px;
+  min-height: 340px;
+}
+.group-status-zone {
+  background: color-mix(in oklab, var(--bg-1), transparent 8%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.group-status-zone-ready {
+  border-color: color-mix(in oklab, var(--accent), transparent 54%);
+}
+.group-status-zone-head {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  justify-content: space-between;
+  padding: 12px 14px;
+  text-transform: uppercase;
+}
+.group-status-zone-head span {
+  color: var(--text-3);
+}
+.group-status-zone-head strong {
+  color: var(--text-1);
+  font-size: 16px;
+}
+.group-status-roster {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  min-height: 0;
+  padding: 14px;
+}
+.group-status-player {
+  align-items: center;
+  appearance: none;
+  background: color-mix(in oklab, var(--bg-2), transparent 18%);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-1);
+  cursor: default;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 132px;
+  padding: 14px 10px;
+  position: relative;
+  text-align: center;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.group-status-player.is-you {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent), transparent 50%);
+}
+.group-status-player-ready {
+  animation: group-ready-pop .36s ease both;
+  background: color-mix(in oklab, var(--accent), transparent 88%);
+  border-color: color-mix(in oklab, var(--accent), transparent 48%);
+}
+.group-status-avatar {
+  border-radius: 50%;
+  display: inline-flex;
+  overflow: hidden;
+}
+.group-status-name {
+  font-size: 13px;
+  font-weight: 800;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-status-state {
+  border: 1px solid color-mix(in oklab, var(--border), transparent 8%);
+  border-radius: 999px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+}
+.group-status-player-ready .group-status-state {
+  color: var(--accent);
+}
+.group-status-gap {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  gap: 10px;
+  justify-content: center;
+  min-width: 54px;
+}
+.group-status-gap .v-icon {
+  color: var(--accent);
+}
+.group-status-empty {
+  align-items: center;
+  border: 1px dashed color-mix(in oklab, var(--border), transparent 8%);
+  border-radius: 10px;
+  color: var(--text-3);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  justify-content: center;
+  min-height: 132px;
+  padding: 16px;
+  text-align: center;
+}
+.group-player-move,
+.group-player-enter-active,
+.group-player-leave-active {
+  transition: opacity .28s ease, transform .34s cubic-bezier(.2, .8, .2, 1);
+}
+.group-player-enter-from,
+.group-player-leave-to {
+  opacity: 0;
+  transform: translateY(18px) scale(.92);
+}
+.group-player-leave-active {
+  position: absolute;
+}
+@keyframes group-ready-pop {
+  0% { transform: translateY(-8px) scale(.95); }
+  65% { transform: translateY(2px) scale(1.03); }
+  100% { transform: translateY(0) scale(1); }
+}
+
 .player {
   position: relative;
   width: 120px;
@@ -4253,6 +4497,18 @@ button { font-family: inherit; }
   .simple-room-view {
     grid-template-columns: 1fr;
   }
+  .group-status-board {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .group-status-gap {
+    flex-direction: row;
+    min-width: 0;
+    padding: 2px 0;
+  }
+  .group-status-gap .v-icon {
+    transform: rotate(90deg);
+  }
 
   .main-head {
     flex-wrap: wrap;
@@ -4366,6 +4622,22 @@ button { font-family: inherit; }
   .player { width: 100px; }
   .simple-room-view > .dock {
     padding-top: 14px;
+  }
+  .console-room-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .group-status-view {
+    padding: 12px;
+  }
+  .group-status-roster {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    padding: 10px;
+  }
+  .group-status-player,
+  .group-status-empty {
+    min-height: 118px;
   }
   .avatar-style-card {
     grid-template-columns: 1fr;

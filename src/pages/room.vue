@@ -253,6 +253,28 @@
             @open-player-menu="openPlayerMenu"
           />
 
+          <ConsoleRoomView
+            v-if="configStore.viewMode === 'console'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :round-label="currentRoundLabel"
+            :show-votes="showVotes"
+            :total-players="totalPlayers"
+            :voted-count="votedCount"
+          />
+
+          <GroupStatusView
+            v-if="configStore.viewMode === 'group-status'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :show-votes="showVotes"
+            :total-players="totalPlayers"
+            :voted-count="votedCount"
+            @open-player-menu="openPlayerMenu"
+          />
+
           <SimpleRoomView
             v-if="configStore.viewMode === 'simple'"
             :can-commit-vote="canCommitFinalVote"
@@ -565,7 +587,9 @@
   import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
   import CardWallView from '@/components/CardWallView.vue'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
+  import ConsoleRoomView from '@/components/ConsoleRoomView.vue'
   import FloatingReactions from '@/components/FloatingReactions.vue'
+  import GroupStatusView from '@/components/GroupStatusView.vue'
   import ReactionBar from '@/components/ReactionBar.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
   import RoomSidePanel from '@/components/RoomSidePanel.vue'
@@ -653,16 +677,20 @@
     'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
-  const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple']
+  const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple', 'console', 'group-status']
   const VIEW_MODE_LABELS: Record<ViewMode, string> = {
-    grid: 'grid view',
-    simple: 'simple room',
-    table: 'card wall',
+    'console': 'console view',
+    'grid': 'grid view',
+    'group-status': 'group status view',
+    'simple': 'simple room',
+    'table': 'card wall',
   }
   const VIEW_MODE_ICONS: Record<ViewMode, string> = {
-    grid: 'mdi-cards-playing',
-    simple: 'mdi-view-dashboard-outline',
-    table: 'mdi-view-module-outline',
+    'console': 'mdi-console',
+    'grid': 'mdi-cards-playing',
+    'group-status': 'mdi-account-switch-outline',
+    'simple': 'mdi-view-dashboard-outline',
+    'table': 'mdi-view-module-outline',
   }
 
   function parseCustomDeck (raw: string): VoteValue[] {
