@@ -20,6 +20,7 @@
     currentUserId: string | null
     showVotes: boolean
     leaderUserId: string | null
+    shakingUserIds?: string[]
   }>()
 
   const emit = defineEmits<{
@@ -46,6 +47,7 @@
         'rg-row-you': player.userId === currentUserId,
         'rg-row-leader': player.userId === leaderUserId,
         'rg-row-connected': player.isConnected,
+        'rg-row-vote-changed': shakingUserIds?.includes(player.userId),
       }"
       :data-player-name="player.name"
       data-test-id="room-grid-player"

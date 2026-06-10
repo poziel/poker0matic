@@ -46,6 +46,7 @@
     committedVote?: string | null
     canCommitVote?: boolean
     externalDockActive?: boolean
+    shakingUserIds?: string[]
   }>()
 
   defineEmits<{
@@ -75,6 +76,7 @@
       :current-user-id="currentUserId"
       :leader-user-id="leaderUserId"
       :players="players"
+      :shaking-user-ids="shakingUserIds"
       :show-votes="showVotes"
       @open-player-menu="$emit('open-player-menu', $event)"
     />

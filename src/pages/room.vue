@@ -249,6 +249,7 @@
             :current-user-id="configStore.userId"
             :leader-user-id="leaderUserId"
             :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
             :show-votes="showVotes"
             @open-player-menu="openPlayerMenu"
           />
@@ -268,6 +269,7 @@
             :current-user-id="configStore.userId"
             :leader-user-id="leaderUserId"
             :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
             :show-votes="showVotes"
             :total-players="totalPlayers"
             :voted-count="votedCount"
@@ -287,6 +289,7 @@
             :leader-user-id="leaderUserId"
             :players="sortedRoomUsers"
             :selected-vote="selectedVote"
+            :shaking-user-ids="shakingUserIds"
             :show-votes="showVotes"
             :stats="stats"
             :user-name="userName"

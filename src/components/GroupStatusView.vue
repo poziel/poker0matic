@@ -21,6 +21,7 @@
     showVotes: boolean
     votedCount: number
     totalPlayers: number
+    shakingUserIds?: string[]
   }>()
 
   const emit = defineEmits<{
@@ -91,6 +92,7 @@
               'is-you': player.userId === currentUserId,
               'is-leader': player.userId === leaderUserId,
               'is-connected': player.isConnected,
+              'group-status-player-vote-changed': shakingUserIds?.includes(player.userId),
             }"
             :data-group-status-user-id="player.userId"
             :data-player-name="player.name"
@@ -98,17 +100,23 @@
             type="button"
             @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
           >
-            <span class="group-status-avatar" :data-reaction-user-id="player.userId">
-              <PlayerAvatar
-                :avatar-crop="player.avatarCrop"
-                :avatar-seed="player.name"
-                :avatar-url="player.avatarUrl"
-                :size="44"
-              />
+            <span class="group-status-player-head">
+              <span class="group-status-avatar" :data-reaction-user-id="player.userId">
+                <PlayerAvatar
+                  :avatar-crop="player.avatarCrop"
+                  :avatar-seed="player.name"
+                  :avatar-url="player.avatarUrl"
+                  :size="34"
+                />
+              </span>
+
+              <span class="group-status-name">{{ player.name }}</span>
             </span>
 
-            <span class="group-status-name">{{ player.name }}</span>
-            <span class="group-status-state">thinking</span>
+            <span class="group-status-player-body group-status-player-body-waiting">
+              <v-icon icon="mdi-thought-bubble-outline" size="22" />
+              <span>Deliberating</span>
+            </span>
           </button>
 
           <div v-if="deliberatingPlayers.length === 0" key="empty-deliberating" class="group-status-empty">
@@ -118,8 +126,7 @@
       </section>
 
       <div aria-hidden="true" class="group-status-gap">
-        <span>{{ votedCount }}/{{ totalPlayers }}</span>
-        <v-icon icon="mdi-arrow-right-bold" size="18" />
+        <v-icon icon="mdi-arrow-right-bold" size="22" />
       </div>
 
       <section class="group-status-zone group-status-zone-ready" data-test-id="group-zone-ready">
@@ -137,6 +144,7 @@
               'is-you': player.userId === currentUserId,
               'is-leader': player.userId === leaderUserId,
               'is-connected': player.isConnected,
+              'group-status-player-vote-changed': shakingUserIds?.includes(player.userId),
             }"
             :data-group-status-user-id="player.userId"
             :data-player-name="player.name"
@@ -144,17 +152,32 @@
             type="button"
             @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
           >
-            <span class="group-status-avatar" :data-reaction-user-id="player.userId">
-              <PlayerAvatar
-                :avatar-crop="player.avatarCrop"
-                :avatar-seed="player.name"
-                :avatar-url="player.avatarUrl"
-                :size="44"
-              />
+            <span class="group-status-player-head">
+              <span class="group-status-avatar" :data-reaction-user-id="player.userId">
+                <PlayerAvatar
+                  :avatar-crop="player.avatarCrop"
+                  :avatar-seed="player.name"
+                  :avatar-url="player.avatarUrl"
+                  :size="34"
+                />
+              </span>
+
+              <span class="group-status-name">{{ player.name }}</span>
             </span>
 
-            <span class="group-status-name">{{ player.name }}</span>
-            <span class="group-status-state">{{ showVotes ? formatVote(player.vote) : 'ready' }}</span>
+            <span
+              class="group-status-player-body"
+              :class="showVotes ? 'group-status-player-body-vote' : 'group-status-player-body-ready'"
+            >
+              <template v-if="showVotes">
+                <span class="group-status-vote-value">{{ formatVote(player.vote) }}</span>
+              </template>
+
+              <template v-else>
+                <v-icon icon="mdi-check-circle-outline" size="24" />
+                <span>Ready</span>
+              </template>
+            </span>
           </button>
 
           <div v-if="readyPlayers.length === 0" key="empty-ready" class="group-status-empty">
