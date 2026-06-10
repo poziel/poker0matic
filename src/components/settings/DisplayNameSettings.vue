@@ -9,7 +9,7 @@
       <v-text-field
         v-model="model.userName"
         autofocus
-        class="p0-field"
+        class="ui-field"
         :counter="MAX_NAME_LENGTH"
         data-test-id="profile-display-name-input"
         hide-details="auto"

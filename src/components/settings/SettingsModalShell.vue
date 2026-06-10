@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="model" max-width="900">
-    <v-card class="p0-modal settings-modal" flat>
-      <div class="p0-modal-head settings-modal-head">
+    <v-card class="ui-modal settings-modal" flat>
+      <div class="ui-modal-head settings-modal-head">
         <div>
           <h2>{{ title }}</h2>
           <p>{{ description }}</p>
@@ -34,12 +34,12 @@
           </button>
         </nav>
 
-        <div class="settings-content p0-scrollbar">
+        <div class="settings-content ui-scrollbar">
           <slot />
         </div>
       </div>
 
-      <div class="p0-modal-foot">
+      <div class="ui-modal-foot">
         <slot name="footer" />
       </div>
     </v-card>

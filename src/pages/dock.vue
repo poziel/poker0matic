@@ -25,7 +25,7 @@
           <v-icon icon="mdi-database-off-outline" size="28" />
           <p>Firebase configuration is missing in this window.</p>
 
-          <v-btn class="p0-btn p0-btn-primary" to="/app/config" variant="flat">
+          <v-btn class="ui-btn ui-btn-primary" to="/app/config" variant="flat">
             Open configuration
           </v-btn>
         </div>
@@ -86,10 +86,11 @@
 <script setup lang="ts">
   import type { ExternalDockSession } from '@/utils/externalDockSession'
   import { ref as dbRef, onValue, remove, runTransaction, update } from 'firebase/database'
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
   import { useRoute } from 'vue-router'
   import VoteDock from '@/components/VoteDock.vue'
   import { useRoomVotingDock } from '@/composables/useRoomVotingDock'
+  import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import {
     clearExternalDockHeartbeat,
@@ -104,7 +105,10 @@
     EXTERNAL_DOCK_SESSION_TTL_MS,
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
+  import { setPageTitle } from '@/utils/pageTitle'
+  import { THEME_IDS, type ThemeId } from '@/utils/themes'
 
+  const appStore = useAppStore()
   const configStore = useConfigStore()
   const route = useRoute()
   initializeDockConfig()
@@ -142,6 +146,10 @@
     if (context.value.roomName) return context.value.roomName
     if (context.value.roomId) return 'Active room'
     return 'No active room'
+  })
+
+  watchEffect(() => {
+    setPageTitle([userName.value || configStore.userName || null, title.value, 'Voting Dock'])
   })
 
   onMounted(async () => {
@@ -296,6 +304,7 @@
   function initializeDockConfig () {
     configStore.initializeConfig()
     applyRouteConfig()
+    applyRouteTheme()
   }
 
   function readStringQuery (key: string): string | null {
@@ -304,6 +313,13 @@
       return value[0] ?? null
     }
     return typeof value === 'string' && value.trim() ? value.trim() : null
+  }
+
+  function applyRouteTheme () {
+    const theme = readStringQuery('theme')
+    if (theme && THEME_IDS.includes(theme as ThemeId)) {
+      appStore.setTheme(theme as ThemeId)
+    }
   }
 
   function resolveInitialContext (): ExternalDockRoomContext {

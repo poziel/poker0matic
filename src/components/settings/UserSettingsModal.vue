@@ -9,10 +9,10 @@
     <component :is="activeComponent" v-model="settingsDraft" />
 
     <template #footer>
-      <v-btn class="p0-btn p0-btn-ghost" data-test-id="profile-cancel" variant="flat" @click="model = false">Cancel</v-btn>
+      <v-btn class="ui-btn ui-btn-ghost" data-test-id="profile-cancel" variant="flat" @click="model = false">Cancel</v-btn>
 
       <v-btn
-        class="p0-btn p0-btn-primary"
+        class="ui-btn ui-btn-primary"
         data-test-id="profile-save"
         :disabled="saveDisabled"
         variant="flat"

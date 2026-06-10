@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import AppLobby from '@/pages/app.vue'
 import Config from '@/pages/config.vue'
 import Index from '@/pages/index.vue'
+import Lobby from '@/pages/lobby.vue'
 import { useConfigStore } from '@/stores/config'
+import { buildPageTitle } from '@/utils/pageTitle'
 
 function requireConfig (to: RouteLocationNormalized) {
   const configStore = useConfigStore()
@@ -76,18 +77,18 @@ const router = createRouter({
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
         public: true,
-        title: 'Refinimo | Planning poker for scrum teams',
+        title: buildPageTitle(['Planning poker for scrum teams']),
         description: 'Refinimo is a collaborative planning poker app for scrum teams to create rooms, join estimation sessions, vote on story points, and reveal results together.',
       },
     },
     {
       path: '/app',
-      component: AppLobby,
+      component: Lobby,
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
         requiresUserName: true,
-        title: 'Refinimo App | Create or join a planning room',
-        description: 'Create a new planning poker room, join an existing session, or connect your Firebase project to start estimating with Refinimo.',
+        title: buildPageTitle(['Lobby']),
+        description: 'Lobby for creating a new planning poker room, joining an existing session, or connecting your Firebase project to start estimating with Refinimo.',
       },
     },
     {
@@ -96,7 +97,7 @@ const router = createRouter({
       beforeEnter: requireConfig,
       meta: {
         requiresUserName: true,
-        title: 'Refinimo Room',
+        title: buildPageTitle(['Room']),
         description: 'Collaborative planning poker room for live scrum estimation, anonymous voting, and shared reveal.',
       },
     },
@@ -105,7 +106,7 @@ const router = createRouter({
       component: () => import('@/pages/dock.vue'),
       meta: {
         dockOnly: true,
-        title: 'Voting Dock | Refinimo',
+        title: buildPageTitle(['Voting Dock']),
         description: 'Dedicated Refinimo voting dock for the current planning room.',
       },
     },
@@ -115,7 +116,7 @@ const router = createRouter({
       beforeEnter: requireConfig,
       meta: {
         requiresUserName: true,
-        title: 'Create a Room | Refinimo',
+        title: buildPageTitle(['Create room']),
         description: 'Set up a new Refinimo planning poker room and configure the estimation deck for your team.',
       },
     },
@@ -126,7 +127,7 @@ const router = createRouter({
         showError: 'e' in route.query,
       }),
       meta: {
-        title: 'Configuration | Refinimo',
+        title: buildPageTitle(['Configuration']),
         description: 'Connect Refinimo to your Firebase Realtime Database project to enable room creation, joining, and collaboration.',
       },
     },
@@ -134,7 +135,7 @@ const router = createRouter({
       path: '/app/attributions',
       component: () => import('@/pages/attributions.vue'),
       meta: {
-        title: 'Attributions | Refinimo',
+        title: buildPageTitle(['Attributions']),
         description: 'Third-party credits and attribution information for Refinimo.',
       },
     },

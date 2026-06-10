@@ -70,7 +70,7 @@ export async function visitConfiguredApp (page: Page, name = 'Ada') {
   await page.goto('/app')
   await completeInitialNamePrompt(page, name)
   await page.goto(`/?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
-  await expect(page.getByRole('heading', { name: 'Start or join a room' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Lobby' })).toBeVisible()
 }
 
 export async function fillFirebaseConfigForm (

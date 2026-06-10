@@ -86,16 +86,46 @@
           </div>
 
           <v-btn
-            :aria-label="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            :aria-label="`Switch to ${nextViewModeLabel}`"
             class="icon-btn"
             data-test-id="room-toggle-view"
             density="compact"
             icon
-            :title="configStore.viewMode === 'table' ? 'Switch to grid view' : 'Switch to table view'"
+            :title="`Switch to ${nextViewModeLabel}`"
             variant="text"
-            @click="configStore.setViewMode(configStore.viewMode === 'table' ? 'grid' : 'table')"
+            @click="configStore.setViewMode(nextViewMode)"
           >
-            <v-icon :icon="configStore.viewMode === 'table' ? 'mdi-table' : 'mdi-cards-playing'" size="16" />
+            <v-icon :icon="currentViewModeIcon" size="16" />
+          </v-btn>
+
+          <v-btn
+            v-if="configStore.viewMode === 'simple'"
+            :aria-label="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
+            class="icon-btn"
+            :class="{ 'icon-btn-active': phoneDockActive }"
+            data-test-id="simple-vote-dock-phone"
+            density="compact"
+            icon
+            :title="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
+            variant="text"
+            @click="openPhoneDockQr"
+          >
+            <v-icon :icon="phoneDockActive ? 'mdi-cellphone-off' : 'mdi-qrcode'" size="16" />
+          </v-btn>
+
+          <v-btn
+            v-if="configStore.viewMode === 'simple'"
+            :aria-label="appStore.externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
+            class="icon-btn"
+            :class="{ 'icon-btn-active': appStore.externalDockActive }"
+            data-test-id="simple-vote-dock-external"
+            density="compact"
+            icon
+            :title="appStore.externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
+            variant="text"
+            @click="toggleExternalDock"
+          >
+            <v-icon :icon="appStore.externalDockActive ? 'mdi-monitor-off' : 'mdi-open-in-new'" size="16" />
           </v-btn>
 
           <v-btn
@@ -197,18 +227,15 @@
           @save="saveTaskInformation"
         />
 
-        <div class="room-display-stack" :class="{ revealed: showVotes }">
-          <SimpleResultsGrid
-            v-if="configStore.viewMode === 'grid'"
-            :current-user-id="configStore.userId"
-            :leader-user-id="leaderUserId"
-            :players="sortedRoomUsers"
-            :show-votes="showVotes"
-            @open-player-menu="openPlayerMenu"
-          />
-
-          <PokerTable
-            v-else
+        <div
+          class="room-display-stack"
+          :class="{
+            revealed: showVotes,
+            'room-display-stack-simple': configStore.viewMode === 'simple',
+          }"
+        >
+          <CardWallView
+            v-if="configStore.viewMode === 'table'"
             :current-user-id="configStore.userId"
             :leader-user-id="leaderUserId"
             :players="sortedRoomUsers"
@@ -217,9 +244,64 @@
             @open-player-menu="openPlayerMenu"
           />
 
+          <SimpleResultsGrid
+            v-if="configStore.viewMode === 'grid'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
+            :show-votes="showVotes"
+            @open-player-menu="openPlayerMenu"
+          />
+
+          <ConsoleRoomView
+            v-if="configStore.viewMode === 'console'"
+            :entries="consoleLogEntries"
+            :players="sortedRoomUsers"
+            :round-label="currentRoundLabel"
+            :show-votes="showVotes"
+            :total-players="totalPlayers"
+            :voted-count="votedCount"
+          />
+
+          <GroupStatusView
+            v-if="configStore.viewMode === 'group-status'"
+            :current-user-id="configStore.userId"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :shaking-user-ids="shakingUserIds"
+            :show-votes="showVotes"
+            :total-players="totalPlayers"
+            :voted-count="votedCount"
+            @open-player-menu="openPlayerMenu"
+          />
+
+          <SimpleRoomView
+            v-if="configStore.viewMode === 'simple'"
+            :can-commit-vote="canCommitFinalVote"
+            :can-vote="canVoteInCurrentRound"
+            :committed-vote="committedVote"
+            :current-user-id="configStore.userId"
+            :disabled-hint="voteActionHint"
+            :display-vote-counts="displayVoteCounts"
+            :external-dock-active="externalVotingDockActive"
+            :history-enabled="historyEnabled"
+            :leader-user-id="leaderUserId"
+            :players="sortedRoomUsers"
+            :selected-vote="selectedVote"
+            :shaking-user-ids="shakingUserIds"
+            :show-votes="showVotes"
+            :stats="stats"
+            :user-name="userName"
+            :vote-options="voteOptions"
+            @cast-vote="castVote"
+            @commit-vote="onCommitVote"
+            @open-player-menu="openPlayerMenu"
+          />
+
           <Transition name="insights-strip">
             <RoundStatsPanel
-              v-if="showVotes"
+              v-if="showVotes && configStore.viewMode !== 'simple'"
               :can-commit-vote="canCommitFinalVote"
               :committed-vote="committedVote"
               :display-vote-counts="displayVoteCounts"
@@ -233,10 +315,16 @@
 
         <FloatingReactions :reactions="floatingReactions" />
 
-        <div class="action-row room-action-row" :class="{ 'room-action-row-revealed': showVotes }">
+        <div
+          class="action-row room-action-row"
+          :class="{
+            'room-action-row-revealed': showVotes,
+            'room-action-row-simple': configStore.viewMode === 'simple',
+          }"
+        >
           <template v-if="taskInformationEnabled && !currentTask">
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="room-start-round"
               :disabled="!canStartTaskInfoFlow"
               prepend-icon="mdi-text-box-plus-outline"
@@ -250,7 +338,7 @@
 
           <template v-else-if="!showVotes">
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="room-reveal-votes"
               :disabled="votedCount === 0 || !canManageRound"
               prepend-icon="mdi-eye"
@@ -265,7 +353,7 @@
             </v-btn>
 
             <v-btn
-              class="p0-btn p0-btn-ghost"
+              class="ui-btn ui-btn-ghost"
               data-test-id="room-reset-round"
               :disabled="!canManageRound"
               :title="roundActionTitle"
@@ -278,7 +366,7 @@
 
           <template v-else-if="showVotes">
             <v-btn
-              class="p0-btn p0-btn-ghost"
+              class="ui-btn ui-btn-ghost"
               data-test-id="room-hide-votes"
               :disabled="!canManageRound"
               prepend-icon="mdi-eye-off"
@@ -290,7 +378,7 @@
             </v-btn>
 
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="room-next-round"
               :disabled="!canManageRound"
               :prepend-icon="historyEnabled ? 'mdi-arrow-right' : 'mdi-refresh'"
@@ -306,7 +394,7 @@
         <div v-if="timerControlsVisible" class="timer-action-row">
           <v-btn
             v-if="canStartManualTimer"
-            class="p0-btn p0-btn-primary"
+            class="ui-btn ui-btn-primary"
             data-test-id="room-start-timer"
             prepend-icon="mdi-play"
             :title="roundActionTitle"
@@ -318,7 +406,7 @@
 
           <v-btn
             v-if="canPauseTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-pause-timer"
             prepend-icon="mdi-pause"
             :title="roundActionTitle"
@@ -330,7 +418,7 @@
 
           <v-btn
             v-if="canResumeTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-resume-timer"
             prepend-icon="mdi-play"
             :title="roundActionTitle"
@@ -342,7 +430,7 @@
 
           <v-btn
             v-if="canExtendTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-extend-timer"
             prepend-icon="mdi-timer-plus-outline"
             :title="roundActionTitle"
@@ -354,7 +442,7 @@
 
           <v-btn
             v-if="canRestartTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-restart-timer"
             prepend-icon="mdi-restart"
             :title="roundActionTitle"
@@ -372,16 +460,18 @@
 
         <ReactionBar
           v-if="reactionsEnabled"
+          :class="{ 'reaction-bar-simple': configStore.viewMode === 'simple' }"
           :reactions="reactionEmojis"
           @react="sendReaction"
         />
 
         <VoteDock
-          v-if="!externalVotingDockActive"
+          v-if="!externalVotingDockActive && configStore.viewMode !== 'simple'"
           v-model:collapsed="dockCollapsed"
           :can-vote="canVoteInCurrentRound"
           :disabled-hint="voteActionHint"
           :external-dock-active="appStore.externalDockActive"
+          :phone-dock-active="phoneDockActive"
           :selected-vote="selectedVote"
           :show-votes="showVotes"
           :user-name="userName"
@@ -391,7 +481,7 @@
           @toggle-external-dock="toggleExternalDock"
         />
 
-        <div v-else class="external-dock-return">
+        <div v-if="externalVotingDockActive && configStore.viewMode !== 'simple'" class="external-dock-return">
           <button class="external-dock-return-btn" type="button" @click="bringVotingDockBack">
             <v-icon icon="mdi-monitor-off" size="16" />
             Bring voting dock back
@@ -480,7 +570,7 @@
         </div>
       </div>
 
-      <v-btn class="p0-btn p0-btn-primary phone-dock-action" variant="flat" @click="closePhoneDockDialog">
+      <v-btn class="ui-btn ui-btn-primary phone-dock-action" variant="flat" @click="closePhoneDockDialog">
         {{ phoneDockConnected ? 'Close' : 'Cancel' }}
       </v-btn>
     </v-card>
@@ -489,26 +579,29 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AvatarCrop, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
+  import type { AvatarCrop, RoomConsoleLogEntry, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
   import type { ExternalDockSession } from '@/utils/externalDockSession'
   import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
   import QRCode from 'qrcode'
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
   import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
+  import CardWallView from '@/components/CardWallView.vue'
   import ConfettiBurst from '@/components/ConfettiBurst.vue'
+  import ConsoleRoomView from '@/components/ConsoleRoomView.vue'
   import FloatingReactions from '@/components/FloatingReactions.vue'
-  import PokerTable from '@/components/PokerTable.vue'
+  import GroupStatusView from '@/components/GroupStatusView.vue'
   import ReactionBar from '@/components/ReactionBar.vue'
   import RoomConfigModal from '@/components/RoomConfigModal.vue'
   import RoomSidePanel from '@/components/RoomSidePanel.vue'
   import RoundStatsPanel from '@/components/RoundStatsPanel.vue'
   import SimpleResultsGrid from '@/components/SimpleResultsGrid.vue'
+  import SimpleRoomView from '@/components/SimpleRoomView.vue'
   import TaskInfoModal from '@/components/TaskInfoModal.vue'
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
-  import { useConfigStore } from '@/stores/config'
+  import { useConfigStore, type ViewMode } from '@/stores/config'
   import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
@@ -519,6 +612,7 @@
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
+  import { setPageTitle } from '@/utils/pageTitle'
   import { type FloatingReaction, getReactionEmojis, type RoomReactionEvent, sanitizeReactionEmojis } from '@/utils/reactions'
   import {
     buildTimerForRound,
@@ -560,9 +654,6 @@
   type NormalizedRoomHistoryEntry = RoomHistoryEntry & {
     legacyVotesByName?: Record<string, string>
   }
-  type WritableRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
-    votes?: Record<string, string>
-  }
   type LegacyRoomHistoryEntry = Omit<RoomHistoryEntry, 'votes'> & {
     votes?: unknown
     voteSnapshots?: unknown
@@ -589,6 +680,22 @@
     'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
+  const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple', 'console', 'group-status']
+  const MAX_CONSOLE_LOG_ENTRIES = 160
+  const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+    'console': 'console view',
+    'grid': 'grid view',
+    'group-status': 'group status view',
+    'simple': 'simple room',
+    'table': 'card wall',
+  }
+  const VIEW_MODE_ICONS: Record<ViewMode, string> = {
+    'console': 'mdi-console',
+    'grid': 'mdi-cards-playing',
+    'group-status': 'mdi-account-switch-outline',
+    'simple': 'mdi-view-dashboard-outline',
+    'table': 'mdi-view-module-outline',
+  }
 
   function parseCustomDeck (raw: string): VoteValue[] {
     return raw.split(',').flatMap(s => {
@@ -690,6 +797,10 @@
   const canCommitFinalVote = computed(() => !leaderModeEnabled.value || isLeader.value)
   const canStartTaskInfoFlow = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
   const externalVotingDockActive = computed(() => appStore.externalDockActive || phoneDockActive.value)
+  const currentViewModeIndex = computed(() => Math.max(0, VIEW_MODE_SEQUENCE.indexOf(configStore.viewMode)))
+  const nextViewMode = computed(() => VIEW_MODE_SEQUENCE[(currentViewModeIndex.value + 1) % VIEW_MODE_SEQUENCE.length])
+  const nextViewModeLabel = computed(() => VIEW_MODE_LABELS[nextViewMode.value])
+  const currentViewModeIcon = computed(() => VIEW_MODE_ICONS[configStore.viewMode])
   const canEditCurrentTask = computed(() =>
     taskInformationEnabled.value
     && !!currentTask.value
@@ -889,7 +1000,7 @@
   const voteShortcutLookup = computed(() => {
     const availableValues = showVotes.value
       ? (canVoteInCurrentRound.value ? voteOptions.value.map(String) : historyShortcutVoteValues.value)
-      : (dockCollapsed.value ? [] : voteOptions.value.map(String))
+      : (configStore.viewMode === 'simple' || !dockCollapsed.value ? voteOptions.value.map(String) : [])
 
     const lookup: Record<string, string> = {}
     const standardValues = availableValues.filter(value => value !== '?' && value !== '☕')
@@ -918,6 +1029,27 @@
     return activeRoundParticipants.value[configStore.userId].vote ?? null
   })
 
+  watchEffect(() => {
+    const playerName = userName.value || 'Guest'
+    if (roomNotFound.value) {
+      setPageTitle([playerName, 'Room not found'])
+      return
+    }
+
+    if (!currentRoom.value) {
+      setPageTitle([playerName, 'Room'])
+      return
+    }
+
+    const roomName = currentRoom.value.name
+    if (showVotes.value || allVoted.value) {
+      setPageTitle(['Vote done', playerName, roomName])
+      return
+    }
+
+    setPageTitle([`${votedCount.value}/${totalPlayers.value}`, playerName, roomName])
+  })
+
   const sortedRoomUsers = computed(() =>
     Object.entries(activeRoundParticipants.value)
       .map(([userId, user]) => ({
@@ -926,6 +1058,9 @@
         isConnected: Object.hasOwn(roomUsers.value, userId),
       }))
       .toSorted((a, b) => a.joinedAt - b.joinedAt),
+  )
+  const consoleLogEntries = computed(() =>
+    normalizeConsoleLogEntries(currentRoom.value?.consoleLog),
   )
 
   const numericVotes = computed(() =>
@@ -1096,6 +1231,13 @@
     if (!db || !room || room.roundParticipants || Object.keys(users).length === 0) return
     update(dbRef(db, `rooms/${roomId}`), {
       roundParticipants: buildRoundParticipants(users),
+    }).catch(console.error)
+  }, { deep: true })
+
+  watch([currentRoom, activeRoundParticipants], ([room, participants]) => {
+    if (!db || !room || room.consoleLog || Object.keys(participants).length === 0) return
+    update(dbRef(db, `rooms/${roomId}`), {
+      consoleLog: buildRoundConsoleLogMap(currentRound.value, participants, Date.now()),
     }).catch(console.error)
   }, { deep: true })
 
@@ -1363,6 +1505,7 @@
         seenReactionIds.add(reactionId)
         if (!isValidReactionEvent(event)) continue
         if (!reactionEmojis.value.includes(event.emoji)) continue
+        if (configStore.viewMode === 'console') continue
         addFloatingReaction(reactionId, event)
       }
     })
@@ -1434,8 +1577,8 @@
       snapshots[userId] = {
         name: user.name,
         vote: user.vote,
-        avatarUrl: user.avatarUrl,
-        avatarCrop: user.avatarCrop,
+        avatarUrl: user.avatarUrl ?? null,
+        avatarCrop: user.avatarCrop ?? null,
       }
     }
     return snapshots
@@ -1473,27 +1616,6 @@
       ...(votes ? { votes } : {}),
       ...(legacyVotesByName ? { legacyVotesByName } : {}),
     }
-  }
-
-  function sanitizeHistoryForWrite (history: unknown): Record<string, WritableRoomHistoryEntry> {
-    if (!history || typeof history !== 'object' || Array.isArray(history)) return {}
-
-    const sanitizedHistory: Record<string, WritableRoomHistoryEntry> = {}
-    for (const [historyId, entry] of Object.entries(history as Record<string, LegacyRoomHistoryEntry>)) {
-      const { votes: storedVotes, voteSnapshots, ...historyEntry } = entry
-      const snapshots = isVoteSnapshotRecord(storedVotes)
-        ? storedVotes
-        : (isVoteSnapshotRecord(voteSnapshots) ? voteSnapshots : undefined)
-      const legacyVotes = isLegacyVoteRecord(storedVotes) ? storedVotes : undefined
-
-      sanitizedHistory[historyId] = {
-        ...historyEntry,
-        ...(legacyVotes ? { votes: legacyVotes } : {}),
-        ...(snapshots ? { voteSnapshots: snapshots } : {}),
-      }
-    }
-
-    return sanitizedHistory
   }
 
   function buildHistoryEntryBase () {
@@ -1537,11 +1659,109 @@
       participants[userId] = {
         name: user.name,
         joinedAt: user.joinedAt,
-        avatarUrl: user.avatarUrl,
-        avatarCrop: user.avatarCrop,
+        avatarUrl: user.avatarUrl ?? null,
+        avatarCrop: user.avatarCrop ?? null,
       }
     }
     return participants
+  }
+
+  function normalizeConsoleLogEntries (value: unknown): RoomConsoleLogEntry[] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+    return Object.entries(value as Record<string, Partial<RoomConsoleLogEntry>>)
+      .flatMap(([key, entry]) => {
+        if (!entry || typeof entry !== 'object') return []
+        if (typeof entry.message !== 'string' || typeof entry.createdAt !== 'number') return []
+        const level: RoomConsoleLogEntry['level'] = entry.level === 'trace' || entry.level === 'result' || entry.level === 'system'
+          ? entry.level
+          : 'info'
+        return [{
+          id: typeof entry.id === 'string' ? entry.id : key,
+          level,
+          message: entry.message,
+          createdAt: entry.createdAt,
+          round: typeof entry.round === 'number' ? entry.round : 1,
+          userId: typeof entry.userId === 'string' ? entry.userId : null,
+          userName: typeof entry.userName === 'string' ? entry.userName : null,
+          vote: entry.vote ?? null,
+        }]
+      })
+      .toSorted((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+  }
+
+  function buildConsoleLogId (createdAt: number, suffix = Math.random().toString(36).slice(2, 8)): string {
+    return `log-${createdAt}-${suffix.replace(/[.#$\/[\]]/g, '-')}`
+  }
+
+  function buildConsoleLogEntry (
+    level: RoomConsoleLogEntry['level'],
+    message: string,
+    createdAt: number,
+    round: number,
+    options: {
+      id?: string
+      userId?: string | null
+      userName?: string | null
+      vote?: VoteValue | null
+    } = {},
+  ): RoomConsoleLogEntry {
+    return {
+      id: options.id ?? buildConsoleLogId(createdAt),
+      level,
+      message,
+      createdAt,
+      round,
+      userId: options.userId ?? null,
+      userName: options.userName ?? null,
+      vote: options.vote ?? null,
+    }
+  }
+
+  function buildConsoleLogAppendUpdates (
+    entries: RoomConsoleLogEntry[],
+    existingLog: Record<string, RoomConsoleLogEntry> | undefined = currentRoom.value?.consoleLog,
+  ): Record<string, unknown> {
+    const updates: Record<string, unknown> = {}
+    const existingEntries = normalizeConsoleLogEntries(existingLog)
+    const overflowCount = Math.max(0, existingEntries.length + entries.length - MAX_CONSOLE_LOG_ENTRIES)
+    for (const entry of existingEntries.slice(0, overflowCount)) {
+      updates[`consoleLog/${entry.id}`] = null
+    }
+    for (const entry of entries) {
+      updates[`consoleLog/${entry.id}`] = entry
+    }
+    return updates
+  }
+
+  function buildRoundConsoleLogMap (
+    roundNumber: number,
+    participants: Record<string, RoomUser>,
+    createdAt: number,
+    action: 'started' | 'reset' = 'started',
+  ): Record<string, RoomConsoleLogEntry> {
+    const entries = [
+      buildConsoleLogEntry(
+        'system',
+        action === 'reset' ? `Round ${roundNumber} reset. Console attached.` : `Console attached to round ${roundNumber}.`,
+        createdAt,
+        roundNumber,
+        { id: `round-${roundNumber}-0000-system` },
+      ),
+      ...Object.entries(participants)
+        .toSorted(([, a], [, b]) => a.joinedAt - b.joinedAt)
+        .map(([userId, user], index) => buildConsoleLogEntry(
+          'info',
+          `${user.name} is in the lobby.`,
+          createdAt + index + 1,
+          roundNumber,
+          {
+            id: `round-${roundNumber}-${String(index + 1).padStart(4, '0')}-${userId.replace(/[.#$\/[\]]/g, '-')}`,
+            userId,
+            userName: user.name,
+          },
+        )),
+    ]
+    return Object.fromEntries(entries.map(entry => [entry.id, entry]))
   }
 
   function normalizeRoomUsers (value: unknown): Record<string, RoomUser> {
@@ -1698,6 +1918,20 @@
       [`users/${configStore.userId}`]: userRecord,
       [`roundParticipants/${configStore.userId}`]: roundParticipant,
     }
+    if (!existingParticipant) {
+      const createdAt = Date.now()
+      const entry = buildConsoleLogEntry(
+        'info',
+        `${userRecord.name} is in the lobby.`,
+        createdAt,
+        currentRound.value,
+        {
+          userId: configStore.userId,
+          userName: userRecord.name,
+        },
+      )
+      Object.assign(updates, buildConsoleLogAppendUpdates([entry]))
+    }
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
     onDisconnect(userRef).remove()
@@ -1729,9 +1963,13 @@
     }
 
     writeExternalDockContext(roomId, currentRoom.value?.name ?? configStore.activeRoomName)
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}`
+    const url = firebaseConfig.value
+      ? buildExternalDockUrl(roomId, firebaseConfig.value, null, appStore.currentTheme)
+      : `${window.location.origin}${import.meta.env.BASE_URL}app/dock/${encodeURIComponent(roomId)}?theme=${encodeURIComponent(appStore.currentTheme)}`
     const dockWindow = window.open(url, 'Refinimo-voting-dock', 'popup,width=520,height=720')
-    dockWindow?.focus()
+    if (dockWindow) {
+      dockWindow.focus()
+    }
   }
 
   function bringVotingDockBack () {
@@ -1744,6 +1982,12 @@
   }
 
   async function openPhoneDockQr () {
+    if (phoneDockActive.value || phoneDockConnected.value) {
+      await cleanupPhoneDockSession()
+      appStore.showToast('Phone voting dock disconnected.', 'success')
+      return
+    }
+
     if (!db || !firebaseConfig.value || !configStore.userId) {
       appStore.showToast('Room configuration is required before creating a phone dock.', 'error')
       return
@@ -1788,7 +2032,7 @@
 
     try {
       phoneDockQrImage.value = await QRCode.toDataURL(
-        buildExternalDockUrl(roomId, firebaseConfig.value, phoneDockToken.value),
+        buildExternalDockUrl(roomId, firebaseConfig.value, phoneDockToken.value, appStore.currentTheme),
         {
           errorCorrectionLevel: 'L',
           margin: 1,
@@ -1817,8 +2061,13 @@
       }
 
       if (session.claimedAt && !isExternalDockSessionExpired(session)) {
+        const wasConnected = phoneDockConnected.value
         phoneDockConnected.value = true
         phoneDockActive.value = true
+        if (!wasConnected) {
+          closePhoneDockDialog()
+          appStore.showToast('You are connected to your phone.', 'success')
+        }
       }
     })
   }
@@ -2023,16 +2272,30 @@
       const currentTimer = current.roundTimer as RoundTimerState | null | undefined
       const config = getRoomTimerConfig(current)
       if (!isTimerRunningForRound(currentTimer, roundNumber)) return current
-      if (currentTimer.endsAt !== timer.endsAt || currentTimer.endsAt > Date.now()) return current
+      const now = Date.now()
+      if (currentTimer.endsAt !== timer.endsAt || currentTimer.endsAt > now) return current
       if (current.settings?.showVotes === true) return current
+      const revealLogId = buildConsoleLogId(now, 'timer-reveal')
 
       return {
         ...current,
+        consoleLog: config.autoRevealEnabled
+          ? {
+            ...current.consoleLog,
+            [revealLogId]: buildConsoleLogEntry(
+              'system',
+              'Timer expired. Votes revealed in the side panel.',
+              now,
+              roundNumber,
+              { id: revealLogId },
+            ),
+          }
+          : current.consoleLog,
         settings: current.settings
           ? { ...current.settings, showVotes: config.autoRevealEnabled }
           : { showVotes: config.autoRevealEnabled },
         roundTimer: finishRoundTimer(currentTimer, roundNumber, 'expired'),
-        lastActivity: Date.now(),
+        lastActivity: now,
       }
     }).catch(console.error)
   }
@@ -2046,14 +2309,30 @@
 
     closePlayerMenu()
 
-    const isVoteChange = selectedVote.value !== null && value !== selectedVote.value
+    const previousVote = selectedVote.value
+    const isVoteChange = previousVote !== null && value !== previousVote
 
-    const userRef = dbRef(db, `rooms/${roomId}/roundParticipants/${configStore.userId}`)
-    const newVote = value === selectedVote.value ? null : value
-    update(userRef, { vote: newVote }).catch(console.error)
-
-    const roomRef = dbRef(db, `rooms/${roomId}`)
-    update(roomRef, { lastActivity: Date.now() }).catch(console.error)
+    const newVote = value === previousVote ? null : value
+    const createdAt = Date.now()
+    const currentPlayerName = activeRoundParticipants.value[configStore.userId]?.name ?? userName.value ?? 'Anonymous'
+    const message = newVote == null
+      ? `${currentPlayerName} cleared their vote.`
+      : (previousVote == null ? `${currentPlayerName} voted.` : `${currentPlayerName} changed their vote.`)
+    const entry = buildConsoleLogEntry(
+      'trace',
+      message,
+      createdAt,
+      currentRound.value,
+      {
+        userId: configStore.userId,
+        userName: currentPlayerName,
+      },
+    )
+    update(dbRef(db, `rooms/${roomId}`), {
+      [`roundParticipants/${configStore.userId}/vote`]: newVote,
+      lastActivity: createdAt,
+      ...buildConsoleLogAppendUpdates([entry]),
+    }).catch(console.error)
 
     if (isVoteChange && configStore.userId) {
       triggerShakeForUser(configStore.userId)
@@ -2074,6 +2353,7 @@
 
     const createdAt = Date.now()
     const reactionId = `${createdAt}-${configStore.userId}-${Math.random().toString(36).slice(2, 8)}`
+    const currentPlayerName = activeRoundParticipants.value[configStore.userId]?.name ?? userName.value ?? 'Anonymous'
     const event: RoomReactionEvent = {
       emoji,
       userId: configStore.userId,
@@ -2081,9 +2361,25 @@
     }
 
     seenReactionIds.add(reactionId)
-    addFloatingReaction(reactionId, event)
+    if (configStore.viewMode !== 'console') {
+      addFloatingReaction(reactionId, event)
+    }
 
     const reactionRef = dbRef(db, `rooms/${roomId}/reactions/${reactionId}`)
+    const entry = buildConsoleLogEntry(
+      'trace',
+      `${currentPlayerName} reacted ${emoji}.`,
+      createdAt,
+      currentRound.value,
+      {
+        userId: configStore.userId,
+        userName: currentPlayerName,
+      },
+    )
+    update(dbRef(db, `rooms/${roomId}`), {
+      lastActivity: createdAt,
+      ...buildConsoleLogAppendUpdates([entry]),
+    }).catch(console.error)
     set(reactionRef, event)
       .then(() => {
         setTimeout(() => {
@@ -2266,44 +2562,44 @@
     if (!db || !canManageRound.value || (taskInformationEnabled.value && !currentTask.value)) return
     closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
+    const now = Date.now()
     update(roomRef, {
       'settings/showVotes': true,
-      'roundTimer': pauseRoundTimerForReveal(roundTimer.value, currentRound.value, Date.now()),
-      'lastActivity': Date.now(),
+      'roundTimer': pauseRoundTimerForReveal(roundTimer.value, currentRound.value, now),
+      'lastActivity': now,
+      ...buildConsoleLogAppendUpdates([
+        buildConsoleLogEntry('system', 'Votes revealed in the side panel.', now, currentRound.value),
+      ]),
     }).catch(console.error)
   }
 
   async function hideVotes () {
     if (!db || !canManageRound.value) return
     closePlayerMenu()
-    const roomRef = dbRef(db, `rooms/${roomId}`)
 
-    await runTransaction(roomRef, current => {
-      if (!current) return current
+    const room = currentRoom.value
+    const now = Date.now()
+    const roundNumber = typeof room?.roundNumber === 'number' ? room.roundNumber : currentRound.value
+    const timer = room?.roundTimer ?? null
+    const config = getRoomTimerConfig(room)
+    let nextTimer = timer
 
-      const now = Date.now()
-      const roundNumber = typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value
-      const timer = current.roundTimer as RoundTimerState | null | undefined
-      const config = getRoomTimerConfig(current)
-      let nextTimer = timer ?? null
-
-      if (timer && timer.roundNumber === roundNumber) {
-        if (timer.status === 'paused' && timer.finishedBy === 'revealed' && config.mode === 'automatic') {
-          nextTimer = resumeRoundTimer(timer, now)
-        } else if (timer.status === 'finished' && timer.finishedBy === 'expired' && config.mode === 'automatic') {
-          nextTimer = restartRoundTimer(timer, now)
-        }
+    if (timer && timer.roundNumber === roundNumber) {
+      if (timer.status === 'paused' && timer.finishedBy === 'revealed' && config.mode === 'automatic') {
+        nextTimer = resumeRoundTimer(timer, now)
+      } else if (timer.status === 'finished' && timer.finishedBy === 'expired' && config.mode === 'automatic') {
+        nextTimer = restartRoundTimer(timer, now)
       }
+    }
 
-      return {
-        ...current,
-        committedVote: null,
-        lastActivity: now,
-        roundTimer: nextTimer,
-        settings: current.settings
-          ? { ...current.settings, showVotes: false }
-          : { showVotes: false },
-      }
+    await update(dbRef(db, `rooms/${roomId}`), {
+      'committedVote': null,
+      'lastActivity': now,
+      'roundTimer': nextTimer,
+      'settings/showVotes': false,
+      ...buildConsoleLogAppendUpdates([
+        buildConsoleLogEntry('info', 'Votes hidden. The round is open again.', now, roundNumber),
+      ]),
     }).catch(console.error)
   }
 
@@ -2323,6 +2619,7 @@
       return {
         ...current,
         committedVote: null,
+        consoleLog: buildRoundConsoleLogMap(roundNumber, currentUsers, lastActivity, 'reset'),
         roundParticipants: buildRoundParticipants(currentUsers),
         roundTimer: buildTimerForRound(current, roundNumber, lastActivity),
         lastActivity,
@@ -2351,7 +2648,7 @@
 
       const historyEntry = {
         id,
-        finalVote: defaultFinalVote.value,
+        finalVote: defaultFinalVote.value ?? '-',
         avg: formatOptionalNum(stats.value?.avg),
         closest: formatOptionalVote(stats.value?.closest),
         round: currentRound.value,
@@ -2363,49 +2660,30 @@
       }
 
       roundStartTime = Date.now()
-      await runTransaction(roomRef, current => {
-        if (!current) return current
-
-        const currentUsers = normalizeRoomUsers(current.users)
-        const roundParticipants = buildRoundParticipants(currentUsers)
-        const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-
-        return {
-          ...current,
-          committedVote: null,
-          roundNumber: nextRoundNumber,
-          roundParticipants,
-          roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-          lastActivity,
-          settings: current.settings
-            ? { ...current.settings, showVotes: false }
-            : { showVotes: false },
-          history: {
-            ...sanitizeHistoryForWrite(current.history),
-            [id]: historyEntry,
-          },
-        }
-      }).catch(console.error)
+      await update(roomRef, buildAdvanceRoundUpdates(lastActivity, {
+        [`history/${id}`]: historyEntry,
+      })).catch(console.error)
       return
     }
 
-    await runTransaction(roomRef, current => {
-      if (!current) return current
+    await update(roomRef, buildAdvanceRoundUpdates(lastActivity)).catch(console.error)
+  }
 
-      const currentUsers = normalizeRoomUsers(current.users)
-      const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-      return {
-        ...current,
-        committedVote: null,
-        roundNumber: nextRoundNumber,
-        roundParticipants: buildRoundParticipants(currentUsers),
-        roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-        lastActivity,
-        settings: current.settings
-          ? { ...current.settings, showVotes: false }
-          : { showVotes: false },
-      }
-    }).catch(console.error)
+  function buildAdvanceRoundUpdates (
+    lastActivity: number,
+    extraUpdates: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    const nextRoundNumber = currentRound.value + 1
+    return {
+      'committedVote': null,
+      'consoleLog': buildRoundConsoleLogMap(nextRoundNumber, roomUsers.value, lastActivity),
+      'lastActivity': lastActivity,
+      'roundNumber': nextRoundNumber,
+      'roundParticipants': buildRoundParticipants(roomUsers.value),
+      'roundTimer': buildCurrentRoomTimerForRound(nextRoundNumber, lastActivity),
+      'settings/showVotes': false,
+      ...extraUpdates,
+    }
   }
 
   async function startTaskInfoFlow (mode: TaskFlowMode) {
@@ -2491,7 +2769,7 @@
           title: currentTask.value?.title ?? null,
           url: currentTask.value?.url ?? null,
           description: currentTask.value?.description ?? null,
-          finalVote: defaultFinalVote.value,
+          finalVote: defaultFinalVote.value ?? '-',
           avg: formatOptionalNum(stats.value?.avg),
           closest: formatOptionalVote(stats.value?.closest),
           round: currentRound.value,
@@ -2503,29 +2781,11 @@
         }
 
         roundStartTime = Date.now()
-        runTransaction(roomRef, current => {
-          if (!current) return current
-
-          const currentUsers = normalizeRoomUsers(current.users)
-          const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-          return {
-            ...current,
-            currentTask: task,
-            roundEditLock: null,
-            committedVote: null,
-            roundNumber: nextRoundNumber,
-            roundParticipants: buildRoundParticipants(currentUsers),
-            roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-            lastActivity,
-            settings: current.settings
-              ? { ...current.settings, showVotes: false }
-              : { showVotes: false },
-            history: {
-              ...sanitizeHistoryForWrite(current.history),
-              [id]: historyEntry,
-            },
-          }
-        })
+        update(roomRef, buildAdvanceRoundUpdates(lastActivity, {
+          currentTask: task,
+          roundEditLock: null,
+          [`history/${id}`]: historyEntry,
+        }))
           .then(() => {
             taskInfoModalOpen.value = false
             pendingTaskFlow.value = null
@@ -2534,25 +2794,10 @@
         return
       }
 
-      runTransaction(roomRef, current => {
-        if (!current) return current
-
-        const currentUsers = normalizeRoomUsers(current.users)
-        const nextRoundNumber = (typeof current.roundNumber === 'number' ? current.roundNumber : currentRound.value) + 1
-        return {
-          ...current,
-          currentTask: task,
-          roundEditLock: null,
-          committedVote: null,
-          roundNumber: nextRoundNumber,
-          roundParticipants: buildRoundParticipants(currentUsers),
-          roundTimer: buildTimerForRound(current, nextRoundNumber, lastActivity),
-          lastActivity,
-          settings: current.settings
-            ? { ...current.settings, showVotes: false }
-            : { showVotes: false },
-        }
-      })
+      update(roomRef, buildAdvanceRoundUpdates(lastActivity, {
+        currentTask: task,
+        roundEditLock: null,
+      }))
         .then(() => {
           taskInfoModalOpen.value = false
           pendingTaskFlow.value = null
@@ -2585,15 +2830,18 @@
 
     closePlayerMenu()
 
+    const lastActivity = Date.now()
+    const restoredParticipants = buildRoundParticipantsWithVotes(
+      roomUsers.value,
+      entry.votes && Object.keys(entry.votes).length > 0 ? entry.votes : undefined,
+    )
     const updates: Record<string, unknown> = {
       'settings/showVotes': false,
       'committedVote': null,
-      'lastActivity': Date.now(),
-      'roundParticipants': buildRoundParticipantsWithVotes(
-        roomUsers.value,
-        entry.votes && Object.keys(entry.votes).length > 0 ? entry.votes : undefined,
-      ),
-      'roundTimer': buildCurrentRoomTimerForRound(currentRound.value, Date.now()),
+      'consoleLog': buildRoundConsoleLogMap(currentRound.value, restoredParticipants, lastActivity, 'reset'),
+      'lastActivity': lastActivity,
+      'roundParticipants': restoredParticipants,
+      'roundTimer': buildCurrentRoomTimerForRound(currentRound.value, lastActivity),
       'currentTask': entry.title
         ? {
           title: entry.title,
@@ -2611,9 +2859,10 @@
         participants[userId].vote = parseStoredVote(legacyVote)
       }
       updates.roundParticipants = participants
+      updates.consoleLog = buildRoundConsoleLogMap(currentRound.value, participants, lastActivity, 'reset')
     }
 
-    roundStartTime = Date.now()
+    roundStartTime = lastActivity
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
   }
 
@@ -2677,6 +2926,7 @@
 
   const roomCommands = {
     toggleDeck () {
+      if (configStore.viewMode === 'simple') return
       dockCollapsed.value = !dockCollapsed.value
     },
     toggleSidePanel () {

@@ -65,7 +65,7 @@
       </v-menu>
 
       <v-btn
-        class="p0-btn p0-btn-primary landing-topbar-cta"
+        class="ui-btn ui-btn-primary landing-topbar-cta"
         data-test-id="landing-primary-action"
         prepend-icon="mdi-arrow-right"
         to="/app"
@@ -110,7 +110,13 @@
             </div>
 
             <div class="landing-vote-grid">
-              <span v-for="vote in voteOptions" :key="vote" class="landing-vote-card">{{ vote }}</span>
+              <PlanningCard
+                v-for="vote in voteOptions"
+                :key="vote"
+                class="landing-vote-card"
+                flipped
+                :value="vote"
+              />
             </div>
 
             <div class="landing-panel-copy">
@@ -343,7 +349,7 @@
 
           <div v-if="rulesExpanded" class="landing-code-shell">
             <v-btn
-              class="p0-btn p0-btn-ghost landing-copy-icon"
+              class="ui-btn ui-btn-ghost landing-copy-icon"
               data-test-id="landing-copy-rules"
               :icon="rulesCopied ? 'mdi-check' : 'mdi-content-copy'"
               size="small"
@@ -357,7 +363,7 @@
 
         <div class="landing-actions">
           <v-btn
-            class="p0-btn p0-btn-primary landing-cta"
+            class="ui-btn ui-btn-primary landing-cta"
             prepend-icon="mdi-cog-outline"
             to="/app/config"
             variant="flat"
@@ -432,9 +438,11 @@
 
 <script lang="ts" setup>
   import { computed, onUnmounted, ref } from 'vue'
+  import PlanningCard from '@/components/PlanningCard.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import { THEME_LOOKUP, type ThemeId, THEMES_BY_MODE } from '@/utils/themes'
+  import firebaseRulesRaw from '../../firebase.database.rules.json?raw'
 
   type LandingTabId = 'pitch' | 'firebase' | 'about'
 
@@ -482,126 +490,7 @@
       body: 'Open Refinimo configuration, paste each Firebase value into the matching field, save, and the app will keep that setup in browser localStorage for future visits on that device.',
     },
   ]
-  const firebaseRules = `{
-  "rules": {
-    "rooms": {
-      ".read": false,
-      ".write": false,
-      "$room_id": {
-        ".read": "true",
-        ".write": "true",
-
-        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
-        "createdAt": { ".validate": "newData.isNumber()" },
-        "createdBy": { ".validate": "newData.isString()" },
-        "createdByUserId": { ".validate": "newData.val() === null || newData.isString()" },
-        "leaderUserId": { ".validate": "newData.val() === null || newData.isString()" },
-        "committedVote": { ".validate": "newData.val() === null || newData.isString()" },
-        "roundNumber": { ".validate": "newData.isNumber() && newData.val() >= 1" },
-        "lastActivity": { ".validate": "newData.isNumber()" },
-
-        "currentTask": {
-          ".validate": "newData.val() === null || (newData.hasChildren(['title']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 120 && (!newData.child('url').exists() || newData.child('url').val() === null || (newData.child('url').isString() && newData.child('url').val().length <= 500)) && (!newData.child('description').exists() || newData.child('description').val() === null || newData.child('description').isString()))"
-        },
-
-        "roundEditLock": {
-          ".validate": "newData.val() === null || (newData.hasChildren(['userId', 'userName', 'acquiredAt']) && newData.child('userId').isString() && newData.child('userName').isString() && newData.child('userName').val().length > 0 && newData.child('userName').val().length <= 20 && newData.child('acquiredAt').isNumber())"
-        },
-
-        "settings": {
-          "showVotes": { ".validate": "newData.isBoolean()" },
-          "v": { ".validate": "newData.isNumber()" },
-          "deck": { ".validate": "newData.isString() && (newData.val() === 'fibonacci' || newData.val() === 'modified-fibonacci' || newData.val() === 'linear' || newData.val() === 'power-of-2' || newData.val() === 'tshirt' || newData.val() === 'custom')" },
-          "customDeck": { ".validate": "newData.val() === null || newData.isString()" },
-          "specialQuestion": { ".validate": "newData.isBoolean()" },
-          "specialCoffee": { ".validate": "newData.isBoolean()" },
-          "historyEnabled": { ".validate": "newData.isBoolean()" },
-          "allowVoteChangesAfterReveal": { ".validate": "newData.isBoolean()" },
-          "leaderModeEnabled": { ".validate": "newData.isBoolean()" },
-          "taskInformationEnabled": { ".validate": "newData.isBoolean()" },
-          "timerEnabled": { ".validate": "newData.isBoolean()" },
-          "timerMode": { ".validate": "newData.isString() && (newData.val() === 'automatic' || newData.val() === 'manual')" },
-          "timerDurationSeconds": { ".validate": "newData.isNumber() && newData.val() >= 10 && newData.val() <= 3600" },
-          "timerAutoRevealEnabled": { ".validate": "newData.isBoolean()" },
-          "timerWarningEnabled": { ".validate": "newData.isBoolean()" },
-          "timerWarningType": { ".validate": "newData.isString() && (newData.val() === 'seconds' || newData.val() === 'percentage')" },
-          "timerWarningValue": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000" },
-          "reactionsEnabled": { ".validate": "newData.isBoolean()" },
-          "reactionEmojis": {
-            "$index": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 16" }
-          }
-        },
-
-        "users": {
-          "$user_id": {
-            ".validate": "newData.hasChildren(['name', 'joinedAt'])",
-            "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },
-            "joinedAt": { ".validate": "newData.isNumber()" },
-            "vote": { ".validate": "newData.val() === null || newData.isString() || newData.isNumber()" },
-            "avatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
-            "avatarCrop": {
-              ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
-            }
-          }
-        },
-
-        "history": {
-          "$history_id": {
-            ".validate": "newData.hasChildren(['id', 'finalVote', 'round', 'participantCount', 'consensus'])",
-            "id": { ".validate": "newData.isString()" },
-            "title": { ".validate": "newData.val() === null || newData.isString()" },
-            "url": { ".validate": "newData.val() === null || newData.isString()" },
-            "description": { ".validate": "newData.val() === null || newData.isString()" },
-            "finalVote": { ".validate": "newData.val() === null || newData.isString()" },
-            "avg": { ".validate": "newData.val() === null || newData.isString()" },
-            "closest": { ".validate": "newData.val() === null || newData.isString()" },
-            "round": { ".validate": "newData.isNumber() && newData.val() >= 1" },
-            "durationMs": { ".validate": "newData.val() === null || newData.isNumber()" },
-            "completedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
-            "participantCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-            "consensus": { ".validate": "newData.isString() && (newData.val() === 'yes' || newData.val() === 'split')" },
-            "votes": {
-              "$vote_user_id": { ".validate": "newData.isString()" }
-            },
-            "voteSnapshots": {
-              "$vote_user_id": {
-                ".validate": "newData.hasChildren(['name', 'vote']) && newData.child('name').isString() && (newData.child('vote').isString() || newData.child('vote').isNumber())",
-                "avatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
-                "avatarCrop": {
-                  ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
-                }
-              }
-            }
-          }
-        },
-
-        "externalDockSessions": {
-          "$session_id": {
-            ".validate": "newData.val() === null || newData.hasChildren(['token', 'userId', 'userName', 'createdAt', 'expiresAt'])",
-            "token": { ".validate": "newData.isString()" },
-            "userId": { ".validate": "newData.isString()" },
-            "userName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },
-            "avatarUrl": { ".validate": "newData.val() === null || newData.isString()" },
-            "avatarCrop": {
-              ".validate": "newData.val() === null || (newData.hasChildren(['left', 'top', 'width', 'height']) && newData.child('left').isNumber() && newData.child('top').isNumber() && newData.child('width').isNumber() && newData.child('height').isNumber())"
-            },
-            "createdAt": { ".validate": "newData.isNumber()" },
-            "expiresAt": { ".validate": "newData.isNumber()" },
-            "claimedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
-            "lastSeenAt": { ".validate": "newData.val() === null || newData.isNumber()" },
-            "status": { ".validate": "newData.val() === null || (newData.isString() && (newData.val() === 'waiting' || newData.val() === 'connected' || newData.val() === 'expired' || newData.val() === 'closed'))" }
-          }
-        },
-
-        "reactions": {
-          "$reaction_id": {
-            ".validate": "newData.val() === null || (newData.hasChildren(['emoji', 'userId', 'createdAt']) && newData.child('emoji').isString() && newData.child('emoji').val().length > 0 && newData.child('emoji').val().length <= 16 && newData.child('userId').isString() && newData.child('createdAt').isNumber())"
-          }
-        }
-      }
-    }
-  }
-}`
+  const firebaseRules = firebaseRulesRaw.trim()
   const aboutCredits = [
     {
       title: 'DiceBear',
@@ -1007,17 +896,11 @@
   }
 
   .landing-vote-card {
-    align-items: center;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(180deg, var(--card-face), var(--card-face-2));
-    border: 1px solid color-mix(in oklab, var(--card-ink), transparent 88%);
-    border-radius: 18px;
-    color: var(--card-ink);
-    display: flex;
-    font-family: var(--font-mono);
-    font-size: 1.2rem;
-    font-weight: 700;
-    justify-content: center;
+    --planning-card-w: 64px;
+    --planning-card-h: 86px;
+    --planning-card-radius: 14px;
+    font-size: 20px;
+    justify-self: center;
     transform: rotate(var(--tilt, 0deg));
   }
 

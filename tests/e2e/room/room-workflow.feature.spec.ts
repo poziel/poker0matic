@@ -5,6 +5,7 @@ test.describe('Feature: room workflow', () => {
   test('Scenario: a newly created room opens with the creator ready to vote', async ({ page }) => {
     await createRoomForTest(page, { name: 'Workflow planning' })
 
+    await expect(page).toHaveTitle('0/1 - Ada - Workflow planning - Refinimo')
     await expect(page.getByTestId('room-round-label')).toHaveText('Round 1')
     await expect(page.getByTestId('room-vote-count')).toHaveText('0/1 voted')
     await expect(tablePlayer(page, 'Ada')).toBeVisible()
@@ -37,11 +38,13 @@ test.describe('Feature: room workflow', () => {
   })
 
   test('Scenario: votes can be revealed and hidden without clearing the current vote', async ({ page }) => {
-    await createRoomForTest(page)
+    const room = await createRoomForTest(page)
 
     await voteCard(page, '5').click()
+    await expect(page).toHaveTitle(`Vote done - Ada - ${room.name} - Refinimo`)
     await page.getByTestId('room-reveal-votes').click()
 
+    await expect(page).toHaveTitle(`Vote done - Ada - ${room.name} - Refinimo`)
     await expect(page.getByTestId('room-hide-votes')).toBeVisible()
     await expect(page.getByTestId('room-next-round')).toBeVisible()
     await expect(page.getByTestId('round-insights-toggle')).toContainText('Consensus')
@@ -83,6 +86,16 @@ test.describe('Feature: room workflow', () => {
     await expect(resultCard(page, '8')).toBeVisible()
     await expect(resultCard(page, '5')).toHaveCount(0)
     await expect(page.getByTestId('room-hide-votes')).toBeVisible()
+
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+
+    await expect(page.getByTestId('room-console-view')).toBeVisible()
+    await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada changed their vote.' })).toBeVisible()
+    await expect(page.getByTestId('room-console-vote-panel')).toContainText('revealedvote.ts')
+    await expect(page.getByTestId('room-console-vote-object')).toContainText(/const\s*votes/)
+    await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('"8"')
   })
 
   test('Scenario: resetting a round clears the vote and keeps the room on the same round', async ({ page }) => {

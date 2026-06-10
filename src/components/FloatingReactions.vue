@@ -12,6 +12,7 @@
       v-for="reaction in reactions"
       :key="reaction.id"
       class="float-react"
+      data-test-id="floating-reaction"
       :style="{
         left: `${reaction.x}px`,
         top: `${reaction.y}px`,

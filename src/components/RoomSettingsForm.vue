@@ -80,7 +80,7 @@
     <!-- Room name -->
     <v-text-field
       :autofocus="autofocus"
-      class="p0-field"
+      class="ui-field"
       data-test-id="room-name-input"
       hide-details="auto"
       label="Room name"
@@ -117,7 +117,7 @@
 
       <v-text-field
         v-if="modelValue.deck === 'custom'"
-        class="p0-field"
+        class="ui-field"
         data-test-id="room-custom-deck-input"
         hint="Comma-separated values — e.g. 1, 2, 3, 5, 8, 13"
         label="Custom values"
@@ -141,7 +141,7 @@
 
           <input
             :checked="modelValue.specialQuestion"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-question"
             type="checkbox"
             @change="patch({ specialQuestion: ($event.target as HTMLInputElement).checked })"
@@ -156,7 +156,7 @@
 
           <input
             :checked="modelValue.specialCoffee"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-break"
             type="checkbox"
             @change="patch({ specialCoffee: ($event.target as HTMLInputElement).checked })"
@@ -178,7 +178,7 @@
 
           <input
             :checked="modelValue.historyEnabled"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-history"
             type="checkbox"
             @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
@@ -193,7 +193,7 @@
 
           <input
             :checked="modelValue.allowVoteChangesAfterReveal"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-post-reveal-voting"
             type="checkbox"
             @change="patch({ allowVoteChangesAfterReveal: ($event.target as HTMLInputElement).checked })"
@@ -208,7 +208,7 @@
 
           <input
             :checked="modelValue.taskInformationEnabled"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-task-info"
             type="checkbox"
             @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
@@ -223,7 +223,7 @@
 
           <input
             :checked="modelValue.leaderModeEnabled"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-leader-mode"
             type="checkbox"
             @change="patch({ leaderModeEnabled: ($event.target as HTMLInputElement).checked })"
@@ -243,7 +243,7 @@
 
         <input
           :checked="modelValue.timerEnabled"
-          class="p0-toggle"
+          class="ui-toggle"
           data-test-id="room-toggle-timer"
           type="checkbox"
           @change="patch({ timerEnabled: ($event.target as HTMLInputElement).checked })"
@@ -259,7 +259,7 @@
 
           <input
             :checked="modelValue.timerAutoRevealEnabled"
-            class="p0-toggle"
+            class="ui-toggle"
             data-test-id="room-toggle-timer-auto-reveal"
             type="checkbox"
             @change="patch({ timerAutoRevealEnabled: ($event.target as HTMLInputElement).checked })"
@@ -291,7 +291,7 @@
 
             <div class="timer-value-control">
               <v-text-field
-                class="p0-field timer-number-field"
+                class="ui-field timer-number-field"
                 data-test-id="room-timer-duration-input"
                 hide-details="auto"
                 inputmode="numeric"
@@ -319,7 +319,7 @@
 
               <input
                 :checked="modelValue.timerWarningEnabled"
-                class="p0-toggle"
+                class="ui-toggle"
                 data-test-id="room-toggle-timer-warning"
                 type="checkbox"
                 @change="patch({ timerWarningEnabled: ($event.target as HTMLInputElement).checked })"
@@ -346,7 +346,7 @@
 
               <div class="timer-value-control">
                 <v-text-field
-                  class="p0-field timer-number-field"
+                  class="ui-field timer-number-field"
                   data-test-id="room-timer-warning-value-input"
                   hide-details="auto"
                   inputmode="numeric"
@@ -376,7 +376,7 @@
 
         <input
           :checked="modelValue.reactionsEnabled"
-          class="p0-toggle"
+          class="ui-toggle"
           data-test-id="room-toggle-reactions"
           type="checkbox"
           @change="patch({ reactionsEnabled: ($event.target as HTMLInputElement).checked })"

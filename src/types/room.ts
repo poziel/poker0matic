@@ -57,6 +57,7 @@ export interface RoomRecord {
   createdAt: number
   createdBy: string
   createdByUserId?: string | null
+  consoleLog?: Record<string, RoomConsoleLogEntry>
   leaderUserId?: string | null
   committedVote?: string | null
   currentTask?: TaskInfo | null
@@ -74,6 +75,19 @@ export interface RoomUser {
   vote?: VoteValue
   avatarUrl?: string | null
   avatarCrop?: AvatarCrop | null
+}
+
+export type RoomConsoleLogLevel = 'info' | 'trace' | 'result' | 'system'
+
+export interface RoomConsoleLogEntry {
+  id: string
+  level: RoomConsoleLogLevel
+  message: string
+  createdAt: number
+  round: number
+  userId?: string | null
+  userName?: string | null
+  vote?: VoteValue | null
 }
 
 export interface RoomHistoryVoteSnapshot {

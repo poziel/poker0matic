@@ -6,6 +6,7 @@ test.describe('Feature: room creation', () => {
     await visitConfiguredApp(page)
     await page.getByTestId('app-create-room').click()
     await expect(page.getByRole('heading', { name: 'Create a room' })).toBeVisible()
+    await expect(page).toHaveTitle('Ada - Create room - Refinimo')
   })
 
   test('Scenario: a visitor sees the expected default room creation settings', async ({ page }) => {
