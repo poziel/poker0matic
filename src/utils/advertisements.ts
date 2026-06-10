@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-const ADSENSE_SCRIPT_ID = 'p0-google-adsense'
+const ADSENSE_SCRIPT_ID = 'refinimo-google-adsense'
 let adsenseScriptPromise: Promise<void> | null = null
 
 export function getAdvertisementLabel (placement: AdvertisementPlacement): string {

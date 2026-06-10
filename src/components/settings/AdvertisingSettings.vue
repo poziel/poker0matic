@@ -11,7 +11,7 @@
         <small>Shows this deployment's Google AdSense banners.</small>
       </div>
 
-      <input v-model="model.enableAds" class="p0-toggle" type="checkbox">
+      <input v-model="model.enableAds" class="ui-toggle" type="checkbox">
     </label>
 
     <p class="ad-settings-note">

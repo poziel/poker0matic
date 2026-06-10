@@ -321,7 +321,7 @@
         >
           <template v-if="taskInformationEnabled && !currentTask">
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="room-start-round"
               :disabled="!canStartTaskInfoFlow"
               prepend-icon="mdi-text-box-plus-outline"
@@ -335,7 +335,7 @@
 
           <template v-else-if="!showVotes">
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="room-reveal-votes"
               :disabled="votedCount === 0 || !canManageRound"
               prepend-icon="mdi-eye"
@@ -350,7 +350,7 @@
             </v-btn>
 
             <v-btn
-              class="p0-btn p0-btn-ghost"
+              class="ui-btn ui-btn-ghost"
               data-test-id="room-reset-round"
               :disabled="!canManageRound"
               :title="roundActionTitle"
@@ -363,7 +363,7 @@
 
           <template v-else-if="showVotes">
             <v-btn
-              class="p0-btn p0-btn-ghost"
+              class="ui-btn ui-btn-ghost"
               data-test-id="room-hide-votes"
               :disabled="!canManageRound"
               prepend-icon="mdi-eye-off"
@@ -375,7 +375,7 @@
             </v-btn>
 
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="room-next-round"
               :disabled="!canManageRound"
               :prepend-icon="historyEnabled ? 'mdi-arrow-right' : 'mdi-refresh'"
@@ -391,7 +391,7 @@
         <div v-if="timerControlsVisible" class="timer-action-row">
           <v-btn
             v-if="canStartManualTimer"
-            class="p0-btn p0-btn-primary"
+            class="ui-btn ui-btn-primary"
             data-test-id="room-start-timer"
             prepend-icon="mdi-play"
             :title="roundActionTitle"
@@ -403,7 +403,7 @@
 
           <v-btn
             v-if="canPauseTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-pause-timer"
             prepend-icon="mdi-pause"
             :title="roundActionTitle"
@@ -415,7 +415,7 @@
 
           <v-btn
             v-if="canResumeTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-resume-timer"
             prepend-icon="mdi-play"
             :title="roundActionTitle"
@@ -427,7 +427,7 @@
 
           <v-btn
             v-if="canExtendTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-extend-timer"
             prepend-icon="mdi-timer-plus-outline"
             :title="roundActionTitle"
@@ -439,7 +439,7 @@
 
           <v-btn
             v-if="canRestartTimer"
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-restart-timer"
             prepend-icon="mdi-restart"
             :title="roundActionTitle"
@@ -567,7 +567,7 @@
         </div>
       </div>
 
-      <v-btn class="p0-btn p0-btn-primary phone-dock-action" variant="flat" @click="closePhoneDockDialog">
+      <v-btn class="ui-btn ui-btn-primary phone-dock-action" variant="flat" @click="closePhoneDockDialog">
         {{ phoneDockConnected ? 'Close' : 'Cancel' }}
       </v-btn>
     </v-card>
@@ -581,7 +581,7 @@
   import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
   import QRCode from 'qrcode'
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
   import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
   import CardWallView from '@/components/CardWallView.vue'
@@ -609,6 +609,7 @@
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
+  import { setPageTitle } from '@/utils/pageTitle'
   import { type FloatingReaction, getReactionEmojis, type RoomReactionEvent, sanitizeReactionEmojis } from '@/utils/reactions'
   import {
     buildTimerForRound,
@@ -1025,6 +1026,27 @@
     return activeRoundParticipants.value[configStore.userId].vote ?? null
   })
 
+  watchEffect(() => {
+    const playerName = userName.value || 'Guest'
+    if (roomNotFound.value) {
+      setPageTitle([playerName, 'Room not found'])
+      return
+    }
+
+    if (!currentRoom.value) {
+      setPageTitle([playerName, 'Room'])
+      return
+    }
+
+    const roomName = currentRoom.value.name
+    if (showVotes.value || allVoted.value) {
+      setPageTitle(['Vote done', playerName, roomName])
+      return
+    }
+
+    setPageTitle([`${votedCount.value}/${totalPlayers.value}`, playerName, roomName])
+  })
+
   const sortedRoomUsers = computed(() =>
     Object.entries(activeRoundParticipants.value)
       .map(([userId, user]) => ({
@@ -1219,7 +1241,6 @@
   watch(showVotes, (revealed, wasRevealed) => {
     if (revealed && !wasRevealed) {
       setTimeout(() => {
-        if (configStore.viewMode === 'console') return
         if (stats.value?.consensus === 'consensus' && stats.value.total >= 2) {
           triggerConfetti()
         }

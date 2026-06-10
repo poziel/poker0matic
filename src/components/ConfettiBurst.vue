@@ -18,6 +18,7 @@
   <div
     aria-hidden="true"
     class="confetti-host"
+    data-test-id="consensus-confetti"
   >
     <span
       v-for="piece in pieces"

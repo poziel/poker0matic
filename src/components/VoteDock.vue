@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import PlanningCard from './PlanningCard.vue'
+
   type VoteValue = number | string
 
   defineProps<{
@@ -33,25 +35,20 @@
   >
     <template v-if="!collapsed || externalWindow">
       <div class="dock-cards">
-        <button
+        <PlanningCard
           v-for="option in voteOptions"
           :key="option"
-          class="vote-card p0-card p0-card-value p0-card-interactive"
-          :class="{
-            selected: selectedVote === option,
-            'p0-card-selected': selectedVote === option,
-          }"
-          :data-card-value="option"
+          class="vote-card"
+          :class="{ selected: selectedVote === option }"
           data-test-id="vote-card"
           :disabled="!canVote"
+          flipped
+          selectable
+          :selected="selectedVote === option"
           :title="!canVote ? disabledHint : ''"
-          type="button"
-          @click="$emit('cast-vote', option)"
-        >
-          <span class="corner p0-card-corner p0-card-corner-tl tl">{{ option }}</span>
-          <span class="p0-card-main">{{ option }}</span>
-          <span class="corner p0-card-corner p0-card-corner-br br">{{ option }}</span>
-        </button>
+          :value="option"
+          @select="$emit('cast-vote', $event)"
+        />
       </div>
 
       <div v-if="showHint !== false" class="dock-hint">

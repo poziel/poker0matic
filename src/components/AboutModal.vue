@@ -17,13 +17,13 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
+    <v-card class="ui-modal" flat>
+      <div class="ui-modal-head">
         <h2>About</h2>
         <p>Refinimo — real-time collaborative planning poker.</p>
       </div>
 
-      <div class="p0-modal-body">
+      <div class="ui-modal-body">
         <p class="about-line about-version">Version v{{ appVersion }}</p>
 
         <div class="about-section">
@@ -88,9 +88,9 @@
         </ul>
       </div>
 
-      <div class="p0-modal-foot">
+      <div class="ui-modal-foot">
         <v-btn
-          class="p0-btn p0-btn-primary"
+          class="ui-btn ui-btn-primary"
           variant="flat"
           @click="$emit('update:modelValue', false)"
         >

@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import type { AvatarCrop } from '@/utils/avatarStyles'
+  import PlanningCard from './PlanningCard.vue'
   import PlayerAvatar from './PlayerAvatar.vue'
 
   type VoteValue = number | string
@@ -62,27 +63,13 @@
           />
         </div>
 
-        <div
-          class="pcard"
-          :class="{
-            flipped: showVotes && player.vote != null,
-            'has-vote': player.vote != null,
-            'no-vote': player.vote == null,
-            shaking: shakingUserIds?.includes(player.userId),
-          }"
+        <PlanningCard
           data-test-id="room-player-card"
-          :style="{ '--flip-delay': showVotes && player.vote != null ? `${getPlayerIndex(player.userId) * 90}ms` : '0ms' }"
-        >
-          <div class="pcard-back p0-card p0-card-back">
-            <span class="logo">RF</span>
-          </div>
-
-          <div class="pcard-face p0-card p0-card-value">
-            <span class="corner p0-card-corner p0-card-corner-tl tl">{{ player.vote }}</span>
-            <span class="p0-card-main">{{ player.vote }}</span>
-            <span class="corner p0-card-corner p0-card-corner-br br">{{ player.vote }}</span>
-          </div>
-        </div>
+          :flip-delay="player.vote != null ? `${getPlayerIndex(player.userId) * 90}ms` : '0ms'"
+          :flipped="showVotes && player.vote != null"
+          :shaking="shakingUserIds?.includes(player.userId)"
+          :value="player.vote ?? null"
+        />
 
         <div
           class="pname"

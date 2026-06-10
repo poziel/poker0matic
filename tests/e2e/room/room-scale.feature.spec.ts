@@ -127,6 +127,23 @@ test.describe('Feature: room scale', () => {
     }
   })
 
+  test('Scenario: console view celebrates consensus after reveal', async ({ page }) => {
+    const room = await createRoomForTest(page, { name: 'Console consensus planning' })
+    await seedRoomParticipants(page, room.id, [{ name: 'Eva', vote: '5' }])
+
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+    await page.getByTestId('room-toggle-view').click()
+
+    await expect(page.getByTestId('room-console-view')).toBeVisible()
+    await voteCard(page, '5').click()
+    await page.getByTestId('room-reveal-votes').click()
+
+    await expect(page.getByTestId('room-console-vote-panel')).toBeVisible()
+    await expect(page.getByTestId('round-insights-toggle')).toContainText('Consensus')
+    await expect(page.getByTestId('consensus-confetti')).toBeVisible()
+  })
+
   test('Scenario: group status view moves a player when they vote', async ({ page }) => {
     await createRoomForTest(page, { name: 'Group status planning' })
 

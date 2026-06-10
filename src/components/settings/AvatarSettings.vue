@@ -61,7 +61,7 @@
       <div v-if="model.avatarSource === 'custom'" class="custom-avatar-controls">
         <v-text-field
           v-model="localCustomAvatarUrl"
-          class="p0-field custom-avatar-url-field"
+          class="ui-field custom-avatar-url-field"
           data-test-id="avatar-custom-url-input"
           hide-details="auto"
           label="Externally hosted image URL"
@@ -100,7 +100,7 @@
       <div v-if="model.avatarSource === 'gravatar'" class="gravatar-avatar-controls">
         <v-text-field
           v-model="localGravatarEmail"
-          class="p0-field gravatar-email-field"
+          class="ui-field gravatar-email-field"
           data-test-id="avatar-gravatar-email-input"
           hide-details="auto"
           label="Gravatar email"
@@ -158,7 +158,7 @@
         <div class="avatar-bg-custom-row">
           <label class="avatar-bg-theme-toggle">
             <span>Follow theme accent</span>
-            <input v-model="avatarBgFollowTheme" class="p0-toggle" type="checkbox">
+            <input v-model="avatarBgFollowTheme" class="ui-toggle" type="checkbox">
           </label>
 
           <label class="avatar-bg-picker">

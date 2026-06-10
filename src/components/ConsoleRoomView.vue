@@ -83,7 +83,7 @@
     </div>
 
     <div class="console-room-body" :class="{ 'console-room-body-with-votes': showVotes }">
-      <div ref="feedElement" aria-live="polite" class="console-room-feed p0-scrollbar" role="log">
+      <div ref="feedElement" aria-live="polite" class="console-room-feed ui-scrollbar" role="log">
         <p
           v-for="entry in entries"
           :key="entry.id"

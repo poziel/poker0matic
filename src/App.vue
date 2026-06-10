@@ -1,9 +1,9 @@
 <template>
-  <v-app v-if="isDockOnlyRoute" class="p0-app p0-app-dock-only">
+  <v-app v-if="isDockOnlyRoute" class="app-shell app-shell-dock-only">
     <router-view />
   </v-app>
 
-  <v-app v-else class="p0-app">
+  <v-app v-else class="app-shell">
     <v-app-bar v-if="!isPublicRoute" class="hdr" flat height="57">
       <v-btn
         class="brand"
@@ -42,7 +42,7 @@
 
     <v-snackbar
       v-model="appStore.toastVisible"
-      class="p0-snackbar"
+      class="ui-snackbar"
       :color="appStore.toastType === 'success' ? 'success' : 'error'"
       location="bottom right"
       variant="flat"
@@ -58,18 +58,18 @@
 
     <!-- ── Global username setup (shown once on first visit) ───────────── -->
     <v-dialog v-model="nameSetupOpen" max-width="480" persistent>
-      <v-card class="p0-modal" flat>
-        <div class="p0-modal-head">
+      <v-card class="ui-modal" flat>
+        <div class="ui-modal-head">
           <h2>What's your name?</h2>
           <p>This is how you'll appear in planning rooms. You can change it anytime from the user menu.</p>
         </div>
 
         <v-form @submit.prevent="submitSetupName">
-          <div class="p0-modal-body">
+          <div class="ui-modal-body">
             <v-text-field
               v-model="setupName"
               autofocus
-              class="p0-field"
+              class="ui-field"
               :counter="20"
               data-test-id="initial-name-input"
               hide-details="auto"
@@ -80,9 +80,9 @@
             />
           </div>
 
-          <div class="p0-modal-foot">
+          <div class="ui-modal-foot">
             <v-btn
-              class="p0-btn p0-btn-primary"
+              class="ui-btn ui-btn-primary"
               data-test-id="initial-name-continue"
               :disabled="!setupName.trim()"
               type="submit"

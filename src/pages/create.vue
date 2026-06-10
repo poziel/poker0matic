@@ -11,7 +11,7 @@
         <RoomSettingsForm v-model="settings" autofocus />
 
         <v-btn
-          class="p0-btn p0-btn-primary"
+          class="ui-btn ui-btn-primary"
           data-test-id="create-room-submit"
           :disabled="!settings.name.trim()"
           prepend-icon="mdi-plus"
@@ -28,12 +28,13 @@
 <script lang="ts" setup>
   import type { RoomConsoleLogEntry } from '@/types/room'
   import { ref as dbRef, onDisconnect, set } from 'firebase/database'
-  import { ref } from 'vue'
+  import { ref, watchEffect } from 'vue'
   import { useRouter } from 'vue-router'
   import RoomSettingsForm, { type RoomFormSettings } from '@/components/RoomSettingsForm.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
+  import { setPageTitle } from '@/utils/pageTitle'
   import { DEFAULT_REACTION_EMOJIS, sanitizeReactionEmojis } from '@/utils/reactions'
   import { buildInitialTimerForRoom, normalizeTimerDurationSeconds, normalizeTimerWarningValue } from '@/utils/roundTimers'
 
@@ -43,6 +44,10 @@
   const db = configStore.getDb()
   const CONSOLE_LOG_START_ID = '0000000000000-start'
   const CONSOLE_LOG_CREATOR_ID = '0000000000001-creator'
+
+  watchEffect(() => {
+    setPageTitle([configStore.userName || 'Guest', 'Create room'])
+  })
 
   const settings = ref<RoomFormSettings>({
     name: '',

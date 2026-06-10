@@ -35,20 +35,20 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
+    <v-card class="ui-modal" flat>
+      <div class="ui-modal-head">
         <h2>Room settings</h2>
         <p>Changes apply to all participants. Modifying the deck will reset current votes.</p>
       </div>
 
       <v-form data-test-id="room-settings-form" @submit.prevent="save">
-        <div class="p0-modal-body">
+        <div class="ui-modal-body">
           <RoomSettingsForm v-model="settings" />
         </div>
 
-        <div class="p0-modal-foot">
+        <div class="ui-modal-foot">
           <v-btn
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             data-test-id="room-settings-cancel"
             variant="flat"
             @click="$emit('update:modelValue', false)"
@@ -57,7 +57,7 @@
           </v-btn>
 
           <v-btn
-            class="p0-btn p0-btn-primary"
+            class="ui-btn ui-btn-primary"
             data-test-id="room-settings-save"
             :disabled="!settings.name.trim()"
             prepend-icon="mdi-content-save"

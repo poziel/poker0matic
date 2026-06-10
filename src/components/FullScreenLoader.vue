@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
-    <Transition name="p0-loader">
-      <div v-if="modelValue" class="p0-fullscreen-loader">
-        <div class="p0-loader-inner">
-          <div class="p0-loader-ring" />
-          <span v-if="message" class="p0-loader-msg">{{ message }}</span>
+    <Transition name="fullscreen-loader">
+      <div v-if="modelValue" class="fullscreen-loader">
+        <div class="loader-inner">
+          <div class="loader-ring" />
+          <span v-if="message" class="loader-msg">{{ message }}</span>
         </div>
       </div>
     </Transition>
@@ -19,7 +19,7 @@
 </script>
 
 <style scoped>
-  .p0-fullscreen-loader {
+  .fullscreen-loader {
     position: fixed;
     inset: 0;
     background: var(--bg-base);
@@ -28,27 +28,27 @@
     z-index: 9999;
   }
 
-  .p0-loader-inner {
+  .loader-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 14px;
   }
 
-  .p0-loader-ring {
+  .loader-ring {
     width: 38px;
     height: 38px;
     border-radius: 50%;
     border: 2.5px solid var(--border-strong);
     border-top-color: var(--accent);
-    animation: p0-spin 0.65s linear infinite;
+    animation: loader-spin 0.65s linear infinite;
   }
 
-  @keyframes p0-spin {
+  @keyframes loader-spin {
     to { transform: rotate(360deg); }
   }
 
-  .p0-loader-msg {
+  .loader-msg {
     font-size: 12px;
     color: var(--text-3);
     font-family: var(--font-mono);
@@ -56,13 +56,13 @@
     letter-spacing: 0;
   }
 
-  .p0-loader-enter-active,
-  .p0-loader-leave-active {
+  .fullscreen-loader-enter-active,
+  .fullscreen-loader-leave-active {
     transition: opacity 0.18s ease;
   }
 
-  .p0-loader-enter-from,
-  .p0-loader-leave-to {
+  .fullscreen-loader-enter-from,
+  .fullscreen-loader-leave-to {
     opacity: 0;
   }
 </style>

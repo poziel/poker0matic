@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import type { VoteValue } from '@/types/room'
   import type { AvatarCrop } from '@/utils/avatarStyles'
-  import { computed } from 'vue'
+  import { computed, onBeforeUpdate, onUpdated, ref } from 'vue'
   import PlayerAvatar from './PlayerAvatar.vue'
 
   interface GroupStatusPlayer {
@@ -30,12 +30,47 @@
   const deliberatingPlayers = computed(() => props.players.filter(player => player.vote == null))
   const readyPlayers = computed(() => props.players.filter(player => player.vote != null))
   const readyPercent = computed(() => props.totalPlayers > 0 ? Math.round((props.votedCount / props.totalPlayers) * 100) : 0)
+  const viewElement = ref<HTMLElement | null>(null)
+  const previousPlayerRects = new Map<string, DOMRect>()
 
   const formatVote = (vote: VoteValue | null | undefined) => vote == null ? '-' : String(vote)
+
+  function getPlayerElements () {
+    return Array.from(viewElement.value?.querySelectorAll<HTMLElement>('[data-group-status-user-id]') ?? [])
+  }
+
+  onBeforeUpdate(() => {
+    previousPlayerRects.clear()
+    for (const element of getPlayerElements()) {
+      previousPlayerRects.set(element.dataset.groupStatusUserId ?? '', element.getBoundingClientRect())
+    }
+  })
+
+  onUpdated(() => {
+    for (const element of getPlayerElements()) {
+      const previousRect = previousPlayerRects.get(element.dataset.groupStatusUserId ?? '')
+      if (!previousRect) continue
+
+      const nextRect = element.getBoundingClientRect()
+      const deltaX = previousRect.left - nextRect.left
+      const deltaY = previousRect.top - nextRect.top
+
+      if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) continue
+
+      element.style.transition = 'none'
+      element.style.transform = `translate(${deltaX}px, ${deltaY}px)`
+      element.getBoundingClientRect()
+
+      requestAnimationFrame(() => {
+        element.style.transition = ''
+        element.style.transform = ''
+      })
+    }
+  })
 </script>
 
 <template>
-  <section class="group-status-view" data-test-id="room-group-status-view">
+  <section ref="viewElement" class="group-status-view" data-test-id="room-group-status-view">
     <div aria-hidden="true" class="group-status-meter">
       <span class="group-status-meter-fill" :style="{ width: `${readyPercent}%` }" />
     </div>
@@ -47,7 +82,7 @@
           <strong>{{ deliberatingPlayers.length }}</strong>
         </div>
 
-        <TransitionGroup class="group-status-roster" name="group-player" tag="div">
+        <div class="group-status-roster">
           <button
             v-for="player in deliberatingPlayers"
             :key="player.userId"
@@ -57,6 +92,7 @@
               'is-leader': player.userId === leaderUserId,
               'is-connected': player.isConnected,
             }"
+            :data-group-status-user-id="player.userId"
             :data-player-name="player.name"
             data-test-id="group-status-player-deliberating"
             type="button"
@@ -78,7 +114,7 @@
           <div v-if="deliberatingPlayers.length === 0" key="empty-deliberating" class="group-status-empty">
             Everyone is ready.
           </div>
-        </TransitionGroup>
+        </div>
       </section>
 
       <div aria-hidden="true" class="group-status-gap">
@@ -92,7 +128,7 @@
           <strong>{{ readyPlayers.length }}</strong>
         </div>
 
-        <TransitionGroup class="group-status-roster" name="group-player" tag="div">
+        <div class="group-status-roster">
           <button
             v-for="player in readyPlayers"
             :key="player.userId"
@@ -102,6 +138,7 @@
               'is-leader': player.userId === leaderUserId,
               'is-connected': player.isConnected,
             }"
+            :data-group-status-user-id="player.userId"
             :data-player-name="player.name"
             data-test-id="group-status-player-ready"
             type="button"
@@ -123,7 +160,7 @@
           <div v-if="readyPlayers.length === 0" key="empty-ready" class="group-status-empty">
             Waiting for the first vote.
           </div>
-        </TransitionGroup>
+        </div>
       </section>
     </div>
   </section>

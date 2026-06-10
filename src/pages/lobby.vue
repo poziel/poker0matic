@@ -14,7 +14,7 @@
       </div>
 
       <v-btn
-        class="p0-btn p0-btn-primary"
+        class="ui-btn ui-btn-primary"
         data-test-id="app-open-configuration"
         prepend-icon="mdi-cog"
         variant="flat"
@@ -40,7 +40,7 @@
 
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <v-btn
-          class="p0-btn p0-btn-ghost"
+          class="ui-btn ui-btn-ghost"
           data-test-id="app-retry-config-check"
           prepend-icon="mdi-refresh"
           variant="flat"
@@ -50,7 +50,7 @@
         </v-btn>
 
         <v-btn
-          class="p0-btn p0-btn-primary"
+          class="ui-btn ui-btn-primary"
           data-test-id="app-review-configuration"
           prepend-icon="mdi-cog"
           variant="flat"
@@ -65,7 +65,7 @@
     <v-card v-else-if="configStatus === 'valid'" class="setup-card" flat>
       <div>
         <div class="kicker">Planning poker</div>
-        <h1 class="setup-title">Start or join a room</h1>
+        <h1 class="setup-title">Lobby</h1>
 
         <p class="setup-desc">
           Create a voting room for your team, or enter an existing room code to jump back in.
@@ -73,7 +73,7 @@
       </div>
 
       <v-btn
-        class="p0-btn p0-btn-primary"
+        class="ui-btn ui-btn-primary"
         data-test-id="app-create-room"
         prepend-icon="mdi-arrow-right"
         to="/app/create"
@@ -92,7 +92,7 @@
         <v-text-field
           v-model="roomCode"
           autofocus
-          class="p0-field"
+          class="ui-field"
           data-test-id="app-room-code-input"
           hide-details="auto"
           label="Room code"
@@ -102,7 +102,7 @@
         />
 
         <v-btn
-          class="p0-btn p0-btn-ghost"
+          class="ui-btn ui-btn-ghost"
           data-test-id="app-join-room"
           :disabled="!roomCode.trim() || joiningRoom"
           :loading="joiningRoom"
@@ -160,12 +160,13 @@
 
 <script lang="ts" setup>
   import { ref as dbRef, get } from 'firebase/database'
-  import { onMounted, ref, watch } from 'vue'
+  import { onMounted, ref, watch, watchEffect } from 'vue'
   import { useRouter } from 'vue-router'
   import AdvertisementSlot from '@/components/AdvertisementSlot.vue'
   import FullScreenLoader from '@/components/FullScreenLoader.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import { setPageTitle } from '@/utils/pageTitle'
 
   type ConfigStatus = 'checking' | 'valid' | 'incomplete' | 'unreachable'
 
@@ -175,6 +176,10 @@
   const roomCode = ref('')
   const joiningRoom = ref(false)
   const configStatus = ref<ConfigStatus>('checking')
+
+  watchEffect(() => {
+    setPageTitle([configStore.userName, 'Lobby'])
+  })
 
   // --- config validation ---------------------------------------------------
 

@@ -37,11 +37,12 @@ test.describe('Feature: app setup and configuration', () => {
     await expect(page.getByRole('heading', { name: 'Firebase Config' })).toBeVisible()
   })
 
-  test('Scenario: a visitor can save Firebase config and reach the room lobby', async ({ page }) => {
+  test('Scenario: a visitor can save Firebase config and reach the lobby', async ({ page }) => {
     await fillFirebaseConfigForm(page, validFirebaseConfig, { url: '/app/config?e' })
 
     await expect(page).toHaveURL(/\/app$/)
-    await expect(page.getByRole('heading', { name: 'Start or join a room' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Lobby' })).toBeVisible()
+    await expect(page).toHaveTitle('Ada - Lobby - Refinimo')
     await expect(page.getByTestId('app-create-room')).toBeVisible()
     await expect(page.getByTestId('app-room-code-input')).toBeVisible()
     await expect(page.getByTestId('app-join-room')).toBeDisabled()
@@ -50,7 +51,7 @@ test.describe('Feature: app setup and configuration', () => {
   test('Scenario: the join room action becomes available after a room code is entered', async ({ page }) => {
     await page.goto(`/?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
 
-    await expect(page.getByRole('heading', { name: 'Start or join a room' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Lobby' })).toBeVisible()
     await expect(page.getByTestId('app-join-room')).toBeDisabled()
 
     await page.getByTestId('app-room-code-input').locator('input').fill('demo-room')
@@ -62,7 +63,7 @@ test.describe('Feature: app setup and configuration', () => {
     await page.goto(`/?config=${encodeURIComponent(encodeFirebaseConfig(validFirebaseConfig))}`)
 
     await expect(page).toHaveURL(/\/app$/)
-    await expect(page.getByRole('heading', { name: 'Start or join a room' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Lobby' })).toBeVisible()
   })
 
   test('Scenario: incomplete saved config keeps visitors in setup mode', async ({ page }) => {

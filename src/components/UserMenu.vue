@@ -1,5 +1,5 @@
 <template>
-  <v-menu content-class="p0-user-menu" location="bottom end" origin="top end">
+  <v-menu content-class="ui-user-menu" location="bottom end" origin="top end">
     <template #activator="{ props }">
       <v-btn v-bind="props" class="user-menu-btn" data-test-id="user-menu-button" variant="text">
         <PlayerAvatar
@@ -18,19 +18,19 @@
       </v-btn>
     </template>
 
-    <v-list class="p0-menu-list" density="compact" min-width="200">
+    <v-list class="ui-menu-list" density="compact" min-width="200">
       <v-list-item
-        class="p0-menu-item"
+        class="ui-menu-item"
         data-test-id="user-menu-profile"
         prepend-icon="mdi-account-cog"
         title="Profile"
         @click="profileDialog = true"
       />
 
-      <v-divider class="p0-menu-divider" />
+      <v-divider class="ui-menu-divider" />
 
       <v-list-item
-        class="p0-menu-item"
+        class="ui-menu-item"
         data-test-id="user-menu-configuration"
         prepend-icon="mdi-cog"
         title="Configuration"
@@ -38,7 +38,7 @@
       />
 
       <v-list-item
-        class="p0-menu-item"
+        class="ui-menu-item"
         data-test-id="user-menu-about"
         prepend-icon="mdi-information-outline"
         title="About"

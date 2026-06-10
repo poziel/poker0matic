@@ -65,7 +65,7 @@
       </v-menu>
 
       <v-btn
-        class="p0-btn p0-btn-primary landing-topbar-cta"
+        class="ui-btn ui-btn-primary landing-topbar-cta"
         data-test-id="landing-primary-action"
         prepend-icon="mdi-arrow-right"
         to="/app"
@@ -110,7 +110,13 @@
             </div>
 
             <div class="landing-vote-grid">
-              <span v-for="vote in voteOptions" :key="vote" class="landing-vote-card">{{ vote }}</span>
+              <PlanningCard
+                v-for="vote in voteOptions"
+                :key="vote"
+                class="landing-vote-card"
+                flipped
+                :value="vote"
+              />
             </div>
 
             <div class="landing-panel-copy">
@@ -343,7 +349,7 @@
 
           <div v-if="rulesExpanded" class="landing-code-shell">
             <v-btn
-              class="p0-btn p0-btn-ghost landing-copy-icon"
+              class="ui-btn ui-btn-ghost landing-copy-icon"
               data-test-id="landing-copy-rules"
               :icon="rulesCopied ? 'mdi-check' : 'mdi-content-copy'"
               size="small"
@@ -357,7 +363,7 @@
 
         <div class="landing-actions">
           <v-btn
-            class="p0-btn p0-btn-primary landing-cta"
+            class="ui-btn ui-btn-primary landing-cta"
             prepend-icon="mdi-cog-outline"
             to="/app/config"
             variant="flat"
@@ -432,6 +438,7 @@
 
 <script lang="ts" setup>
   import { computed, onUnmounted, ref } from 'vue'
+  import PlanningCard from '@/components/PlanningCard.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
   import { THEME_LOOKUP, type ThemeId, THEMES_BY_MODE } from '@/utils/themes'
@@ -889,17 +896,11 @@
   }
 
   .landing-vote-card {
-    align-items: center;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(180deg, var(--card-face), var(--card-face-2));
-    border: 1px solid color-mix(in oklab, var(--card-ink), transparent 88%);
-    border-radius: 18px;
-    color: var(--card-ink);
-    display: flex;
-    font-family: var(--font-mono);
-    font-size: 1.2rem;
-    font-weight: 700;
-    justify-content: center;
+    --planning-card-w: 64px;
+    --planning-card-h: 86px;
+    --planning-card-radius: 14px;
+    font-size: 20px;
+    justify-self: center;
     transform: rotate(var(--tilt, 0deg));
   }
 
