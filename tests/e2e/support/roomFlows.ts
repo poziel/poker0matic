@@ -1,3 +1,4 @@
+import type { ViewMode } from '@/stores/config'
 import { type Browser, expect, type Locator, type Page } from '@playwright/test'
 import {
   encodeFirebaseConfig,
@@ -65,6 +66,13 @@ export function voteCard (page: Page, value: string): Locator {
 
 export function resultCard (page: Page, value: string): Locator {
   return page.locator(`[data-test-id="vote-result-card"][data-card-value="${value}"]`)
+}
+
+export async function setRoomDisplayMode (page: Page, mode: ViewMode) {
+  await page.evaluate(nextMode => {
+    localStorage.setItem('refinimo_view_mode', nextMode)
+  }, mode)
+  await page.reload()
 }
 
 export function tablePlayer (page: Page, name: string): Locator {

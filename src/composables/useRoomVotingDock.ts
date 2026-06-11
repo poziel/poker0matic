@@ -3,6 +3,10 @@ import { ref as dbRef, onValue, update } from 'firebase/database'
 import { storeToRefs } from 'pinia'
 import { computed, type ComputedRef, ref, type Ref } from 'vue'
 import { useConfigStore } from '@/stores/config'
+import {
+  buildConsoleLogAppendUpdates,
+  buildVoteConsoleLogEntry,
+} from '@/utils/roomConsoleLog'
 
 type ConsensusState = 'consensus' | 'close' | 'split'
 
@@ -80,6 +84,7 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
   const leaderModeEnabled = computed(() => currentRoom.value?.settings?.leaderModeEnabled === true)
   const taskInformationEnabled = computed(() => currentRoom.value?.settings?.taskInformationEnabled === true)
   const currentTask = computed(() => currentRoom.value?.currentTask ?? null)
+  const currentRound = computed(() => currentRoom.value?.roundNumber ?? 1)
   const committedVote = computed(() => currentRoom.value?.committedVote ?? null)
   const leaderUserId = computed(() => currentRoom.value?.leaderUserId ?? null)
   const effectiveUserId = computed(() => options.userId?.value ?? configStore.userId)
@@ -295,9 +300,24 @@ export function useRoomVotingDock (options: RoomVotingDockOptions = {}) {
       return
     }
 
-    const newVote = value === selectedVote.value ? null : value
-    update(dbRef(db.value, `rooms/${activeRoomId.value}/roundParticipants/${effectiveUserId.value}`), { vote: newVote }).catch(console.error)
-    update(dbRef(db.value, `rooms/${activeRoomId.value}`), { lastActivity: Date.now() }).catch(console.error)
+    const previousVote = selectedVote.value
+    const newVote = value === previousVote ? null : value
+    const createdAt = Date.now()
+    const currentPlayerName = currentParticipant.value?.name ?? effectiveUserName.value ?? 'Anonymous'
+    const entry = buildVoteConsoleLogEntry(
+      previousVote,
+      newVote,
+      createdAt,
+      currentRound.value,
+      effectiveUserId.value,
+      currentPlayerName,
+    )
+
+    update(dbRef(db.value, `rooms/${activeRoomId.value}`), {
+      [`roundParticipants/${effectiveUserId.value}/vote`]: newVote,
+      lastActivity: createdAt,
+      ...buildConsoleLogAppendUpdates([entry], currentRoom.value?.consoleLog),
+    }).catch(console.error)
   }
 
   function commitVote (value: string) {

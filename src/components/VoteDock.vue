@@ -77,10 +77,14 @@
         <span class="dock-toggle-label">
           <template v-if="collapsed">
             Expand deck
+
+            <span class="shortcut-hint">Space</span>
           </template>
 
           <template v-else>
             Collapse deck
+
+            <span class="shortcut-hint">Space</span>
           </template>
         </span>
 
@@ -104,7 +108,7 @@
         class="dock-external-btn"
         :class="{ active: externalDockActive }"
         data-test-id="vote-dock-external"
-        :title="externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
+        :title="externalDockActive ? 'Close voting dock window (Ctrl+Space)' : 'Open voting dock in a window (Ctrl+Space)'"
         type="button"
         @click.stop="$emit('toggle-external-dock')"
       >

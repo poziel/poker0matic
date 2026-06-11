@@ -51,14 +51,14 @@
 <template>
   <aside class="side-panel" :class="{ 'side-panel-collapsed': !open }" data-test-id="room-side-panel">
     <div class="side-panel-head">
-      <span v-if="open" class="side-panel-title">Room panel</span>
+      <span v-if="open" class="side-panel-title">Round context</span>
 
       <v-btn
         aria-label="Close panel"
         class="icon-btn"
         density="compact"
         icon
-        title="Close panel"
+        title="Close panel (P)"
         variant="text"
         @click="$emit('update:open', !open)"
       >

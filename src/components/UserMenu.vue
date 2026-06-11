@@ -23,8 +23,8 @@
         class="ui-menu-item"
         data-test-id="user-menu-profile"
         prepend-icon="mdi-account-cog"
-        title="Profile"
-        @click="profileDialog = true"
+        title="Preferences"
+        @click="appStore.setPreferencesModalOpen(true)"
       />
 
       <v-divider class="ui-menu-divider" />
@@ -39,6 +39,14 @@
 
       <v-list-item
         class="ui-menu-item"
+        data-test-id="user-menu-keyboard-shortcuts"
+        prepend-icon="mdi-keyboard-outline"
+        title="Keyboard shortcuts"
+        @click="appStore.setKeyboardShortcutsModalOpen(true)"
+      />
+
+      <v-list-item
+        class="ui-menu-item"
         data-test-id="user-menu-about"
         prepend-icon="mdi-information-outline"
         title="About"
@@ -47,7 +55,8 @@
     </v-list>
   </v-menu>
 
-  <UserSettingsModal v-model="profileDialog" />
+  <UserSettingsModal v-model="appStore.preferencesModalOpen" />
+  <KeyboardShortcutsModal v-model="appStore.keyboardShortcutsModalOpen" />
   <AboutModal v-model="aboutModalOpen" />
 </template>
 
@@ -55,6 +64,7 @@
   import { storeToRefs } from 'pinia'
   import { computed, ref } from 'vue'
   import AboutModal from '@/components/AboutModal.vue'
+  import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal.vue'
   import PlayerAvatar from '@/components/PlayerAvatar.vue'
   import UserSettingsModal from '@/components/settings/UserSettingsModal.vue'
   import { useAppStore } from '@/stores/app'
@@ -65,7 +75,6 @@
   const configStore = useConfigStore()
   const { userName } = storeToRefs(configStore)
 
-  const profileDialog = ref(false)
   const aboutModalOpen = ref(false)
 
   const displayName = computed(() => userName.value || 'Guest')

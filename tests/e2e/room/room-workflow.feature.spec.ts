@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { createRoomForTest, resultCard, tablePlayer, voteCard } from '../support/roomFlows'
+import { openProfileSettings } from '../support/appFlows'
+import { createRoomForTest, resultCard, setRoomDisplayMode, tablePlayer, voteCard } from '../support/roomFlows'
 
 test.describe('Feature: room workflow', () => {
   test('Scenario: a newly created room opens with the creator ready to vote', async ({ page }) => {
@@ -87,15 +88,57 @@ test.describe('Feature: room workflow', () => {
     await expect(resultCard(page, '5')).toHaveCount(0)
     await expect(page.getByTestId('room-hide-votes')).toBeVisible()
 
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'console')
 
     await expect(page.getByTestId('room-console-view')).toBeVisible()
     await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada changed their vote.' })).toBeVisible()
     await expect(page.getByTestId('room-console-vote-panel')).toContainText('revealedvote.ts')
     await expect(page.getByTestId('room-console-vote-object')).toContainText(/const\s*votes/)
     await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('"8"')
+  })
+
+  test('Scenario: saving an avatar update refreshes the current room participant', async ({ page }) => {
+    await createRoomForTest(page, { name: 'Avatar sync planning' })
+
+    const roomAvatar = tablePlayer(page, 'Ada').locator('.player-avatar-frame img')
+    const menuAvatar = page.getByTestId('user-menu-button').locator('.player-avatar-frame img')
+    const initialRoomSrc = await roomAvatar.getAttribute('src')
+
+    await openProfileSettings(page)
+    await page.getByTestId('settings-section-avatar').click()
+    await page.getByTestId('avatar-seed-input').fill('room-sync-seed')
+    await page.getByLabel('Follow theme accent').check()
+    await page.getByTestId('profile-save').click()
+
+    await expect.poll(() => roomAvatar.getAttribute('src')).not.toBe(initialRoomSrc)
+    await expect.poll(() => menuAvatar.getAttribute('src')).toBe(await roomAvatar.getAttribute('src'))
+    await expect(roomAvatar).toHaveAttribute('src', /backgroundColor=4f8cff/)
+    await expect(menuAvatar).not.toHaveAttribute('src', /backgroundColor=ffffff/)
+  })
+
+  test('Scenario: console view logs vote changes from an external voting dock', async ({ page }) => {
+    const room = await createRoomForTest(page, { name: 'External dock console updates' })
+    await setRoomDisplayMode(page, 'console')
+    await expect(page.getByTestId('room-toggle-view')).toHaveCount(0)
+    await expect(page.getByTestId('room-console-view')).toBeVisible()
+
+    const dockPage = await page.context().newPage()
+    try {
+      await dockPage.goto(`/app/dock/${room.id}`)
+      await expect(dockPage.locator('.dock-window')).toBeVisible()
+      await expect(voteCard(dockPage, '3')).toBeVisible()
+
+      await voteCard(dockPage, '3').click()
+      await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada voted.' })).toBeVisible()
+
+      await voteCard(dockPage, '5').click()
+      await expect(page.locator('[data-test-id="room-console-line"][data-log-level="trace"]').filter({ hasText: 'Ada changed their vote.' })).toBeVisible()
+
+      await page.getByTestId('room-reveal-votes').click()
+      await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Ada"]')).toContainText('"5"')
+    } finally {
+      await dockPage.close()
+    }
   })
 
   test('Scenario: resetting a round clears the vote and keeps the room on the same round', async ({ page }) => {

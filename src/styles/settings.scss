@@ -576,9 +576,6 @@ button { font-family: inherit; }
   letter-spacing: 0;
   line-height: 1;
 }
-.room-display-stack.revealed {
-  filter: drop-shadow(0 18px 30px rgba(0,0,0,.18));
-}
 .room-display-stack.revealed .table,
 .room-display-stack.revealed .results-grid {
   border-bottom-left-radius: 14px;
@@ -1020,22 +1017,26 @@ button { font-family: inherit; }
   border-right-width: 0;
 }
 .side-panel-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 10px 14px 16px;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
   background: color-mix(in oklab, var(--bg-2), transparent 12%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
   flex-shrink: 0;
+  justify-content: space-between;
   min-height: 50px;
+  padding: 14px 10px 14px 16px;
 }
-/* In-panel close button: hidden by default, only shown in overlay mode (≤900px) */
-.side-panel .side-panel-head .icon-btn { display: none; }
+.side-panel .side-panel-head .icon-btn {
+  display: none;
+}
 .side-panel-collapsed .side-panel-head {
   justify-content: center;
-  padding: 8px;  /* 8+34+8 = 50px exactly, fits the 34px icon-btn */
+  padding: 8px;
 }
 .side-panel-title {
-  font-size: 13px; font-weight: 600;
   color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: 0;
   white-space: nowrap;
 }
@@ -1887,9 +1888,7 @@ button { font-family: inherit; }
   font-weight: 700;
 }
 .group-status-player-body-vote {
-  background:
-    radial-gradient(circle at 50% 35%, color-mix(in oklab, var(--accent), transparent 76%), transparent 62%),
-    color-mix(in oklab, var(--bg-1), transparent 12%);
+  background: color-mix(in oklab, var(--bg-1), transparent 12%);
   border-color: color-mix(in oklab, var(--accent), transparent 42%);
   color: var(--text-1);
 }
@@ -1946,9 +1945,7 @@ button { font-family: inherit; }
       inset 0 0 0 1px color-mix(in oklab, var(--accent), transparent 36%);
   }
   40% {
-    background:
-      radial-gradient(circle at 50% 22%, color-mix(in oklab, var(--accent), transparent 62%), transparent 54%),
-      color-mix(in oklab, var(--accent), var(--bg-2) 74%);
+    background: color-mix(in oklab, var(--accent), var(--bg-2) 74%);
     border-color: color-mix(in oklab, var(--accent), transparent 8%);
     box-shadow:
       0 16px 34px rgba(var(--accent-glow), .3),
@@ -2126,6 +2123,7 @@ button { font-family: inherit; }
 
 .planning-card-back,
 .planning-card-face {
+  backface-visibility: hidden;
   border-radius: var(--planning-card-radius);
   display: grid;
   inset: 0;
@@ -2346,11 +2344,13 @@ button { font-family: inherit; }
 .planning-card-flipped .planning-card-back {
   transform: rotateY(90deg);
   transition-delay: var(--flip-delay);
+  visibility: hidden;
 }
 .planning-card-flipped .planning-card-face {
   transform: rotateY(0deg);
   transition-delay: calc(var(--flip-delay) + 280ms);
   transition-timing-function: cubic-bezier(.34, 1.56, .64, 1);
+  visibility: visible;
 }
 
 /* ---- state: vote changed (shake) ---- */
@@ -2832,6 +2832,12 @@ button { font-family: inherit; }
   -webkit-backdrop-filter: none;
 }
 
+[data-theme$="-light"] .dock.dock-external-window,
+[data-theme$="-light"] .simple-room-view > .dock {
+  background: transparent;
+  box-shadow: none;
+}
+
 .dock-external-window .dock-cards {
   align-content: flex-end;
   align-items: flex-end;
@@ -3284,12 +3290,9 @@ button { font-family: inherit; }
 .confetti-piece {
   position: absolute;
   width: 8px; height: 12px;
-  top: -20px;
-  animation: confettiFall 2.4s cubic-bezier(.4, 0, .6, 1) forwards;
-}
-@keyframes confettiFall {
-  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  contain: paint;
+  transform: translate3d(0, 0, 0) rotate(var(--confetti-rotation, 0deg));
+  opacity: .82;
 }
 
 /* --- toast notification ------------------------------------------------ */
@@ -4058,6 +4061,10 @@ button { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 12px;
+}
+.about-shortcuts-block + .about-shortcuts-block {
+  margin-top: 18px;
 }
 .about-shortcut-list {
   display: flex;
@@ -4104,6 +4111,21 @@ button { font-family: inherit; }
   color: var(--text-3);
   font-size: 12px;
   line-height: 1.45;
+}
+.shortcut-hint {
+  align-items: center;
+  background: color-mix(in oklab, var(--bg-3), transparent 10%);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-2);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 8px;
+  min-height: 20px;
+  padding: 3px 6px;
 }
 .about-line a,
 .about-credit-list a {
@@ -4157,6 +4179,38 @@ button { font-family: inherit; }
   line-height: 1.45;
   margin: 0;
 }
+.theme-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.theme-mode-option {
+  appearance: none;
+  align-items: center;
+  background: var(--bg-2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 10px;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.theme-mode-option:hover {
+  border-color: var(--border-strong);
+  color: var(--text-1);
+}
+.theme-mode-option.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text-1);
+}
 .theme-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
 }
@@ -4164,7 +4218,7 @@ button { font-family: inherit; }
   appearance: none; border: none; cursor: pointer;
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg-2);
   border: 1.5px solid var(--border);
   color: var(--text-1);
@@ -4182,7 +4236,11 @@ button { font-family: inherit; }
   border-radius: 8px;
   display: grid; place-items: center;
   flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,.08);
+  overflow: hidden;
+  position: relative;
+}
+.theme-swatch-system {
+  background: linear-gradient(135deg, var(--theme-dark-bg) 0 50%, var(--theme-light-bg) 50% 100%);
 }
 .theme-dot {
   width: 14px; height: 14px;
@@ -4732,7 +4790,6 @@ button { font-family: inherit; }
     overflow: hidden;
   }
 
-  /* Show in-panel close button when overlay is open */
   .side-panel:not(.side-panel-collapsed) .side-panel-head .icon-btn { display: flex; }
 
   /* Backdrop overlay */
@@ -5080,6 +5137,9 @@ button { font-family: inherit; }
     padding: 18px;
   }
   .settings-option-grid {
+    grid-template-columns: 1fr;
+  }
+  .theme-mode-toggle {
     grid-template-columns: 1fr;
   }
   .theme-grid {

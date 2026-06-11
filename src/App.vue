@@ -98,6 +98,7 @@
 </template>
 
 <script lang="ts" setup>
+  import type { ThemeModePreference } from '@/utils/themes'
   import { ref as dbRef, get } from 'firebase/database'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
@@ -126,6 +127,12 @@
   const setupName = ref('')
   let unregisterShortcuts: (() => void) | null = null
   let externalDockMonitor: ReturnType<typeof setInterval> | null = null
+  const THEME_MODE_SEQUENCE: ThemeModePreference[] = ['system', 'dark', 'light']
+  const THEME_MODE_LABELS: Record<ThemeModePreference, string> = {
+    dark: 'Dark theme',
+    light: 'Light theme',
+    system: 'Follow system theme',
+  }
 
   function syncNameSetupPrompt () {
     if (!requiresUserName.value) {
@@ -155,6 +162,42 @@
 
     unregisterShortcuts = registerKeyboardShortcuts([
       {
+        id: 'app.open-preferences',
+        group: 'app',
+        description: 'Open Preferences',
+        keys: [
+          { key: ',', ctrlKey: true },
+          { key: ',', metaKey: true },
+        ],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && (!hasActiveOverlay() || appStore.preferencesModalOpen),
+        handler: () => {
+          appStore.setPreferencesModalOpen(!appStore.preferencesModalOpen)
+        },
+      },
+      {
+        id: 'app.open-keyboard-shortcuts',
+        group: 'app',
+        description: 'Open keyboard shortcuts',
+        keys: [{ key: 'F1' }],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && (!hasActiveOverlay() || appStore.keyboardShortcutsModalOpen),
+        handler: () => {
+          appStore.setKeyboardShortcutsModalOpen(!appStore.keyboardShortcutsModalOpen)
+        },
+      },
+      {
+        id: 'app.go-lobby',
+        group: 'app',
+        description: 'Go back to the lobby',
+        keys: [{ key: 'Escape' }],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/app',
+        handler: () => {
+          void router.push('/app')
+        },
+      },
+      {
         id: 'app.open-config',
         group: 'app',
         description: 'Open Firebase configuration',
@@ -166,6 +209,22 @@
         when: () => !nameSetupOpen.value && !hasActiveOverlay(),
         handler: () => {
           appStore.setConfigModalOpen(true)
+        },
+      },
+      {
+        id: 'app.cycle-theme-mode',
+        group: 'app',
+        description: 'Cycle theme mode',
+        keys: [
+          { code: 'KeyK', ctrlKey: true },
+          { code: 'KeyK', ctrlKey: true, shiftKey: true },
+          { code: 'KeyK', metaKey: true },
+          { code: 'KeyK', metaKey: true, shiftKey: true },
+        ],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && !hasActiveOverlay(),
+        handler: () => {
+          cycleThemeMode()
         },
       },
       {
@@ -191,6 +250,13 @@
     syncNameSetupPrompt()
     syncExternalDockContext()
   })
+
+  function cycleThemeMode () {
+    const currentIndex = THEME_MODE_SEQUENCE.indexOf(appStore.themeModePreference)
+    const nextMode = THEME_MODE_SEQUENCE[(currentIndex + 1) % THEME_MODE_SEQUENCE.length]
+    appStore.setThemeModePreference(nextMode)
+    appStore.showToast(`Theme mode: ${THEME_MODE_LABELS[nextMode]}`, 'success')
+  }
 
   watch(
     [
