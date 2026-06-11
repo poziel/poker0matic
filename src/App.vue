@@ -98,6 +98,7 @@
 </template>
 
 <script lang="ts" setup>
+  import type { ThemeModePreference } from '@/utils/themes'
   import { ref as dbRef, get } from 'firebase/database'
   import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
@@ -126,6 +127,12 @@
   const setupName = ref('')
   let unregisterShortcuts: (() => void) | null = null
   let externalDockMonitor: ReturnType<typeof setInterval> | null = null
+  const THEME_MODE_SEQUENCE: ThemeModePreference[] = ['system', 'dark', 'light']
+  const THEME_MODE_LABELS: Record<ThemeModePreference, string> = {
+    dark: 'Dark theme',
+    light: 'Light theme',
+    system: 'Follow system theme',
+  }
 
   function syncNameSetupPrompt () {
     if (!requiresUserName.value) {
@@ -205,6 +212,22 @@
         },
       },
       {
+        id: 'app.cycle-theme-mode',
+        group: 'app',
+        description: 'Cycle theme mode',
+        keys: [
+          { code: 'KeyK', ctrlKey: true },
+          { code: 'KeyK', ctrlKey: true, shiftKey: true },
+          { code: 'KeyK', metaKey: true },
+          { code: 'KeyK', metaKey: true, shiftKey: true },
+        ],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && !hasActiveOverlay(),
+        handler: () => {
+          cycleThemeMode()
+        },
+      },
+      {
         id: 'app.create-room',
         group: 'app',
         description: 'Create a new room',
@@ -227,6 +250,13 @@
     syncNameSetupPrompt()
     syncExternalDockContext()
   })
+
+  function cycleThemeMode () {
+    const currentIndex = THEME_MODE_SEQUENCE.indexOf(appStore.themeModePreference)
+    const nextMode = THEME_MODE_SEQUENCE[(currentIndex + 1) % THEME_MODE_SEQUENCE.length]
+    appStore.setThemeModePreference(nextMode)
+    appStore.showToast(`Theme mode: ${THEME_MODE_LABELS[nextMode]}`, 'success')
+  }
 
   watch(
     [

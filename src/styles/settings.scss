@@ -2832,6 +2832,12 @@ button { font-family: inherit; }
   -webkit-backdrop-filter: none;
 }
 
+[data-theme$="-light"] .dock.dock-external-window,
+[data-theme$="-light"] .simple-room-view > .dock {
+  background: transparent;
+  box-shadow: none;
+}
+
 .dock-external-window .dock-cards {
   align-content: flex-end;
   align-items: flex-end;

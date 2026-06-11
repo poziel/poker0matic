@@ -609,7 +609,7 @@
   import TaskInfoModal from '@/components/TaskInfoModal.vue'
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
-  import { useConfigStore } from '@/stores/config'
+  import { useConfigStore, type ViewMode } from '@/stores/config'
   import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
@@ -696,6 +696,14 @@
     'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
+  const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple', 'console', 'group-status']
+  const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+    'console': 'Console view',
+    'grid': 'Grid view',
+    'group-status': 'Group status',
+    'simple': 'Simple room',
+    'table': 'Card wall',
+  }
   function parseCustomDeck (raw: string): VoteValue[] {
     return raw.split(',').flatMap(s => {
       const t = s.trim()
@@ -1488,6 +1496,21 @@
         when: () => canUseRoomShortcuts() && sidePanelEnabled.value,
         handler: () => {
           roomCommands.toggleSidePanel()
+        },
+      },
+      {
+        id: 'room.cycle-display-mode',
+        group: 'navigation',
+        description: 'Cycle through room display modes',
+        keys: [
+          { code: 'KeyL', ctrlKey: true },
+          { code: 'KeyL', ctrlKey: true, shiftKey: true },
+          { code: 'KeyL', metaKey: true },
+          { code: 'KeyL', metaKey: true, shiftKey: true },
+        ],
+        when: () => canUseRoomShortcuts(),
+        handler: () => {
+          roomCommands.cycleDisplayMode()
         },
       },
       {
@@ -2985,6 +3008,13 @@
     toggleSidePanel () {
       if (!sidePanelEnabled.value) return
       historyPanelOpen.value = !historyPanelOpen.value
+    },
+    cycleDisplayMode () {
+      const currentIndex = VIEW_MODE_SEQUENCE.indexOf(configStore.viewMode)
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % VIEW_MODE_SEQUENCE.length
+      const nextMode = VIEW_MODE_SEQUENCE[nextIndex]
+      configStore.setViewMode(nextMode)
+      appStore.showToast(`Room view: ${VIEW_MODE_LABELS[nextMode]}`, 'success')
     },
     copyRoomLink () {
       void shareRoomConfig()

@@ -53,6 +53,10 @@ export const APP_SHORTCUT_HELP: ShortcutHelpEntry[] = [
     description: 'Open Firebase configuration',
   },
   {
+    keys: 'Ctrl/Cmd + K or Ctrl/Cmd + Shift + K',
+    description: 'Cycle theme mode',
+  },
+  {
     keys: 'Ctrl/Cmd + Alt/Option + N',
     description: 'Create a new room',
     note: 'Uses a browser-safe combo because Ctrl/Cmd + N is reserved by browsers for a new window.',
@@ -102,6 +106,10 @@ export const ROOM_SHORTCUT_HELP: ShortcutHelpEntry[] = [
   {
     keys: 'P',
     description: 'Open or close the room side panel',
+  },
+  {
+    keys: 'Ctrl/Cmd + L or Ctrl/Cmd + Shift + L',
+    description: 'Cycle through room display modes',
   },
   {
     keys: 'Esc',
@@ -240,5 +248,10 @@ export function hasActiveOverlay (): boolean {
     return false
   }
 
-  return document.querySelector('.v-overlay--active') !== null
+  return Array.from(document.querySelectorAll<HTMLElement>('.v-overlay--active'))
+    .some(overlay => (
+      !overlay.classList.contains('v-snackbar')
+      && !overlay.classList.contains('ui-snackbar')
+      && !overlay.querySelector('.v-snackbar__wrapper')
+    ))
 }
