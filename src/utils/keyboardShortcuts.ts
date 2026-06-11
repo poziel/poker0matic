@@ -37,6 +37,18 @@ let listenerAttached = false
 
 export const APP_SHORTCUT_HELP: ShortcutHelpEntry[] = [
   {
+    keys: 'Ctrl/Cmd + ,',
+    description: 'Open Preferences',
+  },
+  {
+    keys: 'F1',
+    description: 'Open keyboard shortcuts',
+  },
+  {
+    keys: 'Esc',
+    description: 'Go back to the lobby',
+  },
+  {
     keys: 'Ctrl/Cmd + .',
     description: 'Open Firebase configuration',
   },
@@ -55,31 +67,27 @@ export const ROOM_SHORTCUT_HELP: ShortcutHelpEntry[] = [
   },
   {
     keys: '-',
-    description: 'Select the question mark card',
+    description: 'Cycle through special cards',
   },
   {
-    keys: '+ or =',
-    description: 'Select the coffee card',
+    keys: '^',
+    description: 'Cycle left through card choices',
   },
   {
-    keys: 'D',
+    keys: '¸',
+    description: 'Cycle right through card choices',
+  },
+  {
+    keys: 'Space',
     description: 'Collapse or expand the vote dock',
   },
   {
-    keys: 'C',
-    description: 'Copy the current room link',
+    keys: 'Ctrl/Cmd + Space',
+    description: 'Open or close the external voting window',
   },
   {
     keys: 'V',
-    description: 'Reveal votes',
-  },
-  {
-    keys: 'H',
-    description: 'Hide votes',
-  },
-  {
-    keys: 'R',
-    description: 'Reset the current round',
+    description: 'Reveal or hide votes',
   },
   {
     keys: 'N',
@@ -87,12 +95,38 @@ export const ROOM_SHORTCUT_HELP: ShortcutHelpEntry[] = [
     note: 'Available after votes are revealed.',
   },
   {
+    keys: 'B',
+    description: 'Reset the current round',
+    note: 'Available while the round is ongoing.',
+  },
+  {
     keys: 'P',
     description: 'Open or close the room side panel',
   },
   {
-    keys: 'G',
+    keys: 'Esc',
     description: 'Go back to the lobby',
+  },
+  {
+    keys: 'C',
+    description: 'Start or pause the timer',
+    note: 'Available when the timer controls are visible.',
+  },
+  {
+    keys: 'X',
+    description: 'Add 10 seconds to the timer',
+  },
+  {
+    keys: 'Z',
+    description: 'Restart the timer',
+  },
+  {
+    keys: 'Ctrl/Cmd + É',
+    description: 'Open room settings',
+  },
+  {
+    keys: 'Ctrl/Cmd + 1-6',
+    description: 'Send one of the configured reactions',
   },
 ]
 

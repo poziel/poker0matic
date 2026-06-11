@@ -4,6 +4,7 @@ import {
   fillFirebaseConfigForm,
   openConfigurationModal,
   openProfileSettings,
+  openUserMenu,
   stubFirebaseHealthCheck,
   validFirebaseConfig,
 } from './support/appFlows'
@@ -42,27 +43,45 @@ test.describe('Feature: profile and configuration management', () => {
     await completeInitialNamePrompt(page)
   })
 
-  test('Scenario: a visitor can update their display name from the profile modal', async ({ page }) => {
+  test('Scenario: a visitor can update their display name from the preferences modal', async ({ page }) => {
     await openProfileSettings(page)
 
     await page.getByTestId('profile-display-name-input').locator('input').fill('Grace')
     await page.getByTestId('profile-save').click()
 
-    await expect(page.getByRole('heading', { name: 'Profile' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Preferences' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Grace/ })).toBeVisible()
     await expect(page.evaluate(() => localStorage.getItem('refinimo_user_name'))).resolves.toBe('Grace')
   })
 
-  test('Scenario: a visitor can update their theme from the profile modal', async ({ page }) => {
+  test('Scenario: a visitor can update their theme from the preferences modal', async ({ page }) => {
     await openProfileSettings(page)
 
     await page.getByTestId('settings-section-theme').click()
+    await expect(page.getByTestId('profile-theme-mode-system')).toBeVisible()
+    await expect(page.getByTestId('profile-theme-midnight')).toBeVisible()
+    await expect(page.getByTestId('profile-theme-midnight-light')).toHaveCount(0)
+    await page.getByTestId('profile-theme-mode-dark').click()
     await page.getByTestId('profile-theme-ocean').click()
     await page.getByTestId('profile-save').click()
 
-    await expect(page.getByRole('heading', { name: 'Profile' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Preferences' })).toHaveCount(0)
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'ocean')
     await expect(page.evaluate(() => localStorage.getItem('refinimo_theme'))).resolves.toBe('ocean')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_theme_mode'))).resolves.toBe('dark')
+  })
+
+  test('Scenario: a visitor can save a light-mode theme preference independently', async ({ page }) => {
+    await openProfileSettings(page)
+
+    await page.getByTestId('settings-section-theme').click()
+    await page.getByTestId('profile-theme-mode-light').click()
+    await page.getByTestId('profile-theme-ocean').click()
+    await page.getByTestId('profile-save').click()
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'ocean-light')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_theme'))).resolves.toBe('ocean')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_theme_mode'))).resolves.toBe('light')
   })
 
   test('Scenario: a visitor can preview, randomize, and save a DiceBear avatar seed', async ({ page }) => {
@@ -126,6 +145,20 @@ test.describe('Feature: profile and configuration management', () => {
     await expect(page.evaluate(() => localStorage.getItem('refinimo_gravatar_email'))).resolves.toBe('Ada@Example.com')
   })
 
+  test('Scenario: a visitor can open keyboard shortcuts separately from About', async ({ page }) => {
+    await openUserMenu(page)
+
+    await page.getByTestId('user-menu-keyboard-shortcuts').click()
+    await expect(page.getByRole('heading', { name: 'Keyboard shortcuts' })).toBeVisible()
+    await expect(page.getByText('Global')).toBeVisible()
+    await page.getByRole('button', { name: 'Close' }).click()
+
+    await openUserMenu(page)
+    await page.getByTestId('user-menu-about').click()
+    await expect(page.getByRole('heading', { name: 'About' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Keyboard shortcuts' })).toHaveCount(0)
+  })
+
   test('Scenario: a visitor can update Firebase configuration from the configuration modal', async ({ page }) => {
     await openConfigurationModal(page)
     await fillFirebaseConfigForm(page, {
@@ -144,15 +177,17 @@ test.describe('Feature: profile and configuration management', () => {
     await page.evaluate(() => {
       localStorage.removeItem('refinimo_user_name')
       localStorage.removeItem('refinimo_theme')
+      localStorage.removeItem('refinimo_theme_mode')
       localStorage.setItem('poker_user_name', 'Legacy Grace')
-      localStorage.setItem('poker_theme', 'ocean')
+      localStorage.setItem('poker_theme', 'ocean-light')
     })
 
     await page.goto('/app')
 
     await expect(page.getByRole('button', { name: /Legacy Grace/ })).toBeVisible()
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'ocean')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'ocean-light')
     await expect(page.evaluate(() => localStorage.getItem('refinimo_user_name'))).resolves.toBe('Legacy Grace')
     await expect(page.evaluate(() => localStorage.getItem('refinimo_theme'))).resolves.toBe('ocean')
+    await expect(page.evaluate(() => localStorage.getItem('refinimo_theme_mode'))).resolves.toBe('light')
   })
 })

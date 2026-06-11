@@ -115,7 +115,7 @@ export async function openUserMenu (page: Page, name = 'Ada') {
 export async function openProfileSettings (page: Page, name = 'Ada') {
   await openUserMenu(page, name)
   await page.getByTestId('user-menu-profile').click()
-  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Preferences' })).toBeVisible()
 }
 
 export async function openConfigurationModal (page: Page, name = 'Ada') {

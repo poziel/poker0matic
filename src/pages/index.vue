@@ -27,7 +27,7 @@
         <template #activator="{ props }">
           <v-btn
             v-bind="props"
-            :aria-label="`Theme: ${currentThemeDefinition.label} ${currentThemeDefinition.mode}`"
+            :aria-label="`Theme: ${currentThemeDefinition.label} ${appStore.themeModePreference}`"
             class="landing-theme-trigger"
             icon="mdi-palette-outline"
             variant="text"
@@ -35,31 +35,38 @@
         </template>
 
         <div class="landing-theme-menu">
-          <div
-            v-for="group in themeGroups"
-            :key="group.mode"
-            class="landing-theme-group"
-          >
-            <div class="landing-theme-group-label">{{ group.label }}</div>
+          <div aria-label="Theme mode" class="landing-theme-mode-row" role="group">
+            <button
+              v-for="option in themeModeOptions"
+              :key="option.value"
+              :aria-pressed="appStore.themeModePreference === option.value"
+              class="landing-theme-mode-option"
+              :class="{ 'landing-theme-mode-option-active': appStore.themeModePreference === option.value }"
+              type="button"
+              @click="appStore.setThemeModePreference(option.value)"
+            >
+              <v-icon :icon="option.icon" size="15" />
+              <span>{{ option.shortLabel }}</span>
+            </button>
+          </div>
 
-            <div class="landing-theme-options">
-              <button
-                v-for="theme in group.themes"
-                :key="theme.id"
-                :aria-pressed="appStore.currentTheme === theme.id"
-                class="landing-theme-option"
-                :class="{ 'landing-theme-option-active': appStore.currentTheme === theme.id }"
-                type="button"
-                @click="setLandingTheme(theme.id)"
-              >
-                <span class="landing-theme-swatch" :style="{ background: theme.preview.bg }">
-                  <span class="landing-theme-dot" :style="{ background: theme.preview.accent }" />
-                </span>
+          <div class="landing-theme-options">
+            <button
+              v-for="theme in themeOptions"
+              :key="theme.family"
+              :aria-pressed="appStore.currentThemeFamily === theme.family"
+              class="landing-theme-option"
+              :class="{ 'landing-theme-option-active': appStore.currentThemeFamily === theme.family }"
+              type="button"
+              @click="setLandingTheme(theme.family)"
+            >
+              <span class="landing-theme-swatch" :style="landingSwatchStyle(theme)">
+                <span class="landing-theme-dot" :style="landingDotStyle(theme)" />
+              </span>
 
-                <span>{{ theme.label }}</span>
-                <v-icon v-if="appStore.currentTheme === theme.id" icon="mdi-check" size="16" />
-              </button>
-            </div>
+              <span>{{ theme.label }}</span>
+              <v-icon v-if="appStore.currentThemeFamily === theme.family" icon="mdi-check" size="16" />
+            </button>
           </div>
         </div>
       </v-menu>
@@ -441,7 +448,13 @@
   import PlanningCard from '@/components/PlanningCard.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
-  import { THEME_LOOKUP, type ThemeId, THEMES_BY_MODE } from '@/utils/themes'
+  import {
+    THEME_FAMILIES,
+    THEME_FAMILY_LOOKUP,
+    THEME_LOOKUP,
+    type ThemeFamily,
+    type ThemeModePreference,
+  } from '@/utils/themes'
   import firebaseRulesRaw from '../../firebase.database.rules.json?raw'
 
   type LandingTabId = 'pitch' | 'firebase' | 'about'
@@ -459,10 +472,12 @@
     { id: 'firebase', label: 'How it works' },
     { id: 'about', label: 'About' },
   ]
-  const themeGroups = [
-    { mode: 'dark', label: 'Dark', themes: THEMES_BY_MODE.dark },
-    { mode: 'light', label: 'Light', themes: THEMES_BY_MODE.light },
+  const themeModeOptions: Array<{ value: ThemeModePreference, shortLabel: string, icon: string }> = [
+    { value: 'system', shortLabel: 'Auto', icon: 'mdi-theme-light-dark' },
+    { value: 'dark', shortLabel: 'Dark', icon: 'mdi-weather-night' },
+    { value: 'light', shortLabel: 'Light', icon: 'mdi-white-balance-sunny' },
   ]
+  const themeOptions = computed(() => THEME_FAMILIES.map(family => THEME_FAMILY_LOOKUP[family]))
   const firebaseSteps = [
     {
       id: '01',
@@ -494,15 +509,33 @@
   const aboutCredits = [
     {
       title: 'DiceBear',
-      body: 'Used for avatar generation so every player can have a lightweight identity without uploading profile images.',
+      body: 'Used for generated avatar styles and lightweight player identities.',
       href: 'https://www.dicebear.com/',
       label: 'DiceBear',
     },
     {
-      title: 'Magnific',
-      body: 'Used in the icon generation workflow while shaping the project branding and public visuals.',
-      href: 'https://docs.magnific.com/api-reference/icon-generation/overview',
+      title: 'Gravatar',
+      body: 'Used as an optional profile image source for globally recognized avatars.',
+      href: 'https://gravatar.com/',
+      label: 'Gravatar',
+    },
+    {
+      title: 'Anggara Putra',
+      body: 'Credited for the Magnific playing-card suit artwork used across the card and icon set.',
+      href: 'https://www.magnific.com/author/anggara-putra',
       label: 'Magnific',
+    },
+    {
+      title: 'NSFWJS and TensorFlow.js',
+      body: 'Used for client-side checks on custom avatar image URLs before they are saved.',
+      href: 'https://github.com/infinitered/nsfwjs',
+      label: 'NSFWJS',
+    },
+    {
+      title: 'Vue Advanced Cropper',
+      body: 'Used for custom avatar image cropping in the profile editor.',
+      href: 'https://github.com/advanced-cropper/vue-advanced-cropper',
+      label: 'Cropper',
     },
     {
       title: 'Vuetify and Material Design Icons',
@@ -522,8 +555,28 @@
   const currentThemeDefinition = computed(() => THEME_LOOKUP[appStore.currentTheme])
   let copiedResetTimer: number | null = null
 
-  function setLandingTheme (theme: ThemeId) {
+  function setLandingTheme (theme: ThemeFamily) {
     appStore.setTheme(theme)
+  }
+
+  function landingSwatchStyle (theme: typeof themeOptions.value[number]) {
+    if (appStore.themeModePreference === 'system') {
+      return {
+        background: `linear-gradient(135deg, ${theme.dark?.preview.bg} 0 50%, ${theme.light?.preview.bg} 50% 100%)`,
+      }
+    }
+
+    return { background: theme[appStore.themeModePreference]?.preview.bg }
+  }
+
+  function landingDotStyle (theme: typeof themeOptions.value[number]) {
+    if (appStore.themeModePreference === 'system') {
+      return {
+        background: `linear-gradient(135deg, ${theme.dark?.preview.accent} 0 50%, ${theme.light?.preview.accent} 50% 100%)`,
+      }
+    }
+
+    return { background: theme[appStore.themeModePreference]?.preview.accent }
   }
 
   async function copyFirebaseRules () {
@@ -676,6 +729,38 @@
     text-transform: uppercase;
   }
 
+  .landing-theme-mode-row {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-theme-mode-option {
+    align-items: center;
+    appearance: none;
+    background: var(--bg-2);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-2);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    gap: 5px;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 8px;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+  }
+
+  .landing-theme-mode-option:hover,
+  .landing-theme-mode-option-active {
+    background: var(--bg-3);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+  }
+
   .landing-theme-options {
     display: grid;
     gap: 6px;
@@ -721,6 +806,7 @@
     border-radius: 999px;
     display: grid;
     height: 24px;
+    overflow: hidden;
     place-items: center;
     width: 24px;
   }

@@ -1,10 +1,11 @@
 import type { ViewMode } from '@/stores/config'
 import type { AvatarModerationStatus } from '@/utils/avatarModeration'
 import type { AvatarCrop, AvatarSource } from '@/utils/avatarStyles'
-import type { ThemeId } from '@/utils/themes'
+import type { ThemeFamily, ThemeModePreference } from '@/utils/themes'
 
 export interface SettingsDraft {
-  theme: ThemeId
+  theme: ThemeFamily
+  themeModePreference: ThemeModePreference
   avatarSource: AvatarSource
   avatarStyle: string
   avatarSeed: string

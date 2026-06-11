@@ -2,9 +2,9 @@
   <SettingsModalShell
     v-model="model"
     v-model:active-section="activeSection"
-    description="Manage your personal Refinimo profile."
+    description="Manage your personal Refinimo preferences."
     :sections="profileSections"
-    title="Profile"
+    title="Preferences"
   >
     <component :is="activeComponent" v-model="settingsDraft" />
 
@@ -18,7 +18,7 @@
         variant="flat"
         @click="saveSettings"
       >
-        Save profile
+        Save preferences
       </v-btn>
     </template>
   </SettingsModalShell>
@@ -79,7 +79,8 @@
 
   function createSettingsDraft (): SettingsDraft {
     return {
-      theme: appStore.currentTheme,
+      theme: appStore.currentThemeFamily,
+      themeModePreference: appStore.themeModePreference,
       avatarSource: configStore.avatarSource,
       avatarStyle: configStore.avatarStyle,
       avatarSeed: configStore.avatarSeed,
@@ -99,6 +100,7 @@
     if (!trimmedName) return
 
     appStore.setTheme(settingsDraft.value.theme)
+    appStore.setThemeModePreference(settingsDraft.value.themeModePreference)
     configStore.setAvatarStyle(settingsDraft.value.avatarStyle)
     configStore.setAvatarSeed(settingsDraft.value.avatarSeed)
     configStore.setAvatarBg(settingsDraft.value.avatarBg)
@@ -106,6 +108,7 @@
     configStore.setGravatarEmail(settingsDraft.value.gravatarEmail)
     configStore.setCustomAvatarUrl(settingsDraft.value.customAvatarUrl)
     configStore.setCustomAvatarCrop(settingsDraft.value.customAvatarCrop)
+    window.dispatchEvent(new CustomEvent('refinimo:avatar-updated'))
     configStore.setUserName(trimmedName)
     configStore.setViewMode(settingsDraft.value.viewMode)
     configStore.setEnableAds(settingsDraft.value.enableAds)

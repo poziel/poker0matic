@@ -223,6 +223,7 @@
   import PlayerAvatar from '@/components/PlayerAvatar.vue'
   import { type AvatarModerationResult, formatModerationScore, isModerationResultBlocking, moderateCustomAvatarUrl } from '@/utils/avatarModeration'
   import { AVATAR_BACKGROUND_PRESETS, AVATAR_STYLES, type AvatarCrop, buildGravatarAvatarUrl, createRandomAvatarSeed, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_CROP, isValidCustomAvatarUrl, isValidGravatarEmail, resolveAvatarBackgroundColor, THEME_BG_VALUE } from '@/utils/avatarStyles'
+  import { resolveThemeId } from '@/utils/themes'
   import 'vue-advanced-cropper/dist/style.css'
 
   const model = defineModel<SettingsDraft>({ required: true })
@@ -237,8 +238,9 @@
   )
 
   const displayName = computed(() => model.value.userName.trim() || 'Guest')
+  const resolvedTheme = computed(() => resolveThemeId(model.value.theme, model.value.themeModePreference))
   const effectiveBg = computed(() => avatarBgFollowTheme.value
-    ? resolveAvatarBackgroundColor(THEME_BG_VALUE, model.value.theme)
+    ? resolveAvatarBackgroundColor(THEME_BG_VALUE, resolvedTheme.value)
     : localAvatarBg.value)
   const effectiveSeed = computed(() => previewSeed.value.trim() || displayName.value)
   const selectedStyleLabel = computed(() => (

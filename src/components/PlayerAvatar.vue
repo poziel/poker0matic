@@ -15,7 +15,8 @@
 <script lang="ts" setup>
   import type { CSSProperties } from 'vue'
   import { computed, ref, watch } from 'vue'
-  import { type AvatarCrop, type AvatarSource, buildAvatarUrl, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_CROP, DEFAULT_AVATAR_SOURCE, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, THEME_BG_VALUE } from '@/utils/avatarStyles'
+  import { useAppStore } from '@/stores/app'
+  import { type AvatarCrop, type AvatarSource, buildAvatarUrl, DEFAULT_AVATAR_BG, DEFAULT_AVATAR_CROP, DEFAULT_AVATAR_SOURCE, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
 
   const props = defineProps<{
     /** DiceBear style ID (e.g. 'notionists-neutral') */
@@ -35,6 +36,7 @@
     square?: boolean
   }>()
 
+  const appStore = useAppStore()
   const customLoadFailed = ref(false)
   const size = computed(() => props.size ?? 64)
   const fallbackSrc = computed(() => buildAvatarUrl(
@@ -79,15 +81,10 @@
     left: `${-(crop.value.left / crop.value.width) * 100}%`,
     top: `${-(crop.value.top / crop.value.height) * 100}%`,
   }))
-  const bg = computed(() => {
-    if (!props.avatarBg || props.avatarBg === THEME_BG_VALUE) {
-      // 'theme' sentinel → lighter version of the viewer's own accent color
-      return props.avatarBg === THEME_BG_VALUE
-        ? 'color-mix(in oklab, var(--accent), white 38%)'
-        : DEFAULT_AVATAR_BG
-    }
-    return props.avatarBg
-  })
+  const bg = computed(() => resolveAvatarBackgroundColor(
+    props.avatarBg || DEFAULT_AVATAR_BG,
+    appStore.currentTheme,
+  ))
 
   watch(
     [avatarSrc, () => props.avatarSource, customSrc],
@@ -97,7 +94,7 @@
   )
 
   function onImageError () {
-    if (src.value === avatarSrc.value || src.value === customSrc.value) {
+    if (src.value === customSrc.value) {
       customLoadFailed.value = true
     }
   }

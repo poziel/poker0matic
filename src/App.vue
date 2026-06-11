@@ -155,6 +155,42 @@
 
     unregisterShortcuts = registerKeyboardShortcuts([
       {
+        id: 'app.open-preferences',
+        group: 'app',
+        description: 'Open Preferences',
+        keys: [
+          { key: ',', ctrlKey: true },
+          { key: ',', metaKey: true },
+        ],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && (!hasActiveOverlay() || appStore.preferencesModalOpen),
+        handler: () => {
+          appStore.setPreferencesModalOpen(!appStore.preferencesModalOpen)
+        },
+      },
+      {
+        id: 'app.open-keyboard-shortcuts',
+        group: 'app',
+        description: 'Open keyboard shortcuts',
+        keys: [{ key: 'F1' }],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && (!hasActiveOverlay() || appStore.keyboardShortcutsModalOpen),
+        handler: () => {
+          appStore.setKeyboardShortcutsModalOpen(!appStore.keyboardShortcutsModalOpen)
+        },
+      },
+      {
+        id: 'app.go-lobby',
+        group: 'app',
+        description: 'Go back to the lobby',
+        keys: [{ key: 'Escape' }],
+        allowInEditable: true,
+        when: () => !nameSetupOpen.value && !hasActiveOverlay() && route.path !== '/app',
+        handler: () => {
+          void router.push('/app')
+        },
+      },
+      {
         id: 'app.open-config',
         group: 'app',
         description: 'Open Firebase configuration',

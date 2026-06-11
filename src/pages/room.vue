@@ -25,7 +25,7 @@
             data-test-id="room-toggle-panel"
             density="compact"
             icon
-            :title="historyPanelOpen ? 'Close panel' : 'Open room panel'"
+            :title="historyPanelOpen ? 'Close panel (P)' : 'Open room panel (P)'"
             variant="text"
             @click="roomCommands.toggleSidePanel()"
           >
@@ -38,7 +38,7 @@
             data-test-id="room-back-to-lobby"
             density="compact"
             icon
-            title="Back to lobby"
+            title="Back to lobby (Esc)"
             variant="text"
             @click="roomCommands.goToLobby()"
           >
@@ -86,19 +86,6 @@
           </div>
 
           <v-btn
-            :aria-label="`Switch to ${nextViewModeLabel}`"
-            class="icon-btn"
-            data-test-id="room-toggle-view"
-            density="compact"
-            icon
-            :title="`Switch to ${nextViewModeLabel}`"
-            variant="text"
-            @click="configStore.setViewMode(nextViewMode)"
-          >
-            <v-icon :icon="currentViewModeIcon" size="16" />
-          </v-btn>
-
-          <v-btn
             v-if="configStore.viewMode === 'simple'"
             :aria-label="phoneDockActive ? 'Disconnect phone voting dock' : 'Open voting dock on phone'"
             class="icon-btn"
@@ -121,7 +108,7 @@
             data-test-id="simple-vote-dock-external"
             density="compact"
             icon
-            :title="appStore.externalDockActive ? 'Close voting dock window' : 'Open voting dock in a window'"
+            :title="appStore.externalDockActive ? 'Close voting dock window (Ctrl+Space)' : 'Open voting dock in a window (Ctrl+Space)'"
             variant="text"
             @click="toggleExternalDock"
           >
@@ -150,7 +137,7 @@
             density="compact"
             :disabled="leaderModeEnabled && !isLeader"
             icon
-            :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings'"
+            :title="leaderModeEnabled && !isLeader ? 'Only the leader can change room settings' : 'Room settings (Ctrl+É)'"
             variant="text"
             @click="roomConfigOpen = true"
           >
@@ -347,6 +334,9 @@
               @click="roomCommands.revealVotes()"
             >
               Reveal votes
+
+              <span class="shortcut-hint">V</span>
+
               <span v-if="!allVoted" class="button-meta">
                 {{ votedCount }}/{{ totalPlayers }}
               </span>
@@ -361,6 +351,8 @@
               @click="roomCommands.resetRound()"
             >
               Reset round
+
+              <span class="shortcut-hint">B</span>
             </v-btn>
           </template>
 
@@ -375,6 +367,8 @@
               @click="roomCommands.hideVotes()"
             >
               Hide votes
+
+              <span class="shortcut-hint">V</span>
             </v-btn>
 
             <v-btn
@@ -387,6 +381,8 @@
               @click="roomCommands.advanceRound()"
             >
               {{ historyEnabled ? 'Next round' : 'New round' }}
+
+              <span class="shortcut-hint">N</span>
             </v-btn>
           </template>
         </div>
@@ -402,6 +398,8 @@
             @click="startManualRoundTimer"
           >
             Start timer
+
+            <span class="shortcut-hint">C</span>
           </v-btn>
 
           <v-btn
@@ -414,6 +412,8 @@
             @click="pauseCurrentRoundTimer"
           >
             Pause timer
+
+            <span class="shortcut-hint">C</span>
           </v-btn>
 
           <v-btn
@@ -426,6 +426,8 @@
             @click="resumeCurrentRoundTimer"
           >
             Resume timer
+
+            <span class="shortcut-hint">C</span>
           </v-btn>
 
           <v-btn
@@ -438,6 +440,8 @@
             @click="extendCurrentRoundTimer"
           >
             +10 sec
+
+            <span class="shortcut-hint">X</span>
           </v-btn>
 
           <v-btn
@@ -450,6 +454,8 @@
             @click="restartCurrentRoundTimer"
           >
             Restart timer
+
+            <span class="shortcut-hint">Z</span>
           </v-btn>
         </div>
 
@@ -485,6 +491,8 @@
           <button class="external-dock-return-btn" type="button" @click="bringVotingDockBack">
             <v-icon icon="mdi-monitor-off" size="16" />
             Bring voting dock back
+
+            <span class="shortcut-hint">Ctrl+Space</span>
           </button>
         </div>
 
@@ -579,7 +587,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AvatarCrop, RoomConsoleLogEntry, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
+  import type { AvatarCrop, RoomHistoryEntry, RoomHistoryVoteSnapshot, RoomRecord, RoomUser, RoundEditLock, RoundTimerState, TaskInfo, VoteValue } from '@/types/room'
   import type { ExternalDockSession } from '@/utils/externalDockSession'
   import { ref as dbRef, onDisconnect, onValue, remove, runTransaction, set, update } from 'firebase/database'
   import { storeToRefs } from 'pinia'
@@ -601,7 +609,7 @@
   import TaskInfoModal from '@/components/TaskInfoModal.vue'
   import VoteDock from '@/components/VoteDock.vue'
   import { useAppStore } from '@/stores/app'
-  import { useConfigStore, type ViewMode } from '@/stores/config'
+  import { useConfigStore } from '@/stores/config'
   import { buildSelectedAvatarCrop, buildSelectedAvatarUrl, DEFAULT_AVATAR_STYLE, isValidCustomAvatarUrl, normalizeAvatarCrop, resolveAvatarBackgroundColor } from '@/utils/avatarStyles'
   import { copyText } from '@/utils/clipboard'
   import { requestExternalDockClose, writeExternalDockContext } from '@/utils/externalDock'
@@ -614,6 +622,14 @@
   import { hasActiveOverlay, registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
   import { setPageTitle } from '@/utils/pageTitle'
   import { type FloatingReaction, getReactionEmojis, type RoomReactionEvent, sanitizeReactionEmojis } from '@/utils/reactions'
+  import {
+    buildConsoleLogAppendUpdates,
+    buildConsoleLogEntry,
+    buildConsoleLogId,
+    buildRoundConsoleLogMap,
+    buildVoteConsoleLogEntry,
+    normalizeConsoleLogEntries,
+  } from '@/utils/roomConsoleLog'
   import {
     buildTimerForRound,
     createRoundTimerStrategy,
@@ -680,23 +696,6 @@
     'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
-  const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple', 'console', 'group-status']
-  const MAX_CONSOLE_LOG_ENTRIES = 160
-  const VIEW_MODE_LABELS: Record<ViewMode, string> = {
-    'console': 'console view',
-    'grid': 'grid view',
-    'group-status': 'group status view',
-    'simple': 'simple room',
-    'table': 'card wall',
-  }
-  const VIEW_MODE_ICONS: Record<ViewMode, string> = {
-    'console': 'mdi-console',
-    'grid': 'mdi-cards-playing',
-    'group-status': 'mdi-account-switch-outline',
-    'simple': 'mdi-view-dashboard-outline',
-    'table': 'mdi-view-module-outline',
-  }
-
   function parseCustomDeck (raw: string): VoteValue[] {
     return raw.split(',').flatMap(s => {
       const t = s.trim()
@@ -715,7 +714,17 @@
     return counts
   }
 
-  const { userName, firebaseConfig } = storeToRefs(configStore)
+  const {
+    avatarBg,
+    avatarSeed,
+    avatarSource,
+    avatarStyle,
+    firebaseConfig,
+    gravatarEmail,
+    customAvatarCrop,
+    customAvatarUrl,
+    userName,
+  } = storeToRefs(configStore)
 
   const currentRoom = ref<RoomRecord | null>(null)
   const roomUsers = ref<Record<string, RoomUser>>({})
@@ -797,10 +806,6 @@
   const canCommitFinalVote = computed(() => !leaderModeEnabled.value || isLeader.value)
   const canStartTaskInfoFlow = computed(() => (!leaderModeEnabled.value || isLeader.value) && !isRoundLockedByOther.value)
   const externalVotingDockActive = computed(() => appStore.externalDockActive || phoneDockActive.value)
-  const currentViewModeIndex = computed(() => Math.max(0, VIEW_MODE_SEQUENCE.indexOf(configStore.viewMode)))
-  const nextViewMode = computed(() => VIEW_MODE_SEQUENCE[(currentViewModeIndex.value + 1) % VIEW_MODE_SEQUENCE.length])
-  const nextViewModeLabel = computed(() => VIEW_MODE_LABELS[nextViewMode.value])
-  const currentViewModeIcon = computed(() => VIEW_MODE_ICONS[configStore.viewMode])
   const canEditCurrentTask = computed(() =>
     taskInformationEnabled.value
     && !!currentTask.value
@@ -1011,6 +1016,11 @@
     if (availableValues.includes('☕')) lookup['+'] = '☕'
     return lookup
   })
+  const selectedVoteIndex = computed(() => {
+    if (selectedVote.value == null) return -1
+    return voteOptions.value.findIndex(value => String(value) === String(selectedVote.value))
+  })
+  const specialVoteOptions = computed(() => voteOptions.value.filter(value => value === '?' || value === '☕'))
 
   const votedCount = computed(() =>
     Object.values(activeRoundParticipants.value).filter(user => user.vote != null).length,
@@ -1188,25 +1198,17 @@
   // Sync the selected render-ready avatar to Firebase whenever local avatar settings change.
   watch(
     [
-      () => configStore.avatarStyle,
-      () => configStore.avatarSeed,
-      () => configStore.avatarSource,
-      () => configStore.gravatarEmail,
-      () => configStore.customAvatarUrl,
-      () => configStore.customAvatarCrop,
+      avatarStyle,
+      avatarSeed,
+      avatarBg,
+      avatarSource,
+      gravatarEmail,
+      customAvatarUrl,
+      customAvatarCrop,
+      () => appStore.currentTheme,
     ],
     () => {
-      if (!db || !configStore.userId || !currentRoom.value) return
-      const avatar = buildCurrentUserAvatarPayload()
-      const updates: Record<string, unknown> = {
-        [`users/${configStore.userId}/avatarUrl`]: avatar.avatarUrl,
-        [`users/${configStore.userId}/avatarCrop`]: avatar.avatarCrop,
-      }
-      if (activeRoundParticipants.value[configStore.userId]) {
-        updates[`roundParticipants/${configStore.userId}/avatarUrl`] = avatar.avatarUrl
-        updates[`roundParticipants/${configStore.userId}/avatarCrop`] = avatar.avatarCrop
-      }
-      update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
+      syncCurrentUserAvatar()
     },
   )
 
@@ -1318,80 +1320,152 @@
 
     window.addEventListener('click', closePlayerMenu)
     window.addEventListener('keydown', onWindowKeydown)
+    window.addEventListener('refinimo:avatar-updated', syncCurrentUserAvatar)
     unregisterShortcuts = registerKeyboardShortcuts([
+      {
+        id: 'room.send-reaction',
+        group: 'reactions',
+        description: 'Send one of the configured reactions',
+        keys: VOTE_SHORTCUT_KEYS.slice(0, 6).flatMap(key => [
+          { key, ctrlKey: true },
+          { key, metaKey: true },
+        ]),
+        when: () => canUseRoomShortcuts() && reactionsEnabled.value,
+        handler: event => {
+          const reactionIndex = Number(event.key) - 1
+          const reaction = reactionEmojis.value[reactionIndex]
+          if (reaction) sendReaction(reaction)
+        },
+      },
       {
         id: 'room.vote-card',
         group: 'voting',
         description: 'Select a vote card or final estimate',
         keys: [
           ...VOTE_SHORTCUT_KEYS.map(key => ({ key })),
-          { key: '-' },
-          { key: '-', code: 'NumpadSubtract' },
-          { key: '+' },
-          { key: '=', code: 'Equal' },
-          { code: 'NumpadAdd' },
         ],
         when: () => canUseRoomShortcuts() && canTriggerVoteShortcut(),
         handler: event => {
-          let key = event.key
-          if (event.code === 'NumpadAdd' || (event.code === 'Equal' && event.key === '=')) {
-            key = '+'
-          } else if (event.code === 'NumpadSubtract') {
-            key = '-'
-          }
-          const vote = voteShortcutLookup.value[key]
+          const vote = voteShortcutLookup.value[event.key]
           if (!vote) return
-          if (showVotes.value && canVoteInCurrentRound.value) castVote(parseShortcutVoteValue(vote))
-          else if (showVotes.value) onCommitVote(vote)
-          else castVote(parseShortcutVoteValue(vote))
+          triggerShortcutVote(vote)
+        },
+      },
+      {
+        id: 'room.cycle-special-card',
+        group: 'voting',
+        description: 'Cycle through special cards',
+        keys: [{ key: '-', code: 'Minus' }],
+        when: () => canUseRoomShortcuts() && canTriggerVoteShortcut(),
+        handler: () => {
+          cycleSpecialVoteCards()
+        },
+      },
+      {
+        id: 'room.cycle-card-left',
+        group: 'voting',
+        description: 'Cycle left through card choices',
+        keys: [{ code: 'BracketLeft' }],
+        when: () => canUseRoomShortcuts() && canTriggerVoteShortcut(),
+        handler: () => {
+          cycleVoteChoice(-1)
+        },
+      },
+      {
+        id: 'room.cycle-card-right',
+        group: 'voting',
+        description: 'Cycle right through card choices',
+        keys: [{ code: 'BracketRight' }],
+        when: () => canUseRoomShortcuts() && canTriggerVoteShortcut(),
+        handler: () => {
+          cycleVoteChoice(1)
         },
       },
       {
         id: 'room.toggle-deck',
         group: 'voting',
         description: 'Collapse or expand the vote dock',
-        keys: [{ key: 'd' }],
+        keys: [{ key: ' ' }],
         when: () => canUseRoomShortcuts() && currentRoom.value !== null,
         handler: () => {
           roomCommands.toggleDeck()
         },
       },
       {
-        id: 'room.copy-link',
+        id: 'room.toggle-external-dock',
         group: 'room',
-        description: 'Copy the room link',
-        keys: [{ key: 'c' }],
-        when: () => canUseRoomShortcuts() && !!firebaseConfig.value,
+        description: 'Open or close the external voting window',
+        keys: [
+          { key: ' ', ctrlKey: true },
+          { key: ' ', metaKey: true },
+        ],
+        when: () => canUseRoomShortcuts(),
         handler: () => {
-          roomCommands.copyRoomLink()
+          toggleExternalDock()
         },
       },
       {
-        id: 'room.reveal-votes',
+        id: 'room.toggle-votes',
         group: 'room',
-        description: 'Reveal votes',
+        description: 'Reveal or hide votes',
         keys: [{ key: 'v' }],
-        when: () => canUseRoomShortcuts() && !showVotes.value,
+        when: () => canUseRoomShortcuts(),
         handler: () => {
-          roomCommands.revealVotes()
+          if (showVotes.value) roomCommands.hideVotes()
+          else roomCommands.revealVotes()
         },
       },
       {
-        id: 'room.hide-votes',
+        id: 'room.toggle-timer',
         group: 'room',
-        description: 'Hide votes',
-        keys: [{ key: 'h' }],
-        when: () => canUseRoomShortcuts() && showVotes.value,
+        description: 'Start or pause the timer',
+        keys: [{ key: 'c' }],
+        when: () => canUseRoomShortcuts() && timerControlsVisible.value,
         handler: () => {
-          roomCommands.hideVotes()
+          toggleCurrentRoundTimer()
+        },
+      },
+      {
+        id: 'room.extend-timer',
+        group: 'room',
+        description: 'Add 10 seconds to the timer',
+        keys: [{ key: 'x' }],
+        when: () => canUseRoomShortcuts() && canExtendTimer.value,
+        handler: () => {
+          extendCurrentRoundTimer()
+        },
+      },
+      {
+        id: 'room.restart-timer',
+        group: 'room',
+        description: 'Restart the timer',
+        keys: [{ key: 'z' }],
+        when: () => canUseRoomShortcuts() && canRestartTimer.value,
+        handler: () => {
+          restartCurrentRoundTimer()
+        },
+      },
+      {
+        id: 'room.open-settings',
+        group: 'room',
+        description: 'Open room settings',
+        keys: [
+          { key: 'é', ctrlKey: true },
+          { key: 'É', ctrlKey: true },
+          { key: 'é', metaKey: true },
+          { key: 'É', metaKey: true },
+        ],
+        when: () => canUseRoomShortcuts() && (!leaderModeEnabled.value || isLeader.value),
+        handler: () => {
+          roomConfigOpen.value = true
         },
       },
       {
         id: 'room.reset-round',
         group: 'room',
         description: 'Reset the current round',
-        keys: [{ key: 'r' }],
-        when: () => canUseRoomShortcuts(),
+        keys: [{ key: 'b' }],
+        when: () => canUseRoomShortcuts() && !showVotes.value,
         handler: () => {
           roomCommands.resetRound()
         },
@@ -1420,7 +1494,7 @@
         id: 'room.go-home',
         group: 'navigation',
         description: 'Return to the lobby',
-        keys: [{ key: 'g' }],
+        keys: [{ key: 'Escape' }],
         when: () => canUseRoomShortcuts(),
         handler: () => {
           roomCommands.goToLobby()
@@ -1514,6 +1588,7 @@
   onUnmounted(() => {
     window.removeEventListener('click', closePlayerMenu)
     window.removeEventListener('keydown', onWindowKeydown)
+    window.removeEventListener('refinimo:avatar-updated', syncCurrentUserAvatar)
     unregisterShortcuts?.()
     unsubscribeRoom?.()
     unsubscribeUsers?.()
@@ -1568,6 +1643,20 @@
       }),
       avatarCrop: buildSelectedAvatarCrop(configStore.avatarSource, configStore.customAvatarCrop),
     }
+  }
+
+  function syncCurrentUserAvatar () {
+    if (!db || !configStore.userId || !currentRoom.value) return
+    const avatar = buildCurrentUserAvatarPayload()
+    const updates: Record<string, unknown> = {
+      [`users/${configStore.userId}/avatarUrl`]: avatar.avatarUrl,
+      [`users/${configStore.userId}/avatarCrop`]: avatar.avatarCrop,
+    }
+    if (activeRoundParticipants.value[configStore.userId]) {
+      updates[`roundParticipants/${configStore.userId}/avatarUrl`] = avatar.avatarUrl
+      updates[`roundParticipants/${configStore.userId}/avatarCrop`] = avatar.avatarCrop
+    }
+    update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
   }
 
   function buildHistoryVotes (): Record<string, RoomHistoryVoteSnapshot> {
@@ -1653,6 +1742,73 @@
     return !dockCollapsed.value && canVoteInCurrentRound.value
   }
 
+  function triggerShortcutVote (vote: VoteValue) {
+    if (showVotes.value && canVoteInCurrentRound.value) {
+      castVote(parseShortcutVoteValue(String(vote)))
+      return
+    }
+
+    if (showVotes.value) {
+      onCommitVote(String(vote))
+      return
+    }
+
+    castVote(parseShortcutVoteValue(String(vote)))
+  }
+
+  function getCycleVoteOptions (): VoteValue[] {
+    if (showVotes.value && !canVoteInCurrentRound.value) {
+      return historyShortcutVoteValues.value
+    }
+
+    if (!showVotes.value && configStore.viewMode !== 'simple' && dockCollapsed.value) {
+      return []
+    }
+
+    return voteOptions.value
+  }
+
+  function cycleVoteChoice (direction: -1 | 1) {
+    const options = getCycleVoteOptions()
+    if (options.length === 0) return
+
+    const currentIndex = showVotes.value && !canVoteInCurrentRound.value
+      ? options.findIndex(value => String(value) === String(committedVote.value))
+      : selectedVoteIndex.value
+    const nextIndex = currentIndex === -1
+      ? (direction > 0 ? 0 : options.length - 1)
+      : (currentIndex + direction + options.length) % options.length
+    triggerShortcutVote(options[nextIndex])
+  }
+
+  function cycleSpecialVoteCards () {
+    const options = showVotes.value && !canVoteInCurrentRound.value
+      ? historyShortcutVoteValues.value.filter(value => value === '?' || value === '☕')
+      : specialVoteOptions.value
+    if (options.length === 0) return
+
+    const currentValue = showVotes.value && !canVoteInCurrentRound.value ? committedVote.value : selectedVote.value
+    const currentIndex = options.findIndex(value => String(value) === String(currentValue))
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % options.length
+    triggerShortcutVote(options[nextIndex])
+  }
+
+  function toggleCurrentRoundTimer () {
+    if (canPauseTimer.value) {
+      void pauseCurrentRoundTimer()
+      return
+    }
+
+    if (canResumeTimer.value) {
+      void resumeCurrentRoundTimer()
+      return
+    }
+
+    if (canStartManualTimer.value) {
+      void startManualRoundTimer()
+    }
+  }
+
   function buildRoundParticipants (users: Record<string, RoomUser>): Record<string, RoomUser> {
     const participants: Record<string, RoomUser> = {}
     for (const [userId, user] of Object.entries(users)) {
@@ -1664,104 +1820,6 @@
       }
     }
     return participants
-  }
-
-  function normalizeConsoleLogEntries (value: unknown): RoomConsoleLogEntry[] {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return []
-    return Object.entries(value as Record<string, Partial<RoomConsoleLogEntry>>)
-      .flatMap(([key, entry]) => {
-        if (!entry || typeof entry !== 'object') return []
-        if (typeof entry.message !== 'string' || typeof entry.createdAt !== 'number') return []
-        const level: RoomConsoleLogEntry['level'] = entry.level === 'trace' || entry.level === 'result' || entry.level === 'system'
-          ? entry.level
-          : 'info'
-        return [{
-          id: typeof entry.id === 'string' ? entry.id : key,
-          level,
-          message: entry.message,
-          createdAt: entry.createdAt,
-          round: typeof entry.round === 'number' ? entry.round : 1,
-          userId: typeof entry.userId === 'string' ? entry.userId : null,
-          userName: typeof entry.userName === 'string' ? entry.userName : null,
-          vote: entry.vote ?? null,
-        }]
-      })
-      .toSorted((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
-  }
-
-  function buildConsoleLogId (createdAt: number, suffix = Math.random().toString(36).slice(2, 8)): string {
-    return `log-${createdAt}-${suffix.replace(/[.#$\/[\]]/g, '-')}`
-  }
-
-  function buildConsoleLogEntry (
-    level: RoomConsoleLogEntry['level'],
-    message: string,
-    createdAt: number,
-    round: number,
-    options: {
-      id?: string
-      userId?: string | null
-      userName?: string | null
-      vote?: VoteValue | null
-    } = {},
-  ): RoomConsoleLogEntry {
-    return {
-      id: options.id ?? buildConsoleLogId(createdAt),
-      level,
-      message,
-      createdAt,
-      round,
-      userId: options.userId ?? null,
-      userName: options.userName ?? null,
-      vote: options.vote ?? null,
-    }
-  }
-
-  function buildConsoleLogAppendUpdates (
-    entries: RoomConsoleLogEntry[],
-    existingLog: Record<string, RoomConsoleLogEntry> | undefined = currentRoom.value?.consoleLog,
-  ): Record<string, unknown> {
-    const updates: Record<string, unknown> = {}
-    const existingEntries = normalizeConsoleLogEntries(existingLog)
-    const overflowCount = Math.max(0, existingEntries.length + entries.length - MAX_CONSOLE_LOG_ENTRIES)
-    for (const entry of existingEntries.slice(0, overflowCount)) {
-      updates[`consoleLog/${entry.id}`] = null
-    }
-    for (const entry of entries) {
-      updates[`consoleLog/${entry.id}`] = entry
-    }
-    return updates
-  }
-
-  function buildRoundConsoleLogMap (
-    roundNumber: number,
-    participants: Record<string, RoomUser>,
-    createdAt: number,
-    action: 'started' | 'reset' = 'started',
-  ): Record<string, RoomConsoleLogEntry> {
-    const entries = [
-      buildConsoleLogEntry(
-        'system',
-        action === 'reset' ? `Round ${roundNumber} reset. Console attached.` : `Console attached to round ${roundNumber}.`,
-        createdAt,
-        roundNumber,
-        { id: `round-${roundNumber}-0000-system` },
-      ),
-      ...Object.entries(participants)
-        .toSorted(([, a], [, b]) => a.joinedAt - b.joinedAt)
-        .map(([userId, user], index) => buildConsoleLogEntry(
-          'info',
-          `${user.name} is in the lobby.`,
-          createdAt + index + 1,
-          roundNumber,
-          {
-            id: `round-${roundNumber}-${String(index + 1).padStart(4, '0')}-${userId.replace(/[.#$\/[\]]/g, '-')}`,
-            userId,
-            userName: user.name,
-          },
-        )),
-    ]
-    return Object.fromEntries(entries.map(entry => [entry.id, entry]))
   }
 
   function normalizeRoomUsers (value: unknown): Record<string, RoomUser> {
@@ -1930,7 +1988,7 @@
           userName: userRecord.name,
         },
       )
-      Object.assign(updates, buildConsoleLogAppendUpdates([entry]))
+      Object.assign(updates, buildConsoleLogAppendUpdates([entry], currentRoom.value?.consoleLog))
     }
     update(dbRef(db, `rooms/${roomId}`), updates).catch(console.error)
     const userRef = dbRef(db, `rooms/${roomId}/users/${configStore.userId}`)
@@ -2315,23 +2373,18 @@
     const newVote = value === previousVote ? null : value
     const createdAt = Date.now()
     const currentPlayerName = activeRoundParticipants.value[configStore.userId]?.name ?? userName.value ?? 'Anonymous'
-    const message = newVote == null
-      ? `${currentPlayerName} cleared their vote.`
-      : (previousVote == null ? `${currentPlayerName} voted.` : `${currentPlayerName} changed their vote.`)
-    const entry = buildConsoleLogEntry(
-      'trace',
-      message,
+    const entry = buildVoteConsoleLogEntry(
+      previousVote,
+      newVote,
       createdAt,
       currentRound.value,
-      {
-        userId: configStore.userId,
-        userName: currentPlayerName,
-      },
+      configStore.userId,
+      currentPlayerName,
     )
     update(dbRef(db, `rooms/${roomId}`), {
       [`roundParticipants/${configStore.userId}/vote`]: newVote,
       lastActivity: createdAt,
-      ...buildConsoleLogAppendUpdates([entry]),
+      ...buildConsoleLogAppendUpdates([entry], currentRoom.value?.consoleLog),
     }).catch(console.error)
 
     if (isVoteChange && configStore.userId) {
@@ -2378,7 +2431,7 @@
     )
     update(dbRef(db, `rooms/${roomId}`), {
       lastActivity: createdAt,
-      ...buildConsoleLogAppendUpdates([entry]),
+      ...buildConsoleLogAppendUpdates([entry], currentRoom.value?.consoleLog),
     }).catch(console.error)
     set(reactionRef, event)
       .then(() => {
@@ -2559,7 +2612,7 @@
   }
 
   function revealVotes () {
-    if (!db || !canManageRound.value || (taskInformationEnabled.value && !currentTask.value)) return
+    if (!db || votedCount.value === 0 || !canManageRound.value || (taskInformationEnabled.value && !currentTask.value)) return
     closePlayerMenu()
     const roomRef = dbRef(db, `rooms/${roomId}`)
     const now = Date.now()
@@ -2569,7 +2622,7 @@
       'lastActivity': now,
       ...buildConsoleLogAppendUpdates([
         buildConsoleLogEntry('system', 'Votes revealed in the side panel.', now, currentRound.value),
-      ]),
+      ], currentRoom.value?.consoleLog),
     }).catch(console.error)
   }
 
@@ -2599,7 +2652,7 @@
       'settings/showVotes': false,
       ...buildConsoleLogAppendUpdates([
         buildConsoleLogEntry('info', 'Votes hidden. The round is open again.', now, roundNumber),
-      ]),
+      ], currentRoom.value?.consoleLog),
     }).catch(console.error)
   }
 

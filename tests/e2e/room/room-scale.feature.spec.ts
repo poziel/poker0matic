@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createRoomForTest, gridPlayer, joinRoomAs, resultCard, seedRoomParticipants, tablePlayer, voteCard } from '../support/roomFlows'
+import { createRoomForTest, gridPlayer, joinRoomAs, resultCard, seedRoomParticipants, setRoomDisplayMode, tablePlayer, voteCard } from '../support/roomFlows'
 
 test.describe('Feature: room scale', () => {
   test('Scenario: a room remains usable with more than forty participants', async ({ page }) => {
@@ -18,13 +18,13 @@ test.describe('Feature: room scale', () => {
     await expect(tablePlayer(page, 'Planner 45')).toBeVisible()
     await expect(page.getByTestId('room-reveal-votes')).toBeEnabled()
 
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'grid')
 
     await expect(page.getByTestId('room-grid-player')).toHaveCount(46)
     await expect(gridPlayer(page, 'Planner 01')).toBeVisible()
     await expect(gridPlayer(page, 'Planner 45')).toBeVisible()
 
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'simple')
     await expect(page.getByTestId('room-simple-view')).toBeVisible()
     await page.getByTestId('room-reveal-votes').click()
 
@@ -39,10 +39,10 @@ test.describe('Feature: room scale', () => {
   test('Scenario: room view modes include simple room layout', async ({ page }) => {
     await createRoomForTest(page, { name: 'View mode planning' })
 
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'grid')
     await expect(page.getByTestId('room-results-grid')).toBeVisible()
 
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'simple')
     await expect(page.getByTestId('room-simple-view')).toBeVisible()
     await expect(page.getByTestId('room-results-grid')).toBeVisible()
     await expect(voteCard(page, '5')).toBeVisible()
@@ -72,9 +72,7 @@ test.describe('Feature: room scale', () => {
     ])
 
     try {
-      await page.getByTestId('room-toggle-view').click()
-      await page.getByTestId('room-toggle-view').click()
-      await page.getByTestId('room-toggle-view').click()
+      await setRoomDisplayMode(page, 'console')
 
       await expect(page.getByTestId('room-console-view')).toBeVisible()
       await expect(page.getByTestId('room-console-line').filter({ hasText: 'Console attached' })).toBeVisible()
@@ -116,7 +114,7 @@ test.describe('Feature: room scale', () => {
       await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Mystery"]')).toContainText('I don\'t know.')
       await expect(page.locator('[data-test-id="room-console-vote-row"][data-player-name="Bean"]')).toContainText('It\'s break time.')
 
-      await page.getByTestId('room-toggle-view').click()
+      await setRoomDisplayMode(page, 'group-status')
       await expect(page.getByTestId('room-group-status-view')).toBeVisible()
       await expect(page.getByTestId('group-zone-deliberating')).toBeVisible()
       await expect(page.getByTestId('group-zone-ready')).toBeVisible()
@@ -131,9 +129,7 @@ test.describe('Feature: room scale', () => {
     const room = await createRoomForTest(page, { name: 'Console consensus planning' })
     await seedRoomParticipants(page, room.id, [{ name: 'Eva', vote: '5' }])
 
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'console')
 
     await expect(page.getByTestId('room-console-view')).toBeVisible()
     await voteCard(page, '5').click()
@@ -147,10 +143,7 @@ test.describe('Feature: room scale', () => {
   test('Scenario: group status view moves a player when they vote', async ({ page }) => {
     await createRoomForTest(page, { name: 'Group status planning' })
 
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
-    await page.getByTestId('room-toggle-view').click()
+    await setRoomDisplayMode(page, 'group-status')
 
     await expect(page.getByTestId('room-group-status-view')).toBeVisible()
     await expect(page.getByTestId('group-status-player-deliberating').filter({ hasText: 'Ada' })).toBeVisible()

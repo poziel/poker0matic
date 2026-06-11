@@ -105,6 +105,7 @@
     EXTERNAL_DOCK_SESSION_TTL_MS,
     isExternalDockSessionExpired,
   } from '@/utils/externalDockSession'
+  import { registerKeyboardShortcuts } from '@/utils/keyboardShortcuts'
   import { setPageTitle } from '@/utils/pageTitle'
   import { THEME_IDS, type ThemeId } from '@/utils/themes'
 
@@ -140,6 +141,7 @@
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   let sessionHeartbeatTimer: ReturnType<typeof setInterval> | null = null
   let unsubscribeSession: (() => void) | null = null
+  let unregisterShortcuts: (() => void) | null = null
 
   const title = computed(() => {
     if (currentRoom.value?.name) return currentRoom.value.name
@@ -157,6 +159,19 @@
     heartbeatTimer = setInterval(writeHeartbeat, 1000)
     window.addEventListener('storage', onStorage)
     window.addEventListener('beforeunload', clearExternalDockHeartbeat)
+    unregisterShortcuts = registerKeyboardShortcuts([
+      {
+        id: 'dock.close-external-window',
+        group: 'dock',
+        description: 'Close the external voting window',
+        keys: [
+          { key: ' ', ctrlKey: true },
+          { key: ' ', metaKey: true },
+        ],
+        when: () => !isPhoneSession.value,
+        handler: closeWindow,
+      },
+    ])
 
     if (isPhoneSession.value) {
       await claimDockSession()
@@ -171,6 +186,7 @@
     stop()
     closeDockSession()
     unsubscribeSession?.()
+    unregisterShortcuts?.()
     window.removeEventListener('storage', onStorage)
     window.removeEventListener('beforeunload', clearExternalDockHeartbeat)
     if (heartbeatTimer !== null) clearInterval(heartbeatTimer)
@@ -318,7 +334,7 @@
   function applyRouteTheme () {
     const theme = readStringQuery('theme')
     if (theme && THEME_IDS.includes(theme as ThemeId)) {
-      appStore.setTheme(theme as ThemeId)
+      appStore.setResolvedTheme(theme as ThemeId)
     }
   }
 
