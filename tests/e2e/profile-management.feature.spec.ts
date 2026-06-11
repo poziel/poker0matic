@@ -122,7 +122,10 @@ test.describe('Feature: profile and configuration management', () => {
     await page.mouse.down()
     await page.mouse.move(box!.x + box!.width / 2 + 8, box!.y + box!.height / 2 + 8)
     await page.mouse.up()
-    await page.getByTestId('profile-save').click()
+    const saveButton = page.getByTestId('profile-save')
+    await expect(saveButton).toBeEnabled()
+    await saveButton.focus()
+    await page.keyboard.press('Enter')
 
     await expect(page.evaluate(() => localStorage.getItem('refinimo_avatar_source'))).resolves.toBe('custom')
     await expect(page.evaluate(() => localStorage.getItem('refinimo_custom_avatar_url'))).resolves.toBe(customAvatarUrl)
