@@ -123,6 +123,22 @@ function resolvePlaceholders (template, env) {
   }
 }
 
+/**
+ * Allows wrapper-specific `--` usage while preserving direct pass-through args.
+ *
+ * @param {string[]} argv
+ * @returns {string[]}
+ */
+function getForwardedRulerArgs (argv) {
+  const delimiterIndex = argv.indexOf('--')
+
+  if (delimiterIndex === -1) {
+    return argv
+  }
+
+  return argv.slice(delimiterIndex + 1)
+}
+
 const { env: fileEnv, loadedFiles } = loadResolvedEnv(projectRoot, explicitEnvPath, activeMode)
 const combinedEnv = {
   ...process.env,
@@ -169,16 +185,17 @@ const localRulerCliPath = path.join(
 )
 const useLocalRulerCli = fs.existsSync(localRulerCliPath)
 const command = useLocalRulerCli ? process.execPath : 'npx'
+const forwardedRulerArgs = getForwardedRulerArgs(process.argv.slice(2))
 const rulerArgs = useLocalRulerCli
   ? [
       localRulerCliPath,
       'apply',
-      ...process.argv.slice(2),
+      ...forwardedRulerArgs,
     ]
   : [
       '@intellectronica/ruler',
       'apply',
-      ...process.argv.slice(2),
+      ...forwardedRulerArgs,
     ]
 
 fs.writeFileSync(configPath, resolved, 'utf8')

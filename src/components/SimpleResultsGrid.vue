@@ -1,6 +1,6 @@
 <script setup lang="ts">
+  import type { AvatarCrop } from '@/utils/avatarStyles'
   import { computed } from 'vue'
-  import { DEFAULT_AVATAR_STYLE } from '@/utils/avatarStyles'
   import PlayerAvatar from './PlayerAvatar.vue'
 
   type VoteValue = number | string
@@ -10,9 +10,9 @@
     name: string
     joinedAt: number
     vote?: VoteValue
-    avatarStyle?: string
-    avatarSeed?: string
-    avatarBg?: string
+    avatarUrl?: string | null
+    avatarCrop?: AvatarCrop | null
+    isConnected?: boolean
   }
 
   const props = defineProps<{
@@ -20,6 +20,7 @@
     currentUserId: string | null
     showVotes: boolean
     leaderUserId: string | null
+    shakingUserIds?: string[]
   }>()
 
   const emit = defineEmits<{
@@ -32,7 +33,7 @@
 </script>
 
 <template>
-  <div class="results-grid">
+  <div class="playing-field playing-field-grid results-grid" data-test-id="room-results-grid">
     <div class="rg-header">
       <span>Player</span>
       <span>{{ showVotes ? 'Vote' : 'Status' }}</span>
@@ -42,16 +43,25 @@
       v-for="player in sortedPlayers"
       :key="player.userId"
       class="rg-row"
-      :class="{ 'rg-row-you': player.userId === currentUserId, 'rg-row-leader': player.userId === leaderUserId }"
+      :class="{
+        'rg-row-you': player.userId === currentUserId,
+        'rg-row-leader': player.userId === leaderUserId,
+        'rg-row-connected': player.isConnected,
+        'rg-row-vote-changed': shakingUserIds?.includes(player.userId),
+      }"
+      :data-player-name="player.name"
+      data-test-id="room-grid-player"
       @contextmenu.prevent="emit('open-player-menu', { userId: player.userId, name: player.name, x: $event.clientX, y: $event.clientY })"
     >
       <div class="rg-name-cell">
-        <PlayerAvatar
-          :avatar-bg="player.avatarBg"
-          :avatar-seed="player.avatarSeed || player.name"
-          :avatar-style="player.avatarStyle || DEFAULT_AVATAR_STYLE"
-          :size="28"
-        />
+        <span class="rg-avatar-anchor" :data-reaction-user-id="player.userId">
+          <PlayerAvatar
+            :avatar-crop="player.avatarCrop"
+            :avatar-seed="player.name"
+            :avatar-url="player.avatarUrl"
+            :size="28"
+          />
+        </span>
 
         <span class="rg-name">{{ player.name }}</span>
 
@@ -66,6 +76,7 @@
       <span
         v-if="showVotes && player.vote != null"
         class="rg-vote-value"
+        data-test-id="room-grid-vote"
       >
         {{ player.vote }}
       </span>

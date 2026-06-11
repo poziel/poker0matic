@@ -1,5 +1,5 @@
 {
-  "name": "poker0matic",
+  "name": "refinimo",
   "private": true,
   "type": "module",
   "version": "1.5.0",
@@ -11,26 +11,37 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "mcp": "npm run ruler:apply",
-    "mcp:dry": "npm run ruler:apply:dry",
-    "mcp:revert": "ruler revert",
-    "ruler:apply": "node scripts/ruler-apply.mjs",
-    "ruler:apply:dry": "node scripts/ruler-apply.mjs --dry-run"
+    "test": "run-s test:unit test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:e2e": "node --disable-warning=DEP0205 ./node_modules/@playwright/test/cli.js test",
+    "test:e2e:ui": "node --disable-warning=DEP0205 ./node_modules/@playwright/test/cli.js test --ui",
+    "ruler": "node scripts/ruler-apply.mjs",
+    "ruler:dry": "node scripts/ruler-apply.mjs --dry-run",
+    "ruler:revert": "ruler revert"
   },
   "dependencies": {
+    "@dicebear/core": "^10.1.0",
+    "@dicebear/styles": "^10.1.0",
     "@fontsource/roboto": "^5.2.10",
     "@mdi/font": "7.4.47",
+    "@tensorflow/tfjs": "^4.22.0",
     "firebase": "^12.12.1",
+    "nsfwjs": "^4.3.0",
     "pinia": "^3.0.4",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.30",
+    "vue-advanced-cropper": "^2.8.9",
     "vue-i18n": "^11.3.0",
     "vue-router": "^5.0.3",
     "vuetify": "^4.0.2"
   },
   "devDependencies": {
     "@intellectronica/ruler": "^0.3.37",
+    "@playwright/test": "^1.60.0",
     "@tsconfig/node22": "^22.0.5",
     "@types/node": "^24.12.0",
+    "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/tsconfig": "^0.9.0",
     "eslint": "^9.39.4",
@@ -41,6 +52,7 @@
     "unplugin-fonts": "^1.4.0",
     "vite": "^8.0.0",
     "vite-plugin-vuetify": "^2.1.3",
+    "vitest": "^4.1.8",
     "vue-tsc": "^3.2.5"
   },
   "overrides": {

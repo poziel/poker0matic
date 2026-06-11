@@ -1,5 +1,12 @@
 export type VoteValue = number | string
 
+export interface AvatarCrop {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export interface TaskInfo {
   title: string
   url?: string | null
@@ -14,14 +21,35 @@ export interface RoundEditLock {
 
 export interface RoomSettings {
   showVotes?: boolean
+  allowVoteChangesAfterReveal?: boolean
   v?: number
-  deck?: 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+  deck?: 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
   customDeck?: string | null
   specialQuestion?: boolean
   specialCoffee?: boolean
   historyEnabled?: boolean
   leaderModeEnabled?: boolean
   taskInformationEnabled?: boolean
+  timerEnabled?: boolean
+  timerMode?: 'automatic' | 'manual'
+  timerDurationSeconds?: number
+  timerAutoRevealEnabled?: boolean
+  timerWarningEnabled?: boolean
+  timerWarningType?: 'seconds' | 'percentage'
+  timerWarningValue?: number
+  reactionsEnabled?: boolean
+  reactionEmojis?: string[]
+}
+
+export interface RoundTimerState {
+  status: 'idle' | 'running' | 'paused' | 'finished'
+  mode: 'automatic' | 'manual'
+  durationMs: number
+  roundNumber: number
+  startedAt?: number | null
+  endsAt?: number | null
+  remainingMs?: number | null
+  finishedBy?: 'expired' | 'revealed' | null
 }
 
 export interface RoomRecord {
@@ -29,12 +57,14 @@ export interface RoomRecord {
   createdAt: number
   createdBy: string
   createdByUserId?: string | null
+  consoleLog?: Record<string, RoomConsoleLogEntry>
   leaderUserId?: string | null
   committedVote?: string | null
   currentTask?: TaskInfo | null
   roundParticipants?: Record<string, RoomUser>
   roundEditLock?: RoundEditLock | null
   roundNumber?: number
+  roundTimer?: RoundTimerState | null
   settings?: RoomSettings
   lastActivity?: number
 }
@@ -43,14 +73,28 @@ export interface RoomUser {
   name: string
   joinedAt: number
   vote?: VoteValue
-  avatarStyle?: string
-  avatarSeed?: string
-  avatarBg?: string
+  avatarUrl?: string | null
+  avatarCrop?: AvatarCrop | null
+}
+
+export type RoomConsoleLogLevel = 'info' | 'trace' | 'result' | 'system'
+
+export interface RoomConsoleLogEntry {
+  id: string
+  level: RoomConsoleLogLevel
+  message: string
+  createdAt: number
+  round: number
+  userId?: string | null
+  userName?: string | null
+  vote?: VoteValue | null
 }
 
 export interface RoomHistoryVoteSnapshot {
   name: string
   vote: VoteValue
+  avatarUrl?: string | null
+  avatarCrop?: AvatarCrop | null
 }
 
 export interface RoomHistoryEntry {
@@ -67,6 +111,6 @@ export interface RoomHistoryEntry {
   completedAt?: number
   participantCount: number
   consensus: 'yes' | 'split'
-  votes?: Record<string, string>
+  votes?: Record<string, RoomHistoryVoteSnapshot>
   voteSnapshots?: Record<string, RoomHistoryVoteSnapshot>
 }

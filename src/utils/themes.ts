@@ -1,4 +1,5 @@
 export type ThemeMode = 'dark' | 'light'
+export type ThemeModePreference = 'system' | ThemeMode
 
 export type ThemeDefinition = {
   id: string
@@ -350,10 +351,16 @@ export const THEME_DEFINITIONS = [
 ] as const satisfies readonly ThemeDefinition[]
 
 export type ThemeId = typeof THEME_DEFINITIONS[number]['id']
+export type ThemeFamily = typeof THEME_DEFINITIONS[number]['family']
 
-export const DEFAULT_THEME_ID: ThemeId = 'midnight'
+export const SYSTEM_DARK_THEME_ID: ThemeId = 'midnight'
+export const SYSTEM_LIGHT_THEME_ID: ThemeId = 'midnight-light'
+export const DEFAULT_THEME_ID: ThemeId = SYSTEM_DARK_THEME_ID
+export const DEFAULT_THEME_FAMILY: ThemeFamily = 'midnight'
+export const DEFAULT_THEME_MODE_PREFERENCE: ThemeModePreference = 'system'
 
 export const THEME_IDS = THEME_DEFINITIONS.map(theme => theme.id) as ThemeId[]
+export const THEME_FAMILIES = THEMES_BY_FAMILY_ORDER(THEME_DEFINITIONS)
 
 export const THEMES_BY_MODE = {
   dark: THEME_DEFINITIONS.filter(theme => theme.mode === 'dark'),
@@ -363,3 +370,41 @@ export const THEMES_BY_MODE = {
 export const THEME_LOOKUP = Object.fromEntries(
   THEME_DEFINITIONS.map(theme => [theme.id, theme]),
 ) as Record<ThemeId, ThemeDefinition>
+
+export const THEME_FAMILY_LOOKUP = THEME_DEFINITIONS.reduce((families, theme) => {
+  const themeFamily = theme.family as ThemeFamily
+  const family = families[themeFamily] ?? { family: themeFamily, label: theme.label }
+  families[themeFamily] = {
+    ...family,
+    [theme.mode]: theme,
+  }
+  return families
+}, {} as Record<ThemeFamily, { family: ThemeFamily, label: string, dark?: ThemeDefinition, light?: ThemeDefinition }>)
+
+function THEMES_BY_FAMILY_ORDER (themes: readonly ThemeDefinition[]): ThemeFamily[] {
+  return themes.reduce<ThemeFamily[]>((families, theme) => {
+    const themeFamily = theme.family as ThemeFamily
+    return families.includes(themeFamily) ? families : [...families, themeFamily]
+  }, [])
+}
+
+export function getThemeFamilyFromId (theme: ThemeId): ThemeFamily {
+  return (THEME_LOOKUP[theme]?.family as ThemeFamily | undefined) ?? DEFAULT_THEME_FAMILY
+}
+
+export function getThemeModeFromId (theme: ThemeId): ThemeMode {
+  return THEME_LOOKUP[theme]?.mode ?? 'dark'
+}
+
+export function resolveThemeId (
+  family: ThemeFamily,
+  modePreference: ThemeModePreference,
+  systemPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true,
+): ThemeId {
+  const mode: ThemeMode = modePreference === 'system'
+    ? (systemPrefersDark ? 'dark' : 'light')
+    : modePreference
+  const theme = THEME_FAMILY_LOOKUP[family]?.[mode]
+
+  return (theme?.id as ThemeId | undefined) ?? DEFAULT_THEME_ID
+}

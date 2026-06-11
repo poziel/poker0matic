@@ -49,21 +49,20 @@
   <v-dialog
     max-width="560"
     :model-value="modelValue"
-    persistent
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
+    <v-card class="ui-modal" flat>
+      <div class="ui-modal-head">
         <h2>{{ title }}</h2>
         <p>{{ message }}</p>
       </div>
 
       <v-form @submit.prevent="save">
-        <div class="p0-modal-body">
+        <div class="ui-modal-body">
           <div class="task-info-form">
             <v-text-field
               autofocus
-              class="p0-field"
+              class="ui-field"
               hide-details="auto"
               label="Task title"
               maxlength="120"
@@ -75,7 +74,7 @@
             />
 
             <v-text-field
-              class="p0-field"
+              class="ui-field"
               hide-details="auto"
               label="Task URL"
               maxlength="500"
@@ -86,7 +85,7 @@
             />
 
             <v-textarea
-              class="p0-field"
+              class="ui-field"
               hide-details="auto"
               label="Task description"
               :model-value="task.description"
@@ -98,9 +97,9 @@
           </div>
         </div>
 
-        <div class="p0-modal-foot">
+        <div class="ui-modal-foot">
           <v-btn
-            class="p0-btn p0-btn-ghost"
+            class="ui-btn ui-btn-ghost"
             variant="flat"
             @click="$emit('update:modelValue', false)"
           >
@@ -108,7 +107,7 @@
           </v-btn>
 
           <v-btn
-            class="p0-btn p0-btn-primary"
+            class="ui-btn ui-btn-primary"
             :disabled="!task.title.trim()"
             prepend-icon="mdi-content-save"
             type="submit"

@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -34,6 +34,8 @@ jobs:
         run: npm run type-check
 
       - name: Build
+        env:
+          VITE_REFINIMO_BASE_PATH: ${{ vars.REFINIMO_BASE_PATH || '/' }}
         run: npm run build
 
       - name: Setup Pages

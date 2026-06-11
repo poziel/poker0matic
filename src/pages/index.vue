@@ -3,10 +3,10 @@
     <div class="landing-topbar">
       <router-link class="landing-brand" to="/">
         <span class="landing-brand-mark">
-          <img alt="Poker0matic logo" src="/images/logo.png">
+          <img alt="Refinimo logo" src="/images/logo.png">
         </span>
 
-        <span class="landing-brand-name">poker<span>0</span>matic</span>
+        <span class="landing-brand-name">Refinimo</span>
       </router-link>
 
       <div class="landing-nav">
@@ -15,6 +15,7 @@
           :key="tab.id"
           class="landing-nav-tab"
           :class="{ 'landing-nav-tab-active': currentTab === tab.id }"
+          :data-test-id="`landing-tab-${tab.id}`"
           type="button"
           @click="currentTab = tab.id"
         >
@@ -22,8 +23,57 @@
         </button>
       </div>
 
+      <v-menu location="bottom end">
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            :aria-label="`Theme: ${currentThemeDefinition.label} ${appStore.themeModePreference}`"
+            class="landing-theme-trigger"
+            icon="mdi-palette-outline"
+            variant="text"
+          />
+        </template>
+
+        <div class="landing-theme-menu">
+          <div aria-label="Theme mode" class="landing-theme-mode-row" role="group">
+            <button
+              v-for="option in themeModeOptions"
+              :key="option.value"
+              :aria-pressed="appStore.themeModePreference === option.value"
+              class="landing-theme-mode-option"
+              :class="{ 'landing-theme-mode-option-active': appStore.themeModePreference === option.value }"
+              type="button"
+              @click="appStore.setThemeModePreference(option.value)"
+            >
+              <v-icon :icon="option.icon" size="15" />
+              <span>{{ option.shortLabel }}</span>
+            </button>
+          </div>
+
+          <div class="landing-theme-options">
+            <button
+              v-for="theme in themeOptions"
+              :key="theme.family"
+              :aria-pressed="appStore.currentThemeFamily === theme.family"
+              class="landing-theme-option"
+              :class="{ 'landing-theme-option-active': appStore.currentThemeFamily === theme.family }"
+              type="button"
+              @click="setLandingTheme(theme.family)"
+            >
+              <span class="landing-theme-swatch" :style="landingSwatchStyle(theme)">
+                <span class="landing-theme-dot" :style="landingDotStyle(theme)" />
+              </span>
+
+              <span>{{ theme.label }}</span>
+              <v-icon v-if="appStore.currentThemeFamily === theme.family" icon="mdi-check" size="16" />
+            </button>
+          </div>
+        </div>
+      </v-menu>
+
       <v-btn
-        class="p0-btn p0-btn-primary landing-topbar-cta"
+        class="ui-btn ui-btn-primary landing-topbar-cta"
+        data-test-id="landing-primary-action"
         prepend-icon="mdi-arrow-right"
         to="/app"
         variant="flat"
@@ -43,7 +93,7 @@
           <h1 class="landing-title">Run estimation sessions without turning your backlog into a spreadsheet circus.</h1>
 
           <p class="landing-lead">
-            Poker0matic is a collaborative planning poker app for agile teams. Create a room, invite your team,
+            Refinimo is a collaborative planning poker app for agile teams. Create a room, invite your team,
             vote on stories in real time, then reveal estimates together to drive better sprint planning
             conversations.
           </p>
@@ -67,7 +117,13 @@
             </div>
 
             <div class="landing-vote-grid">
-              <span v-for="vote in voteOptions" :key="vote" class="landing-vote-card">{{ vote }}</span>
+              <PlanningCard
+                v-for="vote in voteOptions"
+                :key="vote"
+                class="landing-vote-card"
+                flipped
+                :value="vote"
+              />
             </div>
 
             <div class="landing-panel-copy">
@@ -98,7 +154,7 @@
 
         <div class="landing-grid landing-grid-three">
           <article class="landing-card">
-            <h3>What Poker0matic is</h3>
+            <h3>What Refinimo is</h3>
 
             <p>
               A browser-based planning poker workspace where developers, designers, product managers, and other
@@ -164,7 +220,7 @@
             <h3>You control the backend</h3>
 
             <p>
-              Poker0matic uses your own Firebase project, so your team keeps ownership of room data instead of
+              Refinimo uses your own Firebase project, so your team keeps ownership of room data instead of
               depending on a shared hosted backend you do not control.
             </p>
           </article>
@@ -224,7 +280,7 @@
       <section class="landing-section landing-section-with-top-gap">
         <div class="landing-section-head">
           <div class="kicker">How Firebase works</div>
-          <h2>Poker0matic stays free by letting each team bring its own Firebase project.</h2>
+          <h2>Refinimo stays free by letting each team bring its own Firebase project.</h2>
         </div>
 
         <div class="landing-grid landing-grid-two">
@@ -232,7 +288,7 @@
             <h3>Why Firebase is needed</h3>
 
             <p>
-              Poker0matic has no custom backend. Rooms, votes, players, and history live in Firebase Realtime
+              Refinimo has no custom backend. Rooms, votes, players, and history live in Firebase Realtime
               Database, so the app needs a Firebase project before your team can start playing.
             </p>
           </article>
@@ -242,7 +298,7 @@
 
             <p>
               Create a Firebase project with any name you want, enable Realtime Database, register a web app,
-              then paste the generated config values into the Poker0matic configuration page or modal.
+              then paste the generated config values into the Refinimo configuration page or modal.
             </p>
           </article>
         </div>
@@ -266,7 +322,7 @@
             <h3>What stays in your browser</h3>
 
             <p>
-              Poker0matic uses browser localStorage for your generated user identity, display name, avatar
+              Refinimo uses browser localStorage for your generated user identity, display name, avatar
               choices, recent rooms, saved Firebase configuration, and personal UI preferences. That local data
               stays on the device and is reused when you come back.
             </p>
@@ -287,20 +343,21 @@
           <div class="landing-rules-head">
             <h3>Realtime Database rules</h3>
 
-            <button class="landing-rules-toggle" type="button" @click="rulesExpanded = !rulesExpanded">
+            <button class="landing-rules-toggle" data-test-id="landing-toggle-rules" type="button" @click="rulesExpanded = !rulesExpanded">
               <span>{{ rulesExpanded ? 'Hide rules' : 'Show rules' }}</span>
               <v-icon :icon="rulesExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="16" />
             </button>
           </div>
 
           <p class="landing-rules-copy">
-            These example rules are updated for the current Poker0matic room schema and are a better starting
+            These example rules are updated for the current Refinimo room schema and are a better starting
             point than the default temporary snippet.
           </p>
 
           <div v-if="rulesExpanded" class="landing-code-shell">
             <v-btn
-              class="p0-btn p0-btn-ghost landing-copy-icon"
+              class="ui-btn ui-btn-ghost landing-copy-icon"
+              data-test-id="landing-copy-rules"
               :icon="rulesCopied ? 'mdi-check' : 'mdi-content-copy'"
               size="small"
               variant="flat"
@@ -313,7 +370,7 @@
 
         <div class="landing-actions">
           <v-btn
-            class="p0-btn p0-btn-primary landing-cta"
+            class="ui-btn ui-btn-primary landing-cta"
             prepend-icon="mdi-cog-outline"
             to="/app/config"
             variant="flat"
@@ -340,7 +397,7 @@
           <h3>Special thanks to sky0matic</h3>
 
           <p>
-            This project started as a fork of <strong>sky0matic's Poker0matic</strong>. As the implementation
+            This project started as a fork of <strong>sky0matic's Poker0Matic</strong>. As the implementation
             moved too far away from sky0matic's original direction for the project, it became its own project
             instead. Special thanks to sky0matic for providing the initial foundation that made this version
             possible.
@@ -372,7 +429,7 @@
 
     <footer class="landing-footer">
       <div class="landing-footer-copy">
-        <span class="landing-footer-brand">Poker0matic</span>
+        <span class="landing-footer-brand">Refinimo</span>
         <span class="landing-footer-text">Collaborative planning poker for scrum teams using their own Firebase backend.</span>
       </div>
 
@@ -388,8 +445,17 @@
 
 <script lang="ts" setup>
   import { computed, onUnmounted, ref } from 'vue'
+  import PlanningCard from '@/components/PlanningCard.vue'
   import { useAppStore } from '@/stores/app'
   import { useConfigStore } from '@/stores/config'
+  import {
+    THEME_FAMILIES,
+    THEME_FAMILY_LOOKUP,
+    THEME_LOOKUP,
+    type ThemeFamily,
+    type ThemeModePreference,
+  } from '@/utils/themes'
+  import firebaseRulesRaw from '../../firebase.database.rules.json?raw'
 
   type LandingTabId = 'pitch' | 'firebase' | 'about'
 
@@ -406,11 +472,17 @@
     { id: 'firebase', label: 'How it works' },
     { id: 'about', label: 'About' },
   ]
+  const themeModeOptions: Array<{ value: ThemeModePreference, shortLabel: string, icon: string }> = [
+    { value: 'system', shortLabel: 'Auto', icon: 'mdi-theme-light-dark' },
+    { value: 'dark', shortLabel: 'Dark', icon: 'mdi-weather-night' },
+    { value: 'light', shortLabel: 'Light', icon: 'mdi-white-balance-sunny' },
+  ]
+  const themeOptions = computed(() => THEME_FAMILIES.map(family => THEME_FAMILY_LOOKUP[family]))
   const firebaseSteps = [
     {
       id: '01',
       title: 'Create your Firebase project',
-      body: 'Open Firebase Console, click "Create a project", give it any name you want, and finish the basic project setup. You can skip optional services that Poker0matic does not need.',
+      body: 'Open Firebase Console, click "Create a project", give it any name you want, and finish the basic project setup. You can skip optional services that Refinimo does not need.',
     },
     {
       id: '02',
@@ -420,7 +492,7 @@
     {
       id: '03',
       title: 'Replace the default rules',
-      body: 'Open the Realtime Database Rules tab, replace the default temporary rules with the Poker0matic rules shown below, then publish them so the current room schema is accepted.',
+      body: 'Open the Realtime Database Rules tab, replace the default temporary rules with the Refinimo rules shown below, then publish them so the current room schema is accepted.',
     },
     {
       id: '04',
@@ -429,101 +501,41 @@
     },
     {
       id: '05',
-      title: 'Paste the config into Poker0matic',
-      body: 'Open Poker0matic configuration, paste each Firebase value into the matching field, save, and the app will keep that setup in browser localStorage for future visits on that device.',
+      title: 'Paste the config into Refinimo',
+      body: 'Open Refinimo configuration, paste each Firebase value into the matching field, save, and the app will keep that setup in browser localStorage for future visits on that device.',
     },
   ]
-  const firebaseRules = `{
-  "rules": {
-    "rooms": {
-      ".read": false,
-      ".write": false,
-      "$room_id": {
-        ".read": "true",
-        ".write": "true",
-
-        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
-        "createdAt": { ".validate": "newData.isNumber()" },
-        "createdBy": { ".validate": "newData.isString()" },
-        "createdByUserId": { ".validate": "newData.val() === null || newData.isString()" },
-        "leaderUserId": { ".validate": "newData.val() === null || newData.isString()" },
-        "committedVote": { ".validate": "newData.val() === null || newData.isString()" },
-        "roundNumber": { ".validate": "newData.isNumber() && newData.val() >= 1" },
-        "lastActivity": { ".validate": "newData.isNumber()" },
-
-        "currentTask": {
-          ".validate": "newData.val() === null || (newData.hasChildren(['title']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 120 && (!newData.child('url').exists() || newData.child('url').val() === null || (newData.child('url').isString() && newData.child('url').val().length <= 500)) && (!newData.child('description').exists() || newData.child('description').val() === null || newData.child('description').isString()))"
-        },
-
-        "roundEditLock": {
-          ".validate": "newData.val() === null || (newData.hasChildren(['userId', 'userName', 'acquiredAt']) && newData.child('userId').isString() && newData.child('userName').isString() && newData.child('userName').val().length > 0 && newData.child('userName').val().length <= 20 && newData.child('acquiredAt').isNumber())"
-        },
-
-        "settings": {
-          "showVotes": { ".validate": "newData.isBoolean()" },
-          "v": { ".validate": "newData.isNumber()" },
-          "deck": { ".validate": "newData.isString() && (newData.val() === 'fibonacci' || newData.val() === 'linear' || newData.val() === 'tshirt' || newData.val() === 'custom')" },
-          "customDeck": { ".validate": "newData.val() === null || newData.isString()" },
-          "specialQuestion": { ".validate": "newData.isBoolean()" },
-          "specialCoffee": { ".validate": "newData.isBoolean()" },
-          "historyEnabled": { ".validate": "newData.isBoolean()" },
-          "leaderModeEnabled": { ".validate": "newData.isBoolean()" },
-          "taskInformationEnabled": { ".validate": "newData.isBoolean()" }
-        },
-
-        "users": {
-          "$user_id": {
-            ".validate": "newData.hasChildren(['name', 'joinedAt'])",
-            "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20" },
-            "joinedAt": { ".validate": "newData.isNumber()" },
-            "vote": { ".validate": "newData.val() === null || newData.isString() || newData.isNumber()" },
-            "avatarStyle": { ".validate": "newData.val() === null || newData.isString()" },
-            "avatarSeed": { ".validate": "newData.val() === null || newData.isString()" },
-            "avatarBg": { ".validate": "newData.val() === null || newData.isString()" }
-          }
-        },
-
-        "history": {
-          "$history_id": {
-            ".validate": "newData.hasChildren(['id', 'finalVote', 'round', 'participantCount', 'consensus'])",
-            "id": { ".validate": "newData.isString()" },
-            "title": { ".validate": "newData.val() === null || newData.isString()" },
-            "url": { ".validate": "newData.val() === null || newData.isString()" },
-            "description": { ".validate": "newData.val() === null || newData.isString()" },
-            "finalVote": { ".validate": "newData.val() === null || newData.isString()" },
-            "avg": { ".validate": "newData.val() === null || newData.isString()" },
-            "closest": { ".validate": "newData.val() === null || newData.isString()" },
-            "round": { ".validate": "newData.isNumber() && newData.val() >= 1" },
-            "durationMs": { ".validate": "newData.val() === null || newData.isNumber()" },
-            "completedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
-            "participantCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-            "consensus": { ".validate": "newData.isString() && (newData.val() === 'yes' || newData.val() === 'split')" },
-            "votes": {
-              "$vote_user_id": { ".validate": "newData.isString()" }
-            },
-            "voteSnapshots": {
-              "$vote_user_id": {
-                ".validate": "newData.hasChildren(['name', 'vote']) && newData.child('name').isString() && (newData.child('vote').isString() || newData.child('vote').isNumber())"
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}`
+  const firebaseRules = firebaseRulesRaw.trim()
   const aboutCredits = [
     {
       title: 'DiceBear',
-      body: 'Used for avatar generation so every player can have a lightweight identity without uploading profile images.',
+      body: 'Used for generated avatar styles and lightweight player identities.',
       href: 'https://www.dicebear.com/',
       label: 'DiceBear',
     },
     {
-      title: 'Magnific',
-      body: 'Used in the icon generation workflow while shaping the project branding and public visuals.',
-      href: 'https://docs.magnific.com/api-reference/icon-generation/overview',
+      title: 'Gravatar',
+      body: 'Used as an optional profile image source for globally recognized avatars.',
+      href: 'https://gravatar.com/',
+      label: 'Gravatar',
+    },
+    {
+      title: 'Anggara Putra',
+      body: 'Credited for the Magnific playing-card suit artwork used across the card and icon set.',
+      href: 'https://www.magnific.com/author/anggara-putra',
       label: 'Magnific',
+    },
+    {
+      title: 'NSFWJS and TensorFlow.js',
+      body: 'Used for client-side checks on custom avatar image URLs before they are saved.',
+      href: 'https://github.com/infinitered/nsfwjs',
+      label: 'NSFWJS',
+    },
+    {
+      title: 'Vue Advanced Cropper',
+      body: 'Used for custom avatar image cropping in the profile editor.',
+      href: 'https://github.com/advanced-cropper/vue-advanced-cropper',
+      label: 'Cropper',
     },
     {
       title: 'Vuetify and Material Design Icons',
@@ -540,7 +552,32 @@
   ]
 
   const primaryActionLabel = computed(() => configStore.configFound ? 'Open app' : 'Start planning')
+  const currentThemeDefinition = computed(() => THEME_LOOKUP[appStore.currentTheme])
   let copiedResetTimer: number | null = null
+
+  function setLandingTheme (theme: ThemeFamily) {
+    appStore.setTheme(theme)
+  }
+
+  function landingSwatchStyle (theme: typeof themeOptions.value[number]) {
+    if (appStore.themeModePreference === 'system') {
+      return {
+        background: `linear-gradient(135deg, ${theme.dark?.preview.bg} 0 50%, ${theme.light?.preview.bg} 50% 100%)`,
+      }
+    }
+
+    return { background: theme[appStore.themeModePreference]?.preview.bg }
+  }
+
+  function landingDotStyle (theme: typeof themeOptions.value[number]) {
+    if (appStore.themeModePreference === 'system') {
+      return {
+        background: `linear-gradient(135deg, ${theme.dark?.preview.accent} 0 50%, ${theme.light?.preview.accent} 50% 100%)`,
+      }
+    }
+
+    return { background: theme[appStore.themeModePreference]?.preview.accent }
+  }
 
   async function copyFirebaseRules () {
     try {
@@ -570,6 +607,12 @@
 
 <style scoped>
   .landing-page {
+    --landing-glass: color-mix(in oklab, var(--bg-1), transparent 14%);
+    --landing-surface: color-mix(in oklab, var(--bg-1), var(--bg-2) 24%);
+    --landing-surface-strong: color-mix(in oklab, var(--bg-1), var(--bg-3) 22%);
+    --landing-shadow: 0 30px 80px color-mix(in oklab, var(--bg-base), black 48%);
+    --landing-shadow-soft: 0 20px 60px color-mix(in oklab, var(--bg-base), black 30%);
+
     margin: 0 auto;
     max-width: 1240px;
     padding: 40px 24px 96px;
@@ -580,7 +623,7 @@
   .landing-topbar {
     align-items: center;
     backdrop-filter: blur(16px);
-    background: rgba(10, 12, 16, .58);
+    background: var(--landing-glass);
     border: 1px solid var(--border);
     border-radius: 22px;
     display: flex;
@@ -649,6 +692,129 @@
 
   .landing-topbar-cta {
     flex-shrink: 0;
+  }
+
+  .landing-theme-trigger {
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+
+  .landing-theme-trigger:hover {
+    color: var(--text-1);
+  }
+
+  .landing-theme-menu {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--landing-shadow-soft);
+    display: grid;
+    gap: 14px;
+    max-height: calc(100vh - 32px);
+    min-width: 280px;
+    overflow-y: auto;
+    padding: 14px;
+  }
+
+  .landing-theme-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .landing-theme-group-label {
+    color: var(--text-3);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .landing-theme-mode-row {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-theme-mode-option {
+    align-items: center;
+    appearance: none;
+    background: var(--bg-2);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-2);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    gap: 5px;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 8px;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+  }
+
+  .landing-theme-mode-option:hover,
+  .landing-theme-mode-option-active {
+    background: var(--bg-3);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+  }
+
+  .landing-theme-options {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-theme-option {
+    align-items: center;
+    appearance: none;
+    background: var(--bg-2);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    display: grid;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    gap: 6px;
+    justify-items: center;
+    min-height: 72px;
+    padding: 8px;
+    position: relative;
+    text-align: center;
+  }
+
+  .landing-theme-option:hover,
+  .landing-theme-option-active {
+    background: var(--bg-3);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+  }
+
+  .landing-theme-option .v-icon {
+    color: var(--accent);
+    position: absolute;
+    right: 7px;
+    top: 7px;
+  }
+
+  .landing-theme-swatch {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    display: grid;
+    height: 24px;
+    overflow: hidden;
+    place-items: center;
+    width: 24px;
+  }
+
+  .landing-theme-dot {
+    border-radius: 999px;
+    height: 10px;
+    width: 10px;
   }
 
   .landing-brand-mark {
@@ -758,11 +924,11 @@
 
   .landing-mini-shell {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--bg-2), white 2%), var(--bg-1)),
+      linear-gradient(180deg, var(--landing-surface-strong), var(--landing-surface)),
       var(--bg-1);
     border: 1px solid var(--border);
     border-radius: 28px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, .34);
+    box-shadow: var(--landing-shadow);
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -816,17 +982,11 @@
   }
 
   .landing-vote-card {
-    align-items: center;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(180deg, var(--card-face), var(--card-face-2));
-    border: 1px solid rgba(0, 0, 0, .08);
-    border-radius: 18px;
-    color: var(--card-ink);
-    display: flex;
-    font-family: var(--font-mono);
-    font-size: 1.2rem;
-    font-weight: 700;
-    justify-content: center;
+    --planning-card-w: 64px;
+    --planning-card-h: 86px;
+    --planning-card-radius: 14px;
+    font-size: 20px;
+    justify-self: center;
     transform: rotate(var(--tilt, 0deg));
   }
 
@@ -908,7 +1068,7 @@
   }
 
   .landing-card {
-    background: color-mix(in oklab, var(--bg-1), white 2%);
+    background: var(--landing-surface);
     border: 1px solid var(--border);
     border-radius: 22px;
     min-height: 100%;
@@ -949,7 +1109,7 @@
   .landing-card-featured {
     background: linear-gradient(180deg, color-mix(in oklab, var(--accent-soft), var(--bg-1) 18%), var(--bg-1));
     border-color: color-mix(in oklab, var(--accent), var(--border) 45%);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
+    box-shadow: var(--landing-shadow-soft);
     padding: 28px;
   }
 
@@ -970,7 +1130,7 @@
   }
 
   .landing-rules-section {
-    background: color-mix(in oklab, var(--bg-1), white 2%);
+    background: var(--landing-surface);
     border: 1px solid var(--border);
     border-radius: 22px;
     display: flex;
@@ -1028,10 +1188,10 @@
   }
 
   .landing-code-block {
-    background: rgba(4, 7, 10, .72);
-    border: 1px solid color-mix(in oklab, var(--border), black 12%);
+    background: var(--bg-2);
+    border: 1px solid var(--border-strong);
     border-radius: 18px;
-    color: #d6edf2;
+    color: var(--text-1);
     font-family: var(--font-mono);
     font-size: .82rem;
     line-height: 1.6;
@@ -1049,7 +1209,7 @@
   }
 
   .landing-step {
-    background: var(--bg-1);
+    background: var(--landing-surface);
     border: 1px solid var(--border);
     border-radius: 22px;
     padding: 22px;
@@ -1120,6 +1280,14 @@
     color: var(--accent);
   }
 
+  :global([data-theme$="-light"]) .landing-page {
+    --landing-glass: color-mix(in oklab, var(--bg-1), transparent 8%);
+    --landing-surface: color-mix(in oklab, var(--bg-1), var(--bg-2) 34%);
+    --landing-surface-strong: color-mix(in oklab, var(--bg-1), var(--accent-soft) 42%);
+    --landing-shadow: 0 24px 70px color-mix(in oklab, var(--border-strong), transparent 48%);
+    --landing-shadow-soft: 0 18px 48px color-mix(in oklab, var(--border-strong), transparent 58%);
+  }
+
   @media (max-width: 1080px) {
     .landing-hero,
     .landing-grid-three,
@@ -1146,6 +1314,12 @@
       width: 100%;
     }
 
+    .landing-theme-trigger {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+    }
+
     .landing-footer {
       align-items: flex-start;
       flex-direction: column;
@@ -1163,6 +1337,10 @@
 
     .landing-nav {
       flex-wrap: wrap;
+    }
+
+    .landing-theme-menu {
+      min-width: min(320px, calc(100vw - 32px));
     }
 
     .landing-hero {
@@ -1192,6 +1370,10 @@
     .landing-cta-secondary,
     .landing-topbar-cta {
       width: 100%;
+    }
+
+    .landing-theme-options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .landing-vote-grid {

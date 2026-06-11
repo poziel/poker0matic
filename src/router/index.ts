@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import AppLobby from '@/pages/app.vue'
 import Config from '@/pages/config.vue'
 import Index from '@/pages/index.vue'
+import Lobby from '@/pages/lobby.vue'
 import { useConfigStore } from '@/stores/config'
+import { buildPageTitle } from '@/utils/pageTitle'
 
 function requireConfig (to: RouteLocationNormalized) {
   const configStore = useConfigStore()
@@ -76,17 +77,18 @@ const router = createRouter({
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
         public: true,
-        title: 'Poker0matic | Planning poker for scrum teams',
-        description: 'Poker0matic is a collaborative planning poker app for scrum teams to create rooms, join estimation sessions, vote on story points, and reveal results together.',
+        title: buildPageTitle(['Planning poker for scrum teams']),
+        description: 'Refinimo is a collaborative planning poker app for scrum teams to create rooms, join estimation sessions, vote on story points, and reveal results together.',
       },
     },
     {
       path: '/app',
-      component: AppLobby,
+      component: Lobby,
       beforeEnter: to => applySharedLinkRedirect(to, '/app'),
       meta: {
-        title: 'Poker0matic App | Create or join a planning room',
-        description: 'Create a new planning poker room, join an existing session, or connect your Firebase project to start estimating with Poker0matic.',
+        requiresUserName: true,
+        title: buildPageTitle(['Lobby']),
+        description: 'Lobby for creating a new planning poker room, joining an existing session, or connecting your Firebase project to start estimating with Refinimo.',
       },
     },
     {
@@ -94,8 +96,18 @@ const router = createRouter({
       component: () => import('@/pages/room.vue'),
       beforeEnter: requireConfig,
       meta: {
-        title: 'Poker0matic Room',
+        requiresUserName: true,
+        title: buildPageTitle(['Room']),
         description: 'Collaborative planning poker room for live scrum estimation, anonymous voting, and shared reveal.',
+      },
+    },
+    {
+      path: '/app/dock/:roomId?',
+      component: () => import('@/pages/dock.vue'),
+      meta: {
+        dockOnly: true,
+        title: buildPageTitle(['Voting Dock']),
+        description: 'Dedicated Refinimo voting dock for the current planning room.',
       },
     },
     {
@@ -103,8 +115,9 @@ const router = createRouter({
       component: () => import('@/pages/create.vue'),
       beforeEnter: requireConfig,
       meta: {
-        title: 'Create a Room | Poker0matic',
-        description: 'Set up a new Poker0matic planning poker room and configure the estimation deck for your team.',
+        requiresUserName: true,
+        title: buildPageTitle(['Create room']),
+        description: 'Set up a new Refinimo planning poker room and configure the estimation deck for your team.',
       },
     },
     {
@@ -114,23 +127,23 @@ const router = createRouter({
         showError: 'e' in route.query,
       }),
       meta: {
-        title: 'Configuration | Poker0matic',
-        description: 'Connect Poker0matic to your Firebase Realtime Database project to enable room creation, joining, and collaboration.',
+        title: buildPageTitle(['Configuration']),
+        description: 'Connect Refinimo to your Firebase Realtime Database project to enable room creation, joining, and collaboration.',
       },
     },
     {
       path: '/app/attributions',
       component: () => import('@/pages/attributions.vue'),
       meta: {
-        title: 'Attributions | Poker0matic',
-        description: 'Third-party credits and attribution information for Poker0matic.',
+        title: buildPageTitle(['Attributions']),
+        description: 'Third-party credits and attribution information for Refinimo.',
       },
     },
   ],
 })
 
 router.afterEach(to => {
-  const title = typeof to.meta.title === 'string' ? to.meta.title : 'Poker0matic'
+  const title = typeof to.meta.title === 'string' ? to.meta.title : 'Refinimo'
   const description = typeof to.meta.description === 'string'
     ? to.meta.description
     : 'Collaborative planning poker for agile teams.'

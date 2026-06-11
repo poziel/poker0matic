@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { storeToRefs } from 'pinia'
   import { ref, watch } from 'vue'
+  import SettingsModalShell from '@/components/settings/SettingsModalShell.vue'
   import { useAppStore } from '@/stores/app'
   import { type FirebaseConfig, useConfigStore } from '@/stores/config'
   import { copyText } from '@/utils/clipboard'
@@ -16,6 +17,10 @@
   const appStore = useAppStore()
   const configStore = useConfigStore()
   const { firebaseConfig } = storeToRefs(configStore)
+  const activeSection = ref('firebase')
+  const configSections = [
+    { id: 'firebase', label: 'Firebase', icon: 'mdi-firebase' },
+  ] as const
 
   const config = ref<FirebaseConfig>({
     apiKey: '',
@@ -80,100 +85,109 @@
 </script>
 
 <template>
-  <v-dialog
-    max-width="500"
+  <SettingsModalShell
+    :active-section="activeSection"
+    description="Manage shared app configuration for Refinimo."
     :model-value="modelValue"
+    :sections="configSections"
+    title="Configuration"
+    @update:active-section="activeSection = $event"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="p0-modal" flat>
-      <div class="p0-modal-head">
-        <h2>Firebase Config</h2>
+    <section class="settings-section-panel">
+      <div class="settings-section-head">
+        <h3>Firebase</h3>
         <p>Connect the app to your own Firebase Realtime Database project.</p>
       </div>
 
-      <v-form @submit.prevent="saveConfig">
-        <div class="p0-modal-body">
-          <div class="config-fields">
-            <v-text-field
-              v-model="config.apiKey"
-              autocomplete="off"
-              class="p0-field"
-              hide-details="auto"
-              label="apiKey"
-              type="password"
-              variant="outlined"
-            />
+      <div class="config-fields" data-test-id="firebase-config-modal-form">
+        <v-text-field
+          v-model="config.apiKey"
+          autocomplete="off"
+          class="ui-field"
+          data-test-id="firebase-api-key-input"
+          hide-details="auto"
+          label="apiKey"
+          type="password"
+          variant="outlined"
+        />
 
-            <v-text-field
-              v-model="config.authDomain"
-              class="p0-field"
-              hide-details="auto"
-              label="authDomain"
-              variant="outlined"
-            />
+        <v-text-field
+          v-model="config.authDomain"
+          class="ui-field"
+          data-test-id="firebase-auth-domain-input"
+          hide-details="auto"
+          label="authDomain"
+          variant="outlined"
+        />
 
-            <v-text-field
-              v-model="config.databaseUrl"
-              class="p0-field"
-              hide-details="auto"
-              label="databaseUrl"
-              variant="outlined"
-            />
+        <v-text-field
+          v-model="config.databaseUrl"
+          class="ui-field"
+          data-test-id="firebase-database-url-input"
+          hide-details="auto"
+          label="databaseUrl"
+          variant="outlined"
+        />
 
-            <v-text-field
-              v-model="config.projectId"
-              class="p0-field"
-              hide-details="auto"
-              label="projectId"
-              variant="outlined"
-            />
+        <v-text-field
+          v-model="config.projectId"
+          class="ui-field"
+          data-test-id="firebase-project-id-input"
+          hide-details="auto"
+          label="projectId"
+          variant="outlined"
+        />
 
-            <v-text-field
-              v-model="config.storageBucket"
-              class="p0-field"
-              hide-details="auto"
-              label="storageBucket"
-              variant="outlined"
-            />
+        <v-text-field
+          v-model="config.storageBucket"
+          class="ui-field"
+          data-test-id="firebase-storage-bucket-input"
+          hide-details="auto"
+          label="storageBucket"
+          variant="outlined"
+        />
 
-            <v-text-field
-              v-model="config.messagingSenderId"
-              class="p0-field"
-              hide-details="auto"
-              label="messagingSenderId"
-              variant="outlined"
-            />
+        <v-text-field
+          v-model="config.messagingSenderId"
+          class="ui-field"
+          data-test-id="firebase-messaging-sender-id-input"
+          hide-details="auto"
+          label="messagingSenderId"
+          variant="outlined"
+        />
 
-            <v-text-field
-              v-model="config.appId"
-              class="p0-field"
-              hide-details="auto"
-              label="appId"
-              variant="outlined"
-            />
-          </div>
-        </div>
+        <v-text-field
+          v-model="config.appId"
+          class="ui-field"
+          data-test-id="firebase-app-id-input"
+          hide-details="auto"
+          label="appId"
+          variant="outlined"
+        />
+      </div>
+    </section>
 
-        <div class="p0-modal-foot">
-          <v-btn
-            class="p0-btn p0-btn-ghost"
-            prepend-icon="mdi-share-variant"
-            variant="flat"
-            @click="shareConfig"
-          >
-            Share config
-          </v-btn>
+    <template #footer>
+      <v-btn
+        class="ui-btn ui-btn-ghost"
+        data-test-id="firebase-share-config"
+        prepend-icon="mdi-share-variant"
+        variant="flat"
+        @click="shareConfig"
+      >
+        Share config
+      </v-btn>
 
-          <v-btn
-            class="p0-btn p0-btn-primary"
-            prepend-icon="mdi-content-save"
-            type="submit"
-            variant="flat"
-          >
-            Save config
-          </v-btn>
-        </div>
-      </v-form>
-    </v-card>
-  </v-dialog>
+      <v-btn
+        class="ui-btn ui-btn-primary"
+        data-test-id="firebase-save-config"
+        prepend-icon="mdi-content-save"
+        variant="flat"
+        @click="saveConfig"
+      >
+        Save config
+      </v-btn>
+    </template>
+  </SettingsModalShell>
 </template>

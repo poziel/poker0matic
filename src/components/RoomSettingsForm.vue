@@ -1,11 +1,13 @@
 <script setup lang="ts">
-  export type DeckPreset = 'fibonacci' | 'linear' | 'tshirt' | 'custom'
+  import { computed } from 'vue'
+  import { MAX_REACTION_EMOJIS } from '@/utils/reactions'
+
+  export type DeckPreset = 'fibonacci' | 'modified-fibonacci' | 'linear' | 'power-of-2' | 'tshirt' | 'custom'
 
   type DeckPresetOption = {
     id: DeckPreset
     label: string
     preview: string
-    count?: number
   }
 
   export interface RoomFormSettings {
@@ -15,14 +17,26 @@
     specialQuestion: boolean
     specialCoffee: boolean
     historyEnabled: boolean
+    allowVoteChangesAfterReveal: boolean
     leaderModeEnabled: boolean
     taskInformationEnabled: boolean
+    timerEnabled: boolean
+    timerMode: 'automatic' | 'manual'
+    timerDurationSeconds: number
+    timerAutoRevealEnabled: boolean
+    timerWarningEnabled: boolean
+    timerWarningType: 'seconds' | 'percentage'
+    timerWarningValue: number
+    reactionsEnabled: boolean
+    reactionEmojis: string[]
   }
 
   const DECK_PRESETS: DeckPresetOption[] = [
-    { id: 'fibonacci', label: 'Fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 · 55', count: 10 },
-    { id: 'linear', label: 'Linear', preview: '1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 12 · 15', count: 12 },
-    { id: 'tshirt', label: 'T-shirt', preview: 'XS · S · M · L · XL · XXL', count: 6 },
+    { id: 'fibonacci', label: 'Fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 · 55' },
+    { id: 'modified-fibonacci', label: 'Modified fibonacci', preview: '0 · 1 · 2 · 3 · 5 · 8 · 13 · 20 · 40 · 100' },
+    { id: 'linear', label: 'Linear', preview: '1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 12 · 15' },
+    { id: 'power-of-2', label: 'Power of 2', preview: '1 · 2 · 4 · 8 · 16 · 32 · 64 · 128' },
+    { id: 'tshirt', label: 'T-shirt', preview: 'XS · S · M · L · XL · XXL' },
     { id: 'custom', label: 'Custom', preview: 'Define your own sequence' },
   ]
 
@@ -36,8 +50,28 @@
     'update:modelValue': [settings: RoomFormSettings]
   }>()
 
+  const reactionEmojiSlots = computed(() =>
+    Array.from({ length: MAX_REACTION_EMOJIS }, (_, index) => props.modelValue.reactionEmojis[index] ?? ''),
+  )
+
   function patch (changes: Partial<RoomFormSettings>) {
     emit('update:modelValue', { ...props.modelValue, ...changes })
+  }
+
+  function patchTimerDuration (value: number | string) {
+    const duration = typeof value === 'number' ? value : Number(value)
+    patch({ timerDurationSeconds: duration })
+  }
+
+  function patchTimerWarningValue (value: number | string) {
+    const warningValue = typeof value === 'number' ? value : Number(value)
+    patch({ timerWarningValue: warningValue })
+  }
+
+  function patchReactionEmoji (index: number, value: string) {
+    const reactionEmojis = [...props.modelValue.reactionEmojis]
+    reactionEmojis[index] = value
+    patch({ reactionEmojis })
   }
 </script>
 
@@ -46,7 +80,8 @@
     <!-- Room name -->
     <v-text-field
       :autofocus="autofocus"
-      class="p0-field"
+      class="ui-field"
+      data-test-id="room-name-input"
       hide-details="auto"
       label="Room name"
       maxlength="60"
@@ -67,13 +102,13 @@
           :key="preset.id"
           class="deck-option"
           :class="{ active: modelValue.deck === preset.id }"
+          :data-test-id="`room-deck-${preset.id}`"
           type="button"
           @click="patch({ deck: preset.id })"
         >
           <div class="deck-option-top">
             <span class="deck-option-label">{{ preset.label }}</span>
-            <span v-if="preset.count" class="deck-option-count">{{ preset.count }}</span>
-            <v-icon v-else icon="mdi-pencil" size="12" style="color: var(--text-4)" />
+            <v-icon v-if="preset.id === 'custom'" icon="mdi-pencil" size="12" style="color: var(--text-4)" />
           </div>
 
           <span class="deck-option-preview">{{ preset.preview }}</span>
@@ -82,7 +117,8 @@
 
       <v-text-field
         v-if="modelValue.deck === 'custom'"
-        class="p0-field"
+        class="ui-field"
+        data-test-id="room-custom-deck-input"
         hint="Comma-separated values — e.g. 1, 2, 3, 5, 8, 13"
         label="Custom values"
         :model-value="modelValue.customDeck"
@@ -105,7 +141,8 @@
 
           <input
             :checked="modelValue.specialQuestion"
-            class="p0-toggle"
+            class="ui-toggle"
+            data-test-id="room-toggle-question"
             type="checkbox"
             @change="patch({ specialQuestion: ($event.target as HTMLInputElement).checked })"
           >
@@ -119,7 +156,8 @@
 
           <input
             :checked="modelValue.specialCoffee"
-            class="p0-toggle"
+            class="ui-toggle"
+            data-test-id="room-toggle-break"
             type="checkbox"
             @change="patch({ specialCoffee: ($event.target as HTMLInputElement).checked })"
           >
@@ -127,59 +165,241 @@
       </div>
     </div>
 
-    <!-- Round history -->
+    <!-- Round options -->
     <div class="room-settings-section">
-      <span class="settings-label">Round history</span>
+      <span class="settings-label">Round options</span>
 
-      <label class="toggle-item">
-        <div class="toggle-info">
-          <v-icon icon="mdi-history" size="15" style="color: var(--text-2)" />
-          <span class="toggle-name">Save completed rounds</span>
-        </div>
+      <div class="toggles-row toggles-row-stacked">
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-history" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Save completed rounds</span>
+          </div>
 
-        <input
-          :checked="modelValue.historyEnabled"
-          class="p0-toggle"
-          type="checkbox"
-          @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
-        >
-      </label>
+          <input
+            :checked="modelValue.historyEnabled"
+            class="ui-toggle"
+            data-test-id="room-toggle-history"
+            type="checkbox"
+            @change="patch({ historyEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-card-bulleted-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Allow vote changes after reveal</span>
+          </div>
+
+          <input
+            :checked="modelValue.allowVoteChangesAfterReveal"
+            class="ui-toggle"
+            data-test-id="room-toggle-post-reveal-voting"
+            type="checkbox"
+            @change="patch({ allowVoteChangesAfterReveal: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-text-box-search-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Require task information for rounds</span>
+          </div>
+
+          <input
+            :checked="modelValue.taskInformationEnabled"
+            class="ui-toggle"
+            data-test-id="room-toggle-task-info"
+            type="checkbox"
+            @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-crown-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Enable leader mode</span>
+          </div>
+
+          <input
+            :checked="modelValue.leaderModeEnabled"
+            class="ui-toggle"
+            data-test-id="room-toggle-leader-mode"
+            type="checkbox"
+            @change="patch({ leaderModeEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+      </div>
     </div>
 
     <div class="room-settings-section">
-      <span class="settings-label">Round context</span>
+      <span class="settings-label">Round timer</span>
 
       <label class="toggle-item">
         <div class="toggle-info">
-          <v-icon icon="mdi-text-box-search-outline" size="15" style="color: var(--text-2)" />
-          <span class="toggle-name">Require task information for rounds</span>
+          <v-icon icon="mdi-timer-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Enable round timer</span>
         </div>
 
         <input
-          :checked="modelValue.taskInformationEnabled"
-          class="p0-toggle"
+          :checked="modelValue.timerEnabled"
+          class="ui-toggle"
+          data-test-id="room-toggle-timer"
           type="checkbox"
-          @change="patch({ taskInformationEnabled: ($event.target as HTMLInputElement).checked })"
+          @change="patch({ timerEnabled: ($event.target as HTMLInputElement).checked })"
         >
       </label>
+
+      <div v-if="modelValue.timerEnabled" class="timer-settings">
+        <label class="toggle-item">
+          <div class="toggle-info">
+            <v-icon icon="mdi-eye-check-outline" size="15" style="color: var(--text-2)" />
+            <span class="toggle-name">Reveal votes when timer ends</span>
+          </div>
+
+          <input
+            :checked="modelValue.timerAutoRevealEnabled"
+            class="ui-toggle"
+            data-test-id="room-toggle-timer-auto-reveal"
+            type="checkbox"
+            @change="patch({ timerAutoRevealEnabled: ($event.target as HTMLInputElement).checked })"
+          >
+        </label>
+
+        <div class="timer-config-group">
+          <span class="timer-config-label">Mode</span>
+
+          <div class="timer-config-controls timer-mode-controls">
+            <v-btn-toggle
+              class="timer-mode-toggle"
+              density="compact"
+              mandatory
+              :model-value="modelValue.timerMode"
+              variant="outlined"
+              @update:model-value="patch({ timerMode: $event as RoomFormSettings['timerMode'] })"
+            >
+              <v-btn data-test-id="room-timer-mode-automatic" value="automatic">
+                <v-icon icon="mdi-play-circle-outline" size="15" />
+                Automatic
+              </v-btn>
+
+              <v-btn data-test-id="room-timer-mode-manual" value="manual">
+                <v-icon icon="mdi-hand-back-left-outline" size="15" />
+                Manual
+              </v-btn>
+            </v-btn-toggle>
+
+            <div class="timer-value-control">
+              <v-text-field
+                class="ui-field timer-number-field"
+                data-test-id="room-timer-duration-input"
+                hide-details="auto"
+                inputmode="numeric"
+                label="Duration"
+                :model-value="modelValue.timerDurationSeconds"
+                type="number"
+                variant="outlined"
+                @update:model-value="patchTimerDuration"
+              />
+
+              <span class="timer-unit-label">sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="timer-config-group">
+          <span class="timer-config-label">Warning</span>
+
+          <div class="timer-config-controls timer-warning-controls">
+            <label class="toggle-item timer-warning-toggle">
+              <div class="toggle-info">
+                <v-icon icon="mdi-alert-circle-outline" size="15" style="color: var(--text-2)" />
+                <span class="toggle-name">Enable warning threshold</span>
+              </div>
+
+              <input
+                :checked="modelValue.timerWarningEnabled"
+                class="ui-toggle"
+                data-test-id="room-toggle-timer-warning"
+                type="checkbox"
+                @change="patch({ timerWarningEnabled: ($event.target as HTMLInputElement).checked })"
+              >
+            </label>
+
+            <template v-if="modelValue.timerWarningEnabled">
+              <v-btn-toggle
+                class="timer-mode-toggle"
+                density="compact"
+                mandatory
+                :model-value="modelValue.timerWarningType"
+                variant="outlined"
+                @update:model-value="patch({ timerWarningType: $event as RoomFormSettings['timerWarningType'] })"
+              >
+                <v-btn data-test-id="room-timer-warning-type-seconds" value="seconds">
+                  Seconds
+                </v-btn>
+
+                <v-btn data-test-id="room-timer-warning-type-percentage" value="percentage">
+                  Percent
+                </v-btn>
+              </v-btn-toggle>
+
+              <div class="timer-value-control">
+                <v-text-field
+                  class="ui-field timer-number-field"
+                  data-test-id="room-timer-warning-value-input"
+                  hide-details="auto"
+                  inputmode="numeric"
+                  label="Value"
+                  :model-value="modelValue.timerWarningValue"
+                  type="number"
+                  variant="outlined"
+                  @update:model-value="patchTimerWarningValue"
+                />
+
+                <span class="timer-unit-label">{{ modelValue.timerWarningType === 'percentage' ? '%' : 'sec' }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="room-settings-section">
-      <span class="settings-label">Room control</span>
+      <span class="settings-label">Emoji reactions</span>
 
       <label class="toggle-item">
         <div class="toggle-info">
-          <v-icon icon="mdi-crown-outline" size="15" style="color: var(--text-2)" />
-          <span class="toggle-name">Enable leader mode</span>
+          <v-icon icon="mdi-emoticon-happy-outline" size="15" style="color: var(--text-2)" />
+          <span class="toggle-name">Enable reaction bar</span>
         </div>
 
         <input
-          :checked="modelValue.leaderModeEnabled"
-          class="p0-toggle"
+          :checked="modelValue.reactionsEnabled"
+          class="ui-toggle"
+          data-test-id="room-toggle-reactions"
           type="checkbox"
-          @change="patch({ leaderModeEnabled: ($event.target as HTMLInputElement).checked })"
+          @change="patch({ reactionsEnabled: ($event.target as HTMLInputElement).checked })"
         >
       </label>
+
+      <div v-if="modelValue.reactionsEnabled" class="reaction-settings-grid">
+        <label
+          v-for="(_, index) in reactionEmojiSlots"
+          :key="index"
+          class="reaction-emoji-field"
+        >
+          <span>{{ index + 1 }}</span>
+
+          <input
+            :aria-label="`Reaction emoji ${index + 1}`"
+            :data-test-id="`room-reaction-emoji-${index + 1}`"
+            maxlength="8"
+            :value="modelValue.reactionEmojis[index]"
+            @input="patchReactionEmoji(index, ($event.target as HTMLInputElement).value)"
+          >
+        </label>
+      </div>
     </div>
   </div>
 </template>

@@ -107,7 +107,7 @@ Large UI and room-experience update focused on visual polish, mobile ergonomics,
 
 ### Added
 
-- **Clean application shell** — redesigned the toolbar, brand treatment, background system, and modal styling around the current poker0matic identity.
+- **Clean application shell** — redesigned the toolbar, brand treatment, background system, and modal styling around the current Refinimo identity.
 - **Logo and chip imagery** — added dedicated public image assets and a smaller favicon instead of relying on the default scaffold visuals.
 - **Player avatars** — added generated avatar styles, avatar background controls, and avatar previews so players are easier to identify across the room.
 - **Theme picker** — added selectable visual themes from the user menu, with the selected theme persisted locally.
@@ -165,14 +165,14 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/poker0matic/compare/v1.5.0...HEAD
-[1.5.0]: https://github.com/poziel/poker0matic/compare/v1.4.2...v1.5.0
-[1.4.2]: https://github.com/poziel/poker0matic/compare/v1.4.1...v1.4.2
-[1.4.1]: https://github.com/poziel/poker0matic/compare/v1.4.0...v1.4.1
-[1.4.0]: https://github.com/poziel/poker0matic/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/poziel/poker0matic/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/poziel/poker0matic/compare/v1.1.2...v1.2.0
-[1.1.2]: https://github.com/poziel/poker0matic/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/poziel/poker0matic/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/poziel/poker0matic/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/poziel/poker0matic/releases/tag/v1.0.0
+[Unreleased]: https://github.com/poziel/Refinimo/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/poziel/Refinimo/compare/v1.4.2...v1.5.0
+[1.4.2]: https://github.com/poziel/Refinimo/compare/v1.4.1...v1.4.2
+[1.4.1]: https://github.com/poziel/Refinimo/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/poziel/Refinimo/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/poziel/Refinimo/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/poziel/Refinimo/compare/v1.1.2...v1.2.0
+[1.1.2]: https://github.com/poziel/Refinimo/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/poziel/Refinimo/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/poziel/Refinimo/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/poziel/Refinimo/releases/tag/v1.0.0
