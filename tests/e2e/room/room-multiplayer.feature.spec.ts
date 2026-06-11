@@ -30,7 +30,7 @@ test.describe('Feature: multiplayer room workflow', () => {
         await expect(resultCard(participantPage, '3')).toBeVisible()
         await expect(resultCard(participantPage, '5')).toBeVisible()
         await expect(resultCard(participantPage, '8')).toBeVisible()
-        await expect(participantPage.getByText(/Avg/)).toBeVisible()
+        await expect(participantPage.getByTestId('round-insights-toggle')).toContainText('Avg')
       }
     } finally {
       await bob.close()
