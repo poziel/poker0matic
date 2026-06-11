@@ -138,6 +138,7 @@ test.describe('Feature: room scale', () => {
     await expect(page.getByTestId('room-console-vote-panel')).toBeVisible()
     await expect(page.getByTestId('round-insights-toggle')).toContainText('Consensus')
     await expect(page.getByTestId('consensus-confetti')).toBeVisible()
+    await expect(page.locator('.confetti-piece')).toHaveCount(24)
   })
 
   test('Scenario: group status view moves a player when they vote', async ({ page }) => {

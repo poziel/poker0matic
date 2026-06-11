@@ -2,9 +2,8 @@
   interface ConfettiPiece {
     id: string
     left: number
+    top: number
     bg: string
-    delay: number
-    duration: number
     rotation: number
     shape: string
   }
@@ -25,12 +24,11 @@
       :key="piece.id"
       class="confetti-piece"
       :style="{
+        '--confetti-rotation': `${piece.rotation}deg`,
         left: `${piece.left}%`,
+        top: `${piece.top}%`,
         background: piece.bg,
-        animationDelay: `${piece.delay}s`,
-        animationDuration: `${piece.duration}s`,
         borderRadius: piece.shape,
-        transform: `rotate(${piece.rotation}deg)`,
       }"
     />
   </div>

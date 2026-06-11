@@ -696,6 +696,7 @@
     'tshirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   }
   const VOTE_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as const
+  const CONFETTI_PIECE_COUNT = 24
   const VIEW_MODE_SEQUENCE: ViewMode[] = ['table', 'grid', 'simple', 'console', 'group-status']
   const VIEW_MODE_LABELS: Record<ViewMode, string> = {
     'console': 'Console view',
@@ -763,9 +764,8 @@
   const confettiPieces = ref<Array<{
     id: string
     left: number
+    top: number
     bg: string
-    delay: number
-    duration: number
     rotation: number
     shape: string
   }>>([])
@@ -2963,19 +2963,18 @@
 
   function triggerConfetti () {
     const colors = ['#4f8cff', '#3ecf8e', '#f5b14d', '#f05a5a', '#a78bfa', '#ffffff']
-    confettiPieces.value = Array.from({ length: 80 }, (_, index) => ({
+    confettiPieces.value = Array.from({ length: CONFETTI_PIECE_COUNT }, (_, index) => ({
       id: `c${index}`,
       left: Math.random() * 100,
+      top: 8 + Math.random() * 78,
       bg: colors[Math.floor(Math.random() * colors.length)],
-      delay: Math.random() * 0.4,
-      duration: 1.8 + Math.random() * 1.4,
       rotation: Math.random() * 360,
       shape: Math.random() > 0.5 ? '50%' : '2px',
     }))
     showConfetti.value = true
     setTimeout(() => {
       showConfetti.value = false
-    }, 3500)
+    }, 1800)
   }
 
   function triggerTimerWarningAnimation () {
