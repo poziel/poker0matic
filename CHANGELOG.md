@@ -9,6 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Upcoming release notes are copied from merged pull request changelog sections.
 
+## [2.0.0] - 2026-06-12
+
+### Added
+
+- Refinimo branding, documentation, metadata, and screenshots for the renamed app.
+- Unified Preferences modal with dedicated sections for display name, avatar, theme, room display, and advertising.
+- Standalone keyboard shortcuts modal opened from the user menu.
+- DiceBear, Gravatar, and custom image avatar flows with seed randomization, previewing, cropping, moderation, and saved rendered avatar URLs.
+- Independent theme family selection plus `Follow system`, `Dark`, and `Light` mode behavior.
+- Theme previews that show split light/dark variants when following the browser/system preference.
+- External voting dock route, browser-window dock, phone/QR dock flow, and dock session heartbeat handling.
+- Simple room view, console/activity log view, and group status view in addition to existing room presentations.
+- Configurable automatic/manual round timers with pause, resume, restart, extend, warning, and auto-reveal behavior.
+- Post-reveal vote changing option.
+- Realtime emoji reactions for room participants.
+- Active player presence highlighting.
+- Advertising preference and ad slot infrastructure.
+- Firebase mock, Playwright E2E suites, unit tests, and CI/build workflow coverage.
+- Attributions for DiceBear, Gravatar, Anggara Putra / Magnific assets, custom image URL validation, and cropping libraries.
+
+### Removed
+
+- Legacy Poker0Matic-facing app naming from the primary user experience.
+- Username-keyed vote history as the durable history format.
+- Checked-in generated `dist` assets from source control.
+- Legacy split theme entries that duplicated each palette as separate light/dark choices.
+- Redundant top-right room/switch-view control now covered by Preferences.
+- Side panel room-panel content that duplicated the room itself.
+- Large revealed-state paint effects that made the revealed room feel laggy.
+
+### Modified
+
+- Room history now stores vote snapshots by user ID, preserving identity even when names change.
+- Profile/configuration naming now treats the main user modal as Preferences rather than a narrow Profile-only model.
+- Avatar changes propagate to active room participants so other users see updated avatars.
+- Theme mode persistence is separate from selected theme family.
+- Light-theme and external/simple dock styling now avoid incorrect opaque dock backgrounds.
+- Room reveal UI supports updated insights, vote distributions, final vote controls, and simpler visual hierarchy.
+- Voting shortcuts now cover deck toggling, external dock toggling, preferences, shortcut help, lobby navigation, reveal/hide, timers, room settings, card cycling, reactions, new/reset round, theme mode, and room display mode.
+- Console view now logs external dock vote changes and shows revealed votes in a side panel.
+- Room sidebar keeps a meaningful header/collapse control for mobile access.
+- About page content now includes expanded project acknowledgements.
+- Landing page and light-theme surfaces have improved contrast and theme support.
+- README, CONFIG, changelog, and Ruler/testing guidance now reflect the release-2 application shape.
+
+### Fixed
+
+- Avatar updates only changing the user menu but not the active room participant.
+- Follow-theme avatar backgrounds rendering incorrectly as white in the user menu.
+- External voting dock and simple-mode dock backgrounds appearing opaque in light themes.
+- Shortcut toasts blocking repeated shortcut execution.
+- Browser-reserved shortcut conflicts by supporting shifted variants.
+- Console view not updating when external voting dock votes changed.
+- Revealed-vote steady-state performance caused by expensive paint/compositing work.
+- Multiplayer E2E assertion ambiguity around the new repeated `Avg` labels in round insights.
+
+
 ## [1.5.0] - 2026-05-15
 
 ### Added
@@ -165,7 +222,8 @@ First stable release.
 - **`/attributions` route and page** — attributions content moved inline to the home page.
 - **"Attributions" nav link** from the toolbar.
 
-[Unreleased]: https://github.com/poziel/Refinimo/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/poziel/refinimo/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/poziel/refinimo/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/poziel/Refinimo/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/poziel/Refinimo/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/poziel/Refinimo/compare/v1.4.0...v1.4.1
